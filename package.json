@@ -1,0 +1,12 @@
+{
+  "name": "Nexa",
+  "version": "1.0.0",
+  "description": "Nexa monorepo for all packages",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint"
+  },
+  "packageManager": "pnpm@10.33.2"
+}
