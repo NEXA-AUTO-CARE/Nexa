@@ -4,7 +4,9 @@
   "description": "Nexa monorepo for all packages",
   "private": true,
   "scripts": {
-    "dev": "pnpm -r --parallel run dev",
+    "dev": "pnpm -F @nexa/shared build && pnpm -r --parallel --stream run dev",
+    "dev:api": "pnpm -F @nexa/shared build && pnpm -r --parallel --stream --filter @nexa/shared --filter @nexa/api run dev",
+    "dev:web": "pnpm -F @nexa/shared build && pnpm -r --parallel --stream --filter @nexa/shared --filter @nexa/web run dev",
     "build": "pnpm -r run build",
     "lint": "pnpm -r run lint"
   },

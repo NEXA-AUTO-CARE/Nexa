@@ -1,0 +1,80 @@
+import { BookingStatus, ServiceType } from '@nexa/shared';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { JobPhoto } from './job-photo.entity';
+import { Payment } from './payment.entity';
+import { Review } from './review.entity';
+import { User } from './user.entity';
+import { Vehicle } from './vehicle.entity';
+
+@Entity('bookings')
+export class Booking {
+  @PrimaryGeneratedColumn('uuid', { name: 'booking_id' })
+  bookingId: string;
+
+  @Column({ type: 'uuid' })
+  userId: string;
+
+  @ManyToOne(() => User, (u) => u.bookings, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'user_id' })
+  customer: User;
+
+  @Column({ type: 'uuid' })
+  vehicleId: string;
+
+  @ManyToOne(() => Vehicle, (v) => v.bookings, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'vehicle_id' })
+  vehicle: Vehicle;
+
+  @Column({ type: 'uuid', nullable: true })
+  vendorId: string | null;
+
+  @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'vendor_id' })
+  vendor: User | null;
+
+  @Column({ type: 'enum', enum: ServiceType })
+  serviceType: ServiceType;
+
+  @Column({ type: 'timestamptz' })
+  bookingTime: Date;
+
+  @Column({ type: 'text' })
+  serviceAddress: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  latitude: string | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  longitude: string | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  price: string;
+
+  @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.BOOKED })
+  status: BookingStatus;
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz' })
+  updatedAt: Date;
+
+  @OneToOne(() => Payment, (p) => p.booking)
+  payment: Payment | null;
+
+  @OneToMany(() => JobPhoto, (p) => p.booking)
+  photos: JobPhoto[];
+
+  @OneToOne(() => Review, (r) => r.booking)
+  review: Review | null;
+}
