@@ -4,3 +4,5 @@ export { Booking } from './booking.entity';
 export { Payment } from './payment.entity';
 export { JobPhoto } from './job-photo.entity';
 export { Review } from './review.entity';
+export { OtpCode } from './otp-code.entity';
+export { RefreshToken } from './refresh-token.entity';
