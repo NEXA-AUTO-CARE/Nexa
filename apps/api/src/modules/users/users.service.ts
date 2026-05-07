@@ -4,6 +4,7 @@ import { PublicUser, UserRole } from '@nexa/shared';
 import { Repository } from 'typeorm';
 import { User } from '../../database/entities';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { DateUtils } from 'typeorm/util/DateUtils.js';
 
 export type UserIdentifierKind = 'email' | 'phone';
 
@@ -84,12 +85,14 @@ export class UsersService {
   toPublic(user: User): PublicUser {
     return {
       userId: user.userId,
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
       phoneNumber: user.phoneNumber,
       role: user.role,
       displayName: user.displayName,
       otpVerified: user.otpVerified,
-      createdAt: user.createdAt.toISOString(),
+      createdAt: DateUtils.mixedDateToDatetimeString(Date.now()), // TODO: add createdOn to User entity and use it here instead of current time
     };
   }
 }

@@ -1,20 +1,20 @@
 import {
   Check,
   Column,
-  CreateDateColumn,
   Entity,
   Index,
   JoinColumn,
+  ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
-  ManyToOne,
 } from 'typeorm';
+import { AuditEntity } from './audit.entity';
 import { Booking } from './booking.entity';
 import { User } from './user.entity';
 
 @Entity('reviews')
 @Check('"rating" BETWEEN 1 AND 5')
-export class Review {
+export class Review extends AuditEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'review_id' })
   reviewId: string;
 
@@ -45,7 +45,4 @@ export class Review {
 
   @Column({ type: 'text', nullable: true })
   comment: string | null;
-
-  @CreateDateColumn({ type: 'timestamptz' })
-  createdAt: Date;
 }

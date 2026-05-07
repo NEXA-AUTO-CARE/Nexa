@@ -1,17 +1,17 @@
 import { PaymentStatus } from '@nexa/shared';
 import {
   Column,
-  CreateDateColumn,
   Entity,
   Index,
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { AuditEntity } from './audit.entity';
 import { Booking } from './booking.entity';
 
 @Entity('payments')
-export class Payment {
+export class Payment extends AuditEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'payment_id' })
   paymentId: string;
 
@@ -40,7 +40,4 @@ export class Payment {
 
   @Column({ type: 'timestamptz', nullable: true })
   paidOutAt: Date | null;
-
-  @CreateDateColumn({ type: 'timestamptz' })
-  createdAt: Date;
 }

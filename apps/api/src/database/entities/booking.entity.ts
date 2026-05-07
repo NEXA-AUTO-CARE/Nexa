@@ -1,15 +1,14 @@
 import { BookingStatus, ServiceType } from '@nexa/shared';
 import {
   Column,
-  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from 'typeorm';
+import { AuditEntity } from './audit.entity';
 import { JobPhoto } from './job-photo.entity';
 import { Payment } from './payment.entity';
 import { Review } from './review.entity';
@@ -17,7 +16,7 @@ import { User } from './user.entity';
 import { Vehicle } from './vehicle.entity';
 
 @Entity('bookings')
-export class Booking {
+export class Booking extends AuditEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'booking_id' })
   bookingId: string;
 
@@ -62,12 +61,6 @@ export class Booking {
 
   @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.BOOKED })
   status: BookingStatus;
-
-  @CreateDateColumn({ type: 'timestamptz' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ type: 'timestamptz' })
-  updatedAt: Date;
 
   @OneToOne(() => Payment, (p) => p.booking)
   payment: Payment | null;

@@ -1,17 +1,17 @@
 import { PhotoType } from '@nexa/shared';
 import {
   Column,
-  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { AuditEntity } from './audit.entity';
 import { Booking } from './booking.entity';
 import { User } from './user.entity';
 
 @Entity('job_photos')
-export class JobPhoto {
+export class JobPhoto extends AuditEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'photo_id' })
   photoId: string;
 
@@ -34,7 +34,4 @@ export class JobPhoto {
 
   @Column({ type: 'text' })
   storageUrl: string;
-
-  @CreateDateColumn({ type: 'timestamptz', name: 'uploaded_at' })
-  uploadedAt: Date;
 }
