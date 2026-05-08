@@ -31,6 +31,7 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.4.2",
     "@nestjs/typeorm": "^11.0.1",
     "@nexa/shared": "workspace:*",
     "bcrypt": "^6.0.0",
@@ -82,9 +83,27 @@
       "ts"
     ],
     "rootDir": "src",
+    "roots": [
+      "<rootDir>",
+      "<rootDir>/../../../packages/shared/src"
+    ],
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.(t|j)s$": [
+        "ts-jest",
+        {
+          "tsconfig": "<rootDir>/../tsconfig.spec.json",
+          "useESM": false,
+          "diagnostics": false
+        }
+      ]
+    },
+    "transformIgnorePatterns": [
+      "/node_modules/(?!@nexa/)"
+    ],
+    "moduleNameMapper": {
+      "^@nexa/shared$": "<rootDir>/../../../packages/shared/src/index.ts",
+      "^(\\.{1,2}/.*)\\.js$": "$1"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

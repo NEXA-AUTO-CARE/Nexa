@@ -1,13 +1,14 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { UserRole } from '@nexa/shared';
+import type { Permission } from '@nexa/shared';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { AuthenticatedUser } from '../../../common/decorators/current-user.decorator';
 
 export interface JwtAccessPayload {
   sub: string;
-  role: UserRole;
+  role: string;
+  permissions: Permission[];
   type: 'access';
 }
 
@@ -25,6 +26,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (payload.type !== 'access') {
       throw new UnauthorizedException('Invalid token type');
     }
-    return { userId: payload.sub, role: payload.role };
+    return {
+      userId: payload.sub,
+      role: payload.role,
+      permissions: payload.permissions ?? [],
+    };
   }
 }

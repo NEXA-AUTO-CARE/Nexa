@@ -1,9 +1,12 @@
 import { ExecutionContext, createParamDecorator } from '@nestjs/common';
-import { UserRole } from '@nexa/shared';
+import type { Permission } from '@nexa/shared';
 
 export interface AuthenticatedUser {
   userId: string;
-  role: UserRole;
+  /** Role name (system role like 'customer' or a super-admin-created custom role). */
+  role: string;
+  /** Effective permission codes resolved from the user's role at JWT issuance. */
+  permissions: Permission[];
 }
 
 export const CurrentUser = createParamDecorator(

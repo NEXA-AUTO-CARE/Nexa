@@ -1,14 +1,16 @@
-import { UserRole } from '@nexa/shared';
 import {
   Column,
   Entity,
   Index,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Booking } from './booking.entity';
-import { Vehicle } from './vehicle.entity';
 import { AuditEntity } from './audit.entity';
+import { Booking } from './booking.entity';
+import { Role } from './role.entity';
+import { Vehicle } from './vehicle.entity';
 
 @Entity('users')
 export class User extends AuditEntity {
@@ -32,8 +34,12 @@ export class User extends AuditEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   passwordHash: string | null;
 
-  @Column({ type: 'enum', enum: UserRole })
-  role: UserRole;
+  @Column({ type: 'uuid' })
+  roleId: string;
+
+  @ManyToOne(() => Role, (r) => r.users, { onDelete: 'RESTRICT', eager: true })
+  @JoinColumn({ name: 'role_id' })
+  role: Role;
 
   @Column({ type: 'varchar', length: 100 })
   displayName: string;
