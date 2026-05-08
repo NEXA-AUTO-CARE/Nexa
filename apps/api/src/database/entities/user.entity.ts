@@ -1,20 +1,25 @@
 import { UserRole } from '@nexa/shared';
 import {
   Column,
-  CreateDateColumn,
   Entity,
   Index,
   OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 import { Booking } from './booking.entity';
 import { Vehicle } from './vehicle.entity';
+import { AuditEntity } from './audit.entity';
 
 @Entity('users')
-export class User {
+export class User extends AuditEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'user_id' })
   userId: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true, name: 'first_name' })
+  firstName: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true, name: 'last_name' })
+  lastName: string | null;
 
   @Index('uq_users_email', { unique: true, where: '"email" IS NOT NULL' })
   @Column({ type: 'varchar', length: 255, nullable: true })
@@ -35,12 +40,6 @@ export class User {
 
   @Column({ type: 'boolean', default: false })
   otpVerified: boolean;
-
-  @CreateDateColumn({ type: 'timestamptz' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ type: 'timestamptz' })
-  updatedAt: Date;
 
   @OneToMany(() => Vehicle, (v) => v.owner)
   vehicles: Vehicle[];

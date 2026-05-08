@@ -30,7 +30,7 @@ export class OtpService {
   async verify(identifier: string, code: string): Promise<void> {
     const row = await this.otpRepo.findOne({
       where: { identifier, code, consumedAt: IsNull() },
-      order: { createdAt: 'DESC' },
+      order: { createdOn: 'DESC' },
     });
     if (!row) {
       throw new UnauthorizedException('Invalid or already-used OTP');

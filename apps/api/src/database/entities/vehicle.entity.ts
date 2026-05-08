@@ -1,18 +1,18 @@
 import { VehicleType } from '@nexa/shared';
 import {
   Column,
-  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { AuditEntity } from './audit.entity';
 import { Booking } from './booking.entity';
 import { User } from './user.entity';
 
 @Entity('vehicles')
-export class Vehicle {
+export class Vehicle extends AuditEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'vehicle_id' })
   vehicleId: string;
 
@@ -37,9 +37,6 @@ export class Vehicle {
 
   @Column({ type: 'varchar', length: 30, nullable: true })
   colour: string | null;
-
-  @CreateDateColumn({ type: 'timestamptz' })
-  createdAt: Date;
 
   @OneToMany(() => Booking, (b) => b.vehicle)
   bookings: Booking[];

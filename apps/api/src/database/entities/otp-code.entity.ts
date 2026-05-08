@@ -1,14 +1,9 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { AuditEntity } from './audit.entity';
 
 @Entity('otp_codes')
 @Index('idx_otp_codes_identifier', ['identifier'])
-export class OtpCode {
+export class OtpCode extends AuditEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'id' })
   id: string;
 
@@ -23,7 +18,4 @@ export class OtpCode {
 
   @Column({ type: 'timestamptz', nullable: true })
   consumedAt: Date | null;
-
-  @CreateDateColumn({ type: 'timestamptz' })
-  createdAt: Date;
 }
