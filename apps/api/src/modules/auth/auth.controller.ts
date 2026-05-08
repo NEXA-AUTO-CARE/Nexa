@@ -8,6 +8,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ApiOperation, ApiResponse as ApiResponseDoc, ApiTags } from '@nestjs/swagger';
 import { AuthResponse } from '@nexa/shared';
 import type { Request, Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
@@ -19,6 +20,7 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 const REFRESH_COOKIE = 'nexa_rt';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -29,6 +31,8 @@ export class AuthController {
   @Public()
   @Post('signup')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Start signup: create pending user and dispatch OTP' })
+  @ApiResponseDoc({ status: 200, description: 'OTP issued (logged to API stdout in dev)' })
   signup(@Body() dto: SignupDto) {
     return this.auth.signup(dto);
   }
@@ -36,6 +40,9 @@ export class AuthController {
   @Public()
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify OTP code and receive a short-lived setupToken' })
+  @ApiResponseDoc({ status: 200, description: '{ setupToken } valid for 5 minutes' })
+  @ApiResponseDoc({ status: 401, description: 'Invalid or expired OTP' })
   verifyOtp(@Body() dto: VerifyOtpDto) {
     return this.auth.verifyOtp(dto.identifier, dto.code);
   }
@@ -43,6 +50,7 @@ export class AuthController {
   @Public()
   @Post('set-password')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Set initial password using setupToken; returns access + refresh' })
   async setPassword(
     @Body() dto: SetPasswordDto,
     @Res({ passthrough: true }) res: Response,
@@ -55,6 +63,8 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Log in with identifier (email or phone) + password' })
+  @ApiResponseDoc({ status: 401, description: 'Invalid credentials or unverified OTP' })
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
@@ -67,6 +77,7 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Rotate refresh token cookie and issue a new access token' })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -80,6 +91,7 @@ export class AuthController {
   @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Revoke refresh token and clear the cookie' })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const cookieToken = req.cookies?.[REFRESH_COOKIE] as string | undefined;
     const result = await this.auth.logout(cookieToken);

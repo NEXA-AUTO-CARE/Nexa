@@ -1,15 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { PublicUser, UserRole } from '@nexa/shared';
+import { Permission, PublicUser } from '@nexa/shared';
 import { Repository } from 'typeorm';
-import { User } from '../../database/entities';
+import { Role, User } from '../../database/entities';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { DateUtils } from 'typeorm/util/DateUtils.js';
 
 export type UserIdentifierKind = 'email' | 'phone';
 
 export interface IdentifierParts {
   kind: UserIdentifierKind;
+  firstName: string | null;
+  lastName: string | null;
   email: string | null;
   phoneNumber: string | null;
 }
@@ -20,10 +21,10 @@ const PHONE_RX = /^\+?[1-9]\d{6,14}$/;
 export function parseIdentifier(identifier: string): IdentifierParts {
   const trimmed = identifier.trim();
   if (EMAIL_RX.test(trimmed)) {
-    return { kind: 'email', email: trimmed.toLowerCase(), phoneNumber: null };
+    return { kind: 'email', firstName: null, lastName: null, email: trimmed.toLowerCase(), phoneNumber: null };
   }
   if (PHONE_RX.test(trimmed.replace(/\s/g, ''))) {
-    return { kind: 'phone', email: null, phoneNumber: trimmed.replace(/\s/g, '') };
+    return { kind: 'phone', firstName: null, lastName: null, email: null, phoneNumber: trimmed.replace(/\s/g, '') };
   }
   throw new Error('Identifier must be a valid email or E.164-style phone number');
 }
@@ -51,7 +52,7 @@ export class UsersService {
    */
   async createOtpPending(args: {
     identifier: string;
-    role: UserRole;
+    role: Role;
     displayName: string;
   }): Promise<User> {
     const existing = await this.findByIdentifier(args.identifier);
@@ -59,9 +60,11 @@ export class UsersService {
 
     const parts = parseIdentifier(args.identifier);
     const user = this.userRepo.create({
+      firstName: parts.firstName,
+      lastName: parts.lastName,
       email: parts.email,
       phoneNumber: parts.phoneNumber,
-      role: args.role,
+      roleId: args.role.roleId,
       displayName: args.displayName,
       otpVerified: false,
       passwordHash: null,
@@ -70,29 +73,41 @@ export class UsersService {
   }
 
   async markOtpVerified(userId: string): Promise<void> {
-    await this.userRepo.update({ userId }, { otpVerified: true });
+    const user = await this.findById(userId);
+    user.otpVerified = true;
+    await this.userRepo.save(user);
   }
 
   async setPasswordHash(userId: string, hash: string): Promise<void> {
-    await this.userRepo.update({ userId }, { passwordHash: hash });
+    const user = await this.findById(userId);
+    user.passwordHash = hash;
+    await this.userRepo.save(user);
   }
 
   async update(userId: string, dto: UpdateUserDto): Promise<User> {
-    await this.userRepo.update({ userId }, dto);
-    return this.findById(userId);
+    const user = await this.findById(userId);
+    Object.assign(user, dto);
+    return this.userRepo.save(user);
   }
 
-  toPublic(user: User): PublicUser {
+  /**
+   * Project a User entity into the API-shaped PublicUser. The optional `permissions`
+   * argument is the resolved permission catalog for that user's role; when omitted,
+   * an empty array is returned (caller is responsible for fetching permissions when
+   * they matter — typically only at JWT issuance and on /users/me).
+   */
+  toPublic(user: User, permissions: Permission[] = []): PublicUser {
     return {
       userId: user.userId,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
       phoneNumber: user.phoneNumber,
-      role: user.role,
+      role: user.role.name,
+      permissions,
       displayName: user.displayName,
       otpVerified: user.otpVerified,
-      createdAt: DateUtils.mixedDateToDatetimeString(Date.now()), // TODO: add createdOn to User entity and use it here instead of current time
+      createdAt: user.createdOn.toISOString(),
     };
   }
 }

@@ -39,6 +39,9 @@ export interface AppConfig {
     otpDevLog: boolean;
     mockPayments: boolean;
   };
+  bootstrap: {
+    superAdminEmail: string | null;
+  };
 }
 
 export default (): { app: AppConfig } => {
@@ -82,6 +85,9 @@ export default (): { app: AppConfig } => {
       flags: {
         otpDevLog: Boolean(env.OTP_DEV_LOG),
         mockPayments: Boolean(env.MOCK_PAYMENTS),
+      },
+      bootstrap: {
+        superAdminEmail: env.SUPER_ADMIN_EMAIL?.trim().toLowerCase() || null,
       },
     },
   };

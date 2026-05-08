@@ -7,3 +7,5 @@ export { JobPhoto } from './job-photo.entity';
 export { Review } from './review.entity';
 export { OtpCode } from './otp-code.entity';
 export { RefreshToken } from './refresh-token.entity';
+export { Role } from './role.entity';
+export { RolePermission } from './role-permission.entity';

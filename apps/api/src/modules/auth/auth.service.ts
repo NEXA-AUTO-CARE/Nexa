@@ -7,16 +7,19 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { AuthResponse, PublicUser, UserRole } from '@nexa/shared';
+import { AuthResponse, Permission, PublicUser, UserRole } from '@nexa/shared';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'node:crypto';
 import { IsNull, MoreThan, Repository } from 'typeorm';
 import { RefreshToken, User } from '../../database/entities';
+import { RolesService } from '../roles/roles.service';
 import { UsersService, parseIdentifier } from '../users/users.service';
 import { OtpService } from './otp.service';
 
 const BCRYPT_ROUNDS = 12;
 const SETUP_TOKEN_TTL_SECONDS = 5 * 60;
+
+const SELF_SIGNUP_ROLES: ReadonlySet<string> = new Set([UserRole.CUSTOMER, UserRole.VENDOR]);
 
 interface SetupTokenPayload {
   sub: string;
@@ -25,7 +28,8 @@ interface SetupTokenPayload {
 
 interface AccessTokenPayload {
   sub: string;
-  role: UserRole;
+  role: string;
+  permissions: Permission[];
   type: 'access';
 }
 
@@ -39,6 +43,7 @@ export interface AuthIssueResult {
 export class AuthService {
   constructor(
     private readonly users: UsersService,
+    private readonly roles: RolesService,
     private readonly otp: OtpService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
@@ -46,16 +51,25 @@ export class AuthService {
     private readonly refreshRepo: Repository<RefreshToken>,
   ) {}
 
-  async signup(args: { identifier: string; role: UserRole; displayName: string }): Promise<{ ok: true }> {
+  async signup(args: {
+    identifier: string;
+    role: UserRole;
+    displayName: string;
+  }): Promise<{ ok: true }> {
     try {
       parseIdentifier(args.identifier);
     } catch (err) {
       throw new BadRequestException((err as Error).message);
     }
-    if (args.role === UserRole.ADMIN) {
-      throw new BadRequestException('Admins cannot be self-created');
+    if (!SELF_SIGNUP_ROLES.has(args.role)) {
+      throw new BadRequestException('Only customer or vendor accounts can self-register');
     }
-    const user = await this.users.createOtpPending(args);
+    const role = await this.roles.findByNameOrFail(args.role);
+    const user = await this.users.createOtpPending({
+      identifier: args.identifier,
+      role,
+      displayName: args.displayName,
+    });
     if (user.passwordHash) {
       throw new ConflictException('Account already exists; please log in instead');
     }
@@ -123,9 +137,11 @@ export class AuthService {
   }
 
   private async issueAuthResult(user: User): Promise<AuthIssueResult> {
+    const permissions = await this.roles.listPermissions(user.roleId);
     const accessPayload: AccessTokenPayload = {
       sub: user.userId,
-      role: user.role,
+      role: user.role.name,
+      permissions,
       type: 'access',
     };
     const accessTtl = this.config.getOrThrow<number>('app.jwt.accessTtl');
@@ -140,7 +156,7 @@ export class AuthService {
         expiresAt: refreshExpiresAt,
       }),
     );
-    const publicUser: PublicUser = this.users.toPublic(user);
+    const publicUser: PublicUser = this.users.toPublic(user, permissions);
     return {
       response: { accessToken, user: publicUser },
       refreshToken: rawRefresh,

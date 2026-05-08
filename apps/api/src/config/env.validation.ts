@@ -106,6 +106,10 @@ export class EnvSchema {
 
   @IsBoolean()
   MOCK_PAYMENTS: boolean = false;
+
+  @IsString()
+  @IsOptional()
+  SUPER_ADMIN_EMAIL?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>): EnvSchema {
