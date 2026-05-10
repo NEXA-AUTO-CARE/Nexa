@@ -232,6 +232,12 @@ body {
   box-shadow: 0 0 0 3px var(--color-nexa-mint-dim);
 }
 
+.nexa-select option {
+  background-color: var(--color-nexa-bg-card-solid);
+  color: var(--color-nexa-text);
+}
+
+
 /* ─── Smooth Scroll ─── */
 html {
   scroll-behavior: smooth;
