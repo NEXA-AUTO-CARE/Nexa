@@ -13,3 +13,8 @@ export class BookingStatusChangedEvent {
     public readonly previousStatus: BookingStatus,
   ) {}
 }
+
+export class BookingCancelledEvent {
+  static readonly EVENT_NAME = 'booking.cancelled' as const;
+  constructor(public readonly booking: Booking) {}
+}

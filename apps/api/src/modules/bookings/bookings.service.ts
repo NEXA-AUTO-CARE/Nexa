@@ -11,7 +11,7 @@ import type { BookingResponse } from '@nexa/shared';
 import { Repository } from 'typeorm';
 import { Booking, Vehicle } from '../../database/entities';
 import { CreateBookingDto } from './dto/create-booking.dto';
-import { BookingCreatedEvent, BookingStatusChangedEvent } from './events/booking.events';
+import { BookingCancelledEvent, BookingCreatedEvent, BookingStatusChangedEvent } from './events/booking.events';
 
 /** Hard-coded pricing for MVP — replace with a pricing module later -potentially from the admin configured setiings in the database */
 const PRICING: Record<string, string> = {
@@ -41,7 +41,7 @@ export class BookingsService {
 
   async create(userId: string, dto: CreateBookingDto): Promise<Booking> {
     // Verify the vehicle belongs to the user
-    const vehicle = await verifyMyVehicle(dto, userId);
+    const vehicle = await this.verifyMyVehicle(dto, userId);
     if (!vehicle) {
       throw new BadRequestException('Vehicle not found or does not belong to you');
     }
@@ -93,20 +93,12 @@ export class BookingsService {
     return booking;
   }
 
-  async findByIdForUser(bookingId: string, userId: string): Promise<Booking> {
-    const booking = await this.findById(bookingId);
-    if (booking.userId !== userId) {
-      throw new ForbiddenException('You do not own this booking');
-    }
-    return booking;
-  }
-
   async updateStatus(
     bookingId: string,
     userId: string,
     newStatus: BookingStatus,
   ): Promise<Booking> {
-    const booking = await this.findByIdForUser(bookingId, userId);
+    const booking = await this.verifyMyBooking(bookingId, userId);
     const allowed = TRANSITIONS[booking.status] ?? [];
 
     if (!allowed.includes(newStatus)) {
@@ -129,7 +121,18 @@ export class BookingsService {
   }
 
   async cancel(bookingId: string, userId: string): Promise<void> {
+    // Verify the booking belongs to the user
+    const booking = await this.verifyMyBooking(bookingId, userId);
+    if (!booking) {
+      // TODO: Return a more specific error message
+      throw new BadRequestException('Booking not found or does not belong to you');
+    }
+
+    // TODO: Implement cancellation logic - potentially with a refund system if the booking was paid for
     await this.updateStatus(bookingId, userId, BookingStatus.CANCELLED);
+
+    // TODO: Emit event for cancellation - potentially with a refund (Admin approval needed) system if the booking was paid for.
+    this.events.emit(BookingCancelledEvent.EVENT_NAME, new BookingCancelledEvent(booking));
   }
 
   toResponse(booking: Booking): BookingResponse {
@@ -148,11 +151,24 @@ export class BookingsService {
       createdAt: booking.createdOn.toISOString(),
     };
   }
-}
 
-async function verifyMyVehicle(dto: CreateBookingDto, userId: string) {
-  return await this.vehicleRepo.findOne({
-    where: { vehicleId: dto.vehicleId, ownerId: userId },
-  });
-}
+  private async verifyMyVehicle(dto: CreateBookingDto, userId: string) {
+    return await this.vehicleRepo.findOne({
+      where: { vehicleId: dto.vehicleId, ownerId: userId },
+    });
+  }
 
+  private async verifyMyBooking(bookingId: string, userId: string) {
+    const booking = await this.bookingRepo.findOne({
+      where: { bookingId, userId },
+      relations: ['customer', 'vehicle'],
+    });
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+    if (booking.userId !== userId) {
+      throw new ForbiddenException('You do not own this booking');
+    }
+    return booking;
+  }
+}
