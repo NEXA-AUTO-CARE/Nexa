@@ -85,6 +85,12 @@ export function GaragePage() {
             nexa<span className="text-nexa-mint">.</span>
           </Link>
           <div className="flex items-center gap-4">
+            <Link to="/book" className="text-sm text-nexa-text-secondary hover:text-white transition-colors">
+              Book a Wash
+            </Link>
+            <Link to="/bookings" className="text-sm text-nexa-text-secondary hover:text-white transition-colors">
+              My Bookings
+            </Link>
             <span className="hidden text-sm text-nexa-text-secondary sm:inline">
               {user?.displayName}
             </span>

@@ -1,6 +1,7 @@
 import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuditModule } from './common/audit';
@@ -10,6 +11,8 @@ import configuration from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { BookingsModule } from './modules/bookings/bookings.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { UsersModule } from './modules/users/users.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
@@ -23,13 +26,17 @@ import { VehiclesModule } from './modules/vehicles/vehicles.module';
       validate: validateEnv,
       envFilePath: ['.env', '../../.env'],
     }),
+    EventEmitterModule.forRoot(),
     DatabaseModule,
     AuditModule,
     RolesModule,
     UsersModule,
     AuthModule,
     VehiclesModule,
+    NotificationsModule,
+    BookingsModule,
   ],
+
 
   controllers: [AppController],
   providers: [

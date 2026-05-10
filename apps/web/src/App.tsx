@@ -1,5 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
+import { BookingPage } from './pages/BookingPage'
+import { BookingsPage } from './pages/BookingsPage'
 import { GaragePage } from './pages/GaragePage'
 import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
@@ -27,6 +29,22 @@ function App() {
         element={
           <ProtectedRoute>
             <GaragePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/book"
+        element={
+          <ProtectedRoute>
+            <BookingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bookings"
+        element={
+          <ProtectedRoute>
+            <BookingsPage />
           </ProtectedRoute>
         }
       />
