@@ -69,7 +69,7 @@ export function SetPasswordPage() {
             {...register('confirm')}
           />
         </Field>
-        {serverError && <p className="text-sm text-red-600">{serverError}</p>}
+        {serverError && <p className="text-sm text-nexa-error">{serverError}</p>}
         <button className={btnPrimaryCls} type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Saving…' : 'Continue'}
         </button>

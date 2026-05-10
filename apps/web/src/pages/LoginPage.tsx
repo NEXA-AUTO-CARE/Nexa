@@ -45,7 +45,7 @@ export function LoginPage() {
       footer={
         <>
           New to Nexa?{' '}
-          <Link className="text-brand-600 hover:underline" to="/signup">
+          <Link className="text-nexa-mint hover:underline" to="/signup">
             Create an account
           </Link>
         </>
@@ -67,7 +67,7 @@ export function LoginPage() {
             {...register('password')}
           />
         </Field>
-        {serverError && <p className="text-sm text-red-600">{serverError}</p>}
+        {serverError && <p className="text-sm text-nexa-error">{serverError}</p>}
         <button className={btnPrimaryCls} type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Signing in…' : 'Log in'}
         </button>
