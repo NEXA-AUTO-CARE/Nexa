@@ -135,6 +135,19 @@ export class BookingsService {
     this.events.emit(BookingCancelledEvent.EVENT_NAME, new BookingCancelledEvent(booking));
   }
 
+  // Admin related booking methods
+  async acceptBooking(bookingId: string, userId: string): Promise<Booking> {
+    return await this.updateStatus(bookingId, userId, BookingStatus.ACCEPTED);
+  }
+
+  async inProgressBooking(bookingId: string, userId: string): Promise<Booking> {
+    return await this.updateStatus(bookingId, userId, BookingStatus.IN_PROGRESS);
+  }
+
+  async completeBooking(bookingId: string, userId: string): Promise<Booking> {
+    return await this.updateStatus(bookingId, userId, BookingStatus.COMPLETED);
+  }
+
   toResponse(booking: Booking): BookingResponse {
     const v = booking.vehicle;
     return {
