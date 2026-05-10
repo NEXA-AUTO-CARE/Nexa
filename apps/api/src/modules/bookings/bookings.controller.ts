@@ -60,7 +60,7 @@ export class BookingsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<BookingResponse> {
-    const booking = await this.bookings.findByIdForUser(id, user.userId);
+    const booking = await this.bookings.verifyMyBooking(id, user.userId);
     return this.bookings.toResponse(booking);
   }
 

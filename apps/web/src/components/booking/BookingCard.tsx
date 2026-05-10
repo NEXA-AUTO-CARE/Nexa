@@ -17,9 +17,10 @@ const SERVICE_LABELS: Record<string, string> = {
 interface BookingCardProps {
   booking: BookingResponse
   onCancel?: (b: BookingResponse) => void
+  onPay?: (b: BookingResponse) => void
 }
 
-export function BookingCard({ booking, onCancel }: BookingCardProps) {
+export function BookingCard({ booking, onCancel, onPay }: BookingCardProps) {
   const status = STATUS_STYLES[booking.status] ?? STATUS_STYLES.booked
   const canCancel = booking.status === 'booked' || booking.status === 'accepted'
 
@@ -72,14 +73,24 @@ export function BookingCard({ booking, onCancel }: BookingCardProps) {
       {/* Price + Actions */}
       <div className="mt-4 flex items-center justify-between border-t border-nexa-border-subtle pt-3">
         <span className="text-lg font-bold text-nexa-mint">£{booking.price}</span>
-        {canCancel && onCancel && (
-          <button
-            onClick={() => onCancel(booking)}
-            className="rounded-lg px-3 py-1 text-xs text-nexa-error/80 transition-colors hover:bg-nexa-error/10 hover:text-nexa-error"
-          >
-            Cancel
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onPay && canCancel && (
+             <button
+              onClick={() => onPay(booking)}
+              className="btn-primary text-xs px-3 py-1"
+            >
+              Pay Now
+            </button>
+          )}
+          {canCancel && onCancel && (
+            <button
+              onClick={() => onCancel(booking)}
+              className="rounded-lg px-3 py-1 text-xs text-nexa-error/80 transition-colors hover:bg-nexa-error/10 hover:text-nexa-error"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

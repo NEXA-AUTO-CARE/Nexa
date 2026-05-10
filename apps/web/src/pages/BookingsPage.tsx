@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { BookingResponse } from '@nexa/shared'
 import { BookingCard } from '../components/booking/BookingCard'
+import { PaymentModal } from '../components/payment/PaymentModal'
 import { useAuth } from '../contexts/AuthContext'
 import { useBookings } from '../hooks/useBookings'
 import { api } from '../lib/api-client'
@@ -10,6 +11,10 @@ export function BookingsPage() {
   const { user, logout } = useAuth()
   const { bookings, isLoading, refetch } = useBookings()
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  
+  // Payment states
+  const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null)
+  const [paymentAmount, setPaymentAmount] = useState<string>('0.00')
 
   const handleCancel = async (booking: BookingResponse) => {
     if (!confirm(`Cancel booking for ${booking.vehicleSummary}?`)) return
@@ -22,6 +27,26 @@ export function BookingsPage() {
     } finally {
       setCancellingId(null)
     }
+  }
+
+  const handlePay = async (booking: BookingResponse) => {
+    try {
+      const { data } = await api.post<{ clientSecret: string; amount: string }>('/payments/intent', {
+        bookingId: booking.bookingId,
+      })
+      if (data.clientSecret) {
+        setPaymentClientSecret(data.clientSecret)
+        setPaymentAmount(data.amount)
+      }
+    } catch (err) {
+      alert('Failed to initialize payment. It may already be paid or completed.')
+    }
+  }
+
+  const handlePaymentSuccess = () => {
+    setPaymentClientSecret(null)
+    void refetch()
+    // Ideally show a success toast here
   }
 
   const activeBookings = bookings.filter((b) => b.status !== 'completed' && b.status !== 'cancelled')
@@ -118,6 +143,7 @@ export function BookingsPage() {
                       key={b.bookingId}
                       booking={b}
                       onCancel={handleCancel}
+                      onPay={handlePay}
                     />
                   ))}
                 </div>
@@ -137,6 +163,15 @@ export function BookingsPage() {
           </div>
         )}
       </div>
+
+      {paymentClientSecret && (
+        <PaymentModal
+          clientSecret={paymentClientSecret}
+          amount={paymentAmount}
+          onSuccess={handlePaymentSuccess}
+          onCancel={() => setPaymentClientSecret(null)}
+        />
+      )}
     </div>
   )
 }
