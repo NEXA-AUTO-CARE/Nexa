@@ -165,17 +165,18 @@ export class BookingsService {
     };
   }
 
-  private async verifyMyVehicle(dto: CreateBookingDto, userId: string) {
+  async verifyMyVehicle(dto: CreateBookingDto, userId: string) {
     return await this.vehicleRepo.findOne({
       where: { vehicleId: dto.vehicleId, ownerId: userId },
     });
   }
 
-  private async verifyMyBooking(bookingId: string, userId: string) {
+  async verifyMyBooking(bookingId: string, userId: string) {
     const booking = await this.bookingRepo.findOne({
       where: { bookingId, userId },
       relations: ['customer', 'vehicle'],
     });
+
     if (!booking) {
       throw new NotFoundException('Booking not found');
     }
