@@ -8,8 +8,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BookingStatus, ServiceType } from '@nexa/shared';
 import type { BookingResponse } from '@nexa/shared';
-import { Repository } from 'typeorm';
-import { Booking, Vehicle } from '../../database/entities';
+import { In, Repository } from 'typeorm';
+import { Booking, Vehicle, ServiceAddon } from '../../database/entities';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { BookingCancelledEvent, BookingCreatedEvent, BookingStatusChangedEvent } from './events/booking.events';
 
@@ -36,6 +36,8 @@ export class BookingsService {
     private readonly bookingRepo: Repository<Booking>,
     @InjectRepository(Vehicle)
     private readonly vehicleRepo: Repository<Vehicle>,
+    @InjectRepository(ServiceAddon)
+    private readonly addonRepo: Repository<ServiceAddon>,
     private readonly events: EventEmitter2,
   ) { }
 
@@ -46,6 +48,28 @@ export class BookingsService {
       throw new BadRequestException('Vehicle not found or does not belong to you');
     }
 
+    let basePrice = parseFloat(PRICING[dto.serviceType] ?? PRICING[ServiceType.BASIC]);
+    let addonsSnapshot: { addonId: string; name: string; price: string }[] = [];
+
+    if (dto.addonIds && dto.addonIds.length > 0) {
+      const addons = await this.addonRepo.find({
+        where: { addonId: In(dto.addonIds), isActive: true },
+      });
+
+      if (addons.length !== dto.addonIds.length) {
+        throw new BadRequestException('One or more selected add-ons are invalid or inactive');
+      }
+
+      addonsSnapshot = addons.map(a => ({
+        addonId: a.addonId,
+        name: a.name,
+        price: a.price,
+      }));
+
+      const addonsTotal = addons.reduce((sum, a) => sum + parseFloat(a.price), 0);
+      basePrice += addonsTotal;
+    }
+
     const booking = this.bookingRepo.create({
       userId,
       vehicleId: dto.vehicleId,
@@ -54,7 +78,8 @@ export class BookingsService {
       serviceAddress: dto.serviceAddress.trim(),
       latitude: dto.latitude?.toString() ?? null,
       longitude: dto.longitude?.toString() ?? null,
-      price: PRICING[dto.serviceType] ?? PRICING[ServiceType.BASIC],
+      price: basePrice.toFixed(2),
+      addons: addonsSnapshot,
       status: BookingStatus.BOOKED,
     });
 
@@ -159,9 +184,12 @@ export class BookingsService {
       serviceType: booking.serviceType,
       bookingTime: booking.bookingTime.toISOString(),
       serviceAddress: booking.serviceAddress,
+      latitude: booking.latitude ? parseFloat(booking.latitude) : undefined,
+      longitude: booking.longitude ? parseFloat(booking.longitude) : undefined,
       price: booking.price,
       status: booking.status,
       createdAt: booking.createdOn.toISOString(),
+      addons: booking.addons || [],
     };
   }
 

@@ -1,4 +1,4 @@
-import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, IsArray } from 'class-validator';
 import { ServiceType } from '@nexa/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -30,4 +30,10 @@ export class CreateBookingDto {
   @IsOptional()
   @IsNumber()
   longitude?: number | null;
+
+  @ApiPropertyOptional({ example: ['a1b2c3d4-...'] })
+  @IsArray()
+  @IsUUID('4', { each: true })
+  @IsOptional()
+  addonIds?: string[];
 }

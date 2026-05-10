@@ -3,7 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BookingStatus, ServiceType } from '@nexa/shared';
-import { Booking, Vehicle } from '../../database/entities';
+import { Booking, Vehicle, ServiceAddon } from '../../database/entities';
 import { BookingsService } from './bookings.service';
 import { BookingCancelledEvent, BookingCreatedEvent, BookingStatusChangedEvent } from './events/booking.events';
 
@@ -11,6 +11,7 @@ describe('BookingsService', () => {
   let service: BookingsService;
   let bookingRepo: any;
   let vehicleRepo: any;
+  let addonRepo: any;
   let events: any;
 
   beforeEach(async () => {
@@ -23,6 +24,9 @@ describe('BookingsService', () => {
     vehicleRepo = {
       findOne: jest.fn(),
     };
+    addonRepo = {
+      find: jest.fn(),
+    };
     events = {
       emit: jest.fn(),
     };
@@ -32,6 +36,7 @@ describe('BookingsService', () => {
         BookingsService,
         { provide: getRepositoryToken(Booking), useValue: bookingRepo },
         { provide: getRepositoryToken(Vehicle), useValue: vehicleRepo },
+        { provide: getRepositoryToken(ServiceAddon), useValue: addonRepo },
         { provide: EventEmitter2, useValue: events },
       ],
     }).compile();

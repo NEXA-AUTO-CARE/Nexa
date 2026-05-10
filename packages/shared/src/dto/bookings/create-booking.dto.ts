@@ -7,4 +7,5 @@ export interface CreateBookingDto {
   serviceAddress: string;
   latitude?: number | null;
   longitude?: number | null;
+  addonIds?: string[];
 }

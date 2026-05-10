@@ -3,6 +3,7 @@ import { ServiceType } from '@nexa/shared'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVehicles } from '../../hooks/useVehicles'
+import { useAddons } from '../../hooks/useAddons'
 import { api } from '../../lib/api-client'
 import { describeError } from '../../lib/errors'
 
@@ -34,10 +35,12 @@ interface BookingStepsProps {
 export function BookingSteps({ onSuccess }: BookingStepsProps) {
   const navigate = useNavigate()
   const { vehicles, isLoading: loadingVehicles } = useVehicles()
+  const { addons, isLoading: loadingAddons } = useAddons()
 
   const [step, setStep] = useState(0)
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleResponse | null>(null)
   const [selectedService, setSelectedService] = useState<typeof SERVICES[0] | null>(null)
+  const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([])
   const [bookingDate, setBookingDate] = useState('')
   const [bookingTime, setBookingTime] = useState('10:00')
   const [address, setAddress] = useState('')
@@ -47,7 +50,8 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
   const canNext = () => {
     if (step === 0) return !!selectedVehicle
     if (step === 1) return !!selectedService
-    if (step === 2) return !!bookingDate && !!bookingTime && !!address.trim()
+    if (step === 2) return true // addons are optional
+    if (step === 3) return !!bookingDate && !!bookingTime && !!address.trim()
     return false
   }
 
@@ -61,6 +65,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
       serviceType: selectedService.value,
       bookingTime: new Date(`${bookingDate}T${bookingTime}:00`).toISOString(),
       serviceAddress: address.trim(),
+      addonIds: selectedAddonIds,
     }
 
     try {
@@ -73,9 +78,9 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
     }
   }
 
-  const STEP_TITLES = ['Select Vehicle', 'Choose Service', 'Date & Location']
+  const STEP_TITLES = ['Select Vehicle', 'Choose Service', 'Add-ons', 'Date & Location']
 
-  if (loadingVehicles) {
+  if (loadingVehicles || loadingAddons) {
     return (
       <div className="flex justify-center py-12">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-nexa-mint/30 border-t-nexa-mint" />
@@ -165,8 +170,47 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
         </div>
       )}
 
-      {/* Step 2 — Date/Time & Address */}
+      {/* Step 2 — Add-ons */}
       {step === 2 && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {addons.map((addon) => {
+            const isSelected = selectedAddonIds.includes(addon.addonId)
+            return (
+              <button
+                key={addon.addonId}
+                onClick={() => {
+                  setSelectedAddonIds((prev) =>
+                    isSelected
+                      ? prev.filter((id) => id !== addon.addonId)
+                      : [...prev, addon.addonId]
+                  )
+                }}
+                className={`nexa-card flex flex-col p-5 text-left transition-all ${
+                  isSelected
+                    ? 'border-nexa-mint ring-1 ring-nexa-mint/30 bg-nexa-mint/5'
+                    : 'hover:border-white/15'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="text-base font-semibold text-white">{addon.name}</h4>
+                  <span className="text-sm font-bold text-nexa-mint">+£{addon.price}</span>
+                </div>
+                {addon.description && (
+                  <p className="mt-2 text-sm text-nexa-text-secondary">{addon.description}</p>
+                )}
+              </button>
+            )
+          })}
+          {addons.length === 0 && (
+            <div className="col-span-full py-8 text-center text-nexa-text-muted">
+              No add-ons available at this time.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Step 3 — Date/Time & Address */}
+      {step === 3 && (
         <div className="mx-auto max-w-md space-y-4">
           <label className="block space-y-1">
             <span className="text-sm font-medium text-nexa-text-secondary">Date</span>
@@ -208,14 +252,32 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
                   <span className="text-nexa-text-secondary">Vehicle: </span>
                   {selectedVehicle.make} {selectedVehicle.model} ({selectedVehicle.registrationNumber})
                 </p>
-                <p className="text-sm text-white">
-                  <span className="text-nexa-text-secondary">Service: </span>
-                  {selectedService.label}
+                <p className="flex justify-between text-sm text-white">
+                  <span className="text-nexa-text-secondary">Service: {selectedService.label}</span>
+                  <span>{selectedService.price}</span>
                 </p>
-                <p className="text-sm text-white">
-                  <span className="text-nexa-text-secondary">Price: </span>
-                  <span className="font-semibold text-nexa-mint">{selectedService.price}</span>
-                </p>
+                {selectedAddonIds.map((id) => {
+                  const addon = addons.find((a) => a.addonId === id)
+                  if (!addon) return null
+                  return (
+                    <p key={id} className="flex justify-between text-sm text-white">
+                      <span className="text-nexa-text-secondary">Add-on: {addon.name}</span>
+                      <span>+£{addon.price}</span>
+                    </p>
+                  )
+                })}
+                <div className="mt-2 border-t border-white/10 pt-2 flex justify-between text-base font-bold text-white">
+                  <span>Total</span>
+                  <span className="text-nexa-mint">
+                    £{(
+                      parseFloat(selectedService.price.replace('£', '')) +
+                      selectedAddonIds.reduce((sum, id) => {
+                        const addon = addons.find((a) => a.addonId === id)
+                        return sum + (addon ? parseFloat(addon.price) : 0)
+                      }, 0)
+                    ).toFixed(2)}
+                  </span>
+                </div>
               </div>
             </div>
           )}
@@ -234,7 +296,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
           Back
         </button>
 
-        {step < 2 ? (
+        {step < 3 ? (
           <button
             onClick={() => setStep((s) => s + 1)}
             disabled={!canNext()}

@@ -1,4 +1,4 @@
-import type { PaymentStatus } from '../../enums/payment-status.enum';
+import type { PaymentStatus } from '../../enums/payment-status.enum.js';
 
 export interface CreatePaymentIntentDto {
   bookingId: string;
