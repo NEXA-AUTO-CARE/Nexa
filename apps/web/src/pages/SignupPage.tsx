@@ -102,7 +102,7 @@ export function SignupPage() {
       footer={
         <>
           Already have an account?{' '}
-          <Link className="text-brand-600 hover:underline" to="/login">
+          <Link className="text-nexa-mint hover:underline" to="/login">
             Log in
           </Link>
         </>
@@ -142,30 +142,30 @@ export function SignupPage() {
           />
         </Field>
         <Field label="I am a" error={errors.role?.message}>
-          <select className={inputCls} {...register('role')}>
+          <select className={selectCls} {...register('role')}>
             <option value={UserRole.CUSTOMER}>Customer (book a wash)</option>
             <option value={UserRole.VENDOR}>Vendor (provide detailing)</option>
           </select>
         </Field>
         <fieldset className="space-y-1">
-          <legend className="text-sm font-medium text-gray-700">Send my verification code via</legend>
+          <legend className="text-sm font-medium text-nexa-text-secondary">Send my verification code via</legend>
           <div className="flex gap-4 pt-1">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="radio" value="email" {...register('otpChannel')} />
+            <label className="flex items-center gap-2 text-sm text-nexa-text-secondary">
+              <input type="radio" value="email" {...register('otpChannel')} className="accent-nexa-mint" />
               <span>Email</span>
             </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="radio" value="phone" {...register('otpChannel')} />
+            <label className="flex items-center gap-2 text-sm text-nexa-text-secondary">
+              <input type="radio" value="phone" {...register('otpChannel')} className="accent-nexa-mint" />
               <span>SMS</span>
             </label>
           </div>
           {otpChannel === 'phone' && (
-            <p className="pt-1 text-xs text-gray-500">
+            <p className="pt-1 text-xs text-nexa-text-muted">
               Standard message rates may apply.
             </p>
           )}
         </fieldset>
-        {serverError && <p className="text-sm text-red-600">{serverError}</p>}
+        {serverError && <p className="text-sm text-nexa-error">{serverError}</p>}
         <button className={btnPrimaryCls} type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Sending OTP…' : 'Send verification code'}
         </button>
@@ -174,10 +174,10 @@ export function SignupPage() {
   )
 }
 
-export const inputCls =
-  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20'
+export const inputCls = 'nexa-input'
+export const selectCls = 'nexa-select'
 export const btnPrimaryCls =
-  'w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50'
+  'w-full rounded-full bg-nexa-mint px-4 py-2.5 text-sm font-semibold text-nexa-text-dark hover:bg-nexa-mint-hover disabled:opacity-50 transition-all duration-200'
 
 export function Field({
   label,
@@ -190,9 +190,9 @@ export function Field({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-sm font-medium text-gray-700">{label}</span>
+      <span className="text-sm font-medium text-nexa-text-secondary">{label}</span>
       {children}
-      {error && <span className="block text-xs text-red-600">{error}</span>}
+      {error && <span className="block text-xs text-nexa-error">{error}</span>}
     </label>
   )
 }

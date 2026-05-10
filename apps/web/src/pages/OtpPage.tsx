@@ -46,7 +46,7 @@ export function OtpPage() {
       title="Verify your code"
       subtitle={`We sent a 6-digit code to ${identifier}. In dev, check the API console.`}
       footer={
-        <Link className="text-brand-600 hover:underline" to="/signup">
+        <Link className="text-nexa-mint hover:underline" to="/signup">
           Use a different identifier
         </Link>
       }
@@ -62,7 +62,7 @@ export function OtpPage() {
             {...register('code')}
           />
         </Field>
-        {serverError && <p className="text-sm text-red-600">{serverError}</p>}
+        {serverError && <p className="text-sm text-nexa-error">{serverError}</p>}
         <button className={btnPrimaryCls} type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Verifying…' : 'Verify code'}
         </button>

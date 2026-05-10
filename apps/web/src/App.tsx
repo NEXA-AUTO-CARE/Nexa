@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import { GaragePage } from './pages/GaragePage'
+import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
 import { OtpPage } from './pages/OtpPage'
 import { SetPasswordPage } from './pages/SetPasswordPage'
@@ -10,7 +11,7 @@ import { ProtectedRoute } from './routes/ProtectedRoute'
 function RootRedirect() {
   const { user, loading } = useAuth()
   if (loading) return null
-  return <Navigate to={user ? '/garage' : '/login'} replace />
+  return user ? <Navigate to="/garage" replace /> : <LandingPage />
 }
 
 function App() {

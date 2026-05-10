@@ -17,7 +17,12 @@ export function ProtectedRoute({ children, roles, permissions }: Props) {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-500">Loading…</div>
+      <div className="flex h-full items-center justify-center bg-nexa-bg">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-nexa-mint/30 border-t-nexa-mint" />
+          <span className="text-sm text-nexa-text-secondary">Loading…</span>
+        </div>
+      </div>
     )
   }
   if (!user) {
@@ -36,8 +41,10 @@ export function ProtectedRoute({ children, roles, permissions }: Props) {
 
 function AccessDenied() {
   return (
-    <div className="flex h-full items-center justify-center text-red-600">
-      You don't have access to this page.
+    <div className="flex h-full items-center justify-center bg-nexa-bg">
+      <div className="nexa-card p-8 text-center">
+        <p className="text-nexa-error font-medium">You don't have access to this page.</p>
+      </div>
     </div>
   )
 }
