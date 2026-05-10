@@ -6,7 +6,7 @@ import {
   ManyToOne,
   OneToMany,
   OneToOne,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
 } from 'typeorm';
 import { AuditEntity } from './audit.entity';
 import { JobPhoto } from './job-photo.entity';
@@ -17,7 +17,7 @@ import { Vehicle } from './vehicle.entity';
 
 @Entity('bookings')
 export class Booking extends AuditEntity {
-  @PrimaryGeneratedColumn('uuid', { name: 'booking_id' })
+  @PrimaryColumn({ type: 'uuid', name: 'booking_id', default: () => 'uuidv7()' })
   bookingId: string;
 
   @Column({ type: 'uuid' })

@@ -5,7 +5,7 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
 } from 'typeorm';
 import { AuditEntity } from './audit.entity';
 import { Booking } from './booking.entity';
@@ -14,7 +14,7 @@ import { Vehicle } from './vehicle.entity';
 
 @Entity('users')
 export class User extends AuditEntity {
-  @PrimaryGeneratedColumn('uuid', { name: 'user_id' })
+  @PrimaryColumn({ type: 'uuid', name: 'user_id', default: () => 'uuidv7()' })
   userId: string;
 
   @Column({ type: 'varchar', length: 100, nullable: true, name: 'first_name' })

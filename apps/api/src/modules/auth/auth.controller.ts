@@ -9,12 +9,13 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiResponse as ApiResponseDoc, ApiTags } from '@nestjs/swagger';
-import { AuthResponse } from '@nexa/shared';
 import type { Request, Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { AuthIssueResult, AuthService } from './auth.service';
+import { AuthResponseDto } from './dto/auth-response.dto';
 import { LoginDto } from './dto/login.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
+import { SetupTokenDto } from './dto/setup-token.dto';
 import { SignupDto } from './dto/signup.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 
@@ -32,7 +33,7 @@ export class AuthController {
   @Post('signup')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Start signup: create pending user and dispatch OTP' })
-  @ApiResponseDoc({ status: 200, description: 'OTP issued (logged to API stdout in dev)' })
+  @ApiResponseDoc({ status: 200, description: 'OTP issued (logged to API stdout in dev)', schema: { example: { ok: true } } })
   signup(@Body() dto: SignupDto) {
     return this.auth.signup(dto);
   }
@@ -41,9 +42,9 @@ export class AuthController {
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify OTP code and receive a short-lived setupToken' })
-  @ApiResponseDoc({ status: 200, description: '{ setupToken } valid for 5 minutes' })
+  @ApiResponseDoc({ status: 200, type: SetupTokenDto })
   @ApiResponseDoc({ status: 401, description: 'Invalid or expired OTP' })
-  verifyOtp(@Body() dto: VerifyOtpDto) {
+  verifyOtp(@Body() dto: VerifyOtpDto): Promise<SetupTokenDto> {
     return this.auth.verifyOtp(dto.identifier, dto.code);
   }
 
@@ -51,47 +52,51 @@ export class AuthController {
   @Post('set-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Set initial password using setupToken; returns access + refresh' })
+  @ApiResponseDoc({ status: 200, type: AuthResponseDto })
   async setPassword(
     @Body() dto: SetPasswordDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<AuthResponse> {
+  ): Promise<AuthResponseDto> {
     const result = await this.auth.setPassword(dto.setupToken, dto.password);
     this.setRefreshCookie(res, result);
-    return result.response;
+    return result.response as AuthResponseDto;
   }
 
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Log in with identifier (email or phone) + password' })
+  @ApiResponseDoc({ status: 200, type: AuthResponseDto })
   @ApiResponseDoc({ status: 401, description: 'Invalid credentials or unverified OTP' })
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<AuthResponse> {
+  ): Promise<AuthResponseDto> {
     const result = await this.auth.login(dto.identifier, dto.password);
     this.setRefreshCookie(res, result);
-    return result.response;
+    return result.response as AuthResponseDto;
   }
 
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Rotate refresh token cookie and issue a new access token' })
+  @ApiResponseDoc({ status: 200, type: AuthResponseDto })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<AuthResponse> {
+  ): Promise<AuthResponseDto> {
     const cookieToken = req.cookies?.[REFRESH_COOKIE] as string | undefined;
     const result = await this.auth.refresh(cookieToken ?? '');
     this.setRefreshCookie(res, result);
-    return result.response;
+    return result.response as AuthResponseDto;
   }
 
   @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Revoke refresh token and clear the cookie' })
+  @ApiResponseDoc({ status: 200, schema: { example: { ok: true } } })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const cookieToken = req.cookies?.[REFRESH_COOKIE] as string | undefined;
     const result = await this.auth.logout(cookieToken);

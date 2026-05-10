@@ -5,14 +5,14 @@ import {
   Index,
   JoinColumn,
   OneToOne,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
 } from 'typeorm';
 import { AuditEntity } from './audit.entity';
 import { Booking } from './booking.entity';
 
 @Entity('payments')
 export class Payment extends AuditEntity {
-  @PrimaryGeneratedColumn('uuid', { name: 'payment_id' })
+  @PrimaryColumn({ type: 'uuid', name: 'payment_id', default: () => 'uuidv7()' })
   paymentId: string;
 
   @Index('uq_payments_booking', { unique: true })

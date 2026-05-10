@@ -3,7 +3,7 @@ import {
   Entity,
   Index,
   OneToMany,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
 } from 'typeorm';
 import { AuditEntity } from './audit.entity';
 import { RolePermission } from './role-permission.entity';
@@ -11,7 +11,7 @@ import { User } from './user.entity';
 
 @Entity('roles')
 export class Role extends AuditEntity {
-  @PrimaryGeneratedColumn('uuid', { name: 'role_id' })
+  @PrimaryColumn({ type: 'uuid', name: 'role_id', default: () => 'uuidv7()' })
   roleId: string;
 
   /** Stable machine name, e.g. "customer", "vendor", "admin", "super_admin", or a custom one. */

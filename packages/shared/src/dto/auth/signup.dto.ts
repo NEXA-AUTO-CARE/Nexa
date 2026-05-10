@@ -1,11 +1,19 @@
 import type { UserRole } from '../../enums/user-role.enum.js';
 
 /**
- * Step 1: User submits an email-or-phone identifier and chooses a role.
- * Server creates a pending user (otpVerified=false) and dispatches an OTP.
+ * Step 1 — Signup.
+ * Caller supplies first name, last name, and at least one of email / phone.
+ * `otpChannel` selects which contact receives the OTP and must match a non-null value.
+ * `displayName` is optional; the server defaults it to `${firstName} ${lastName}` when omitted.
  */
+export type OtpChannel = 'email' | 'phone';
+
 export interface SignupDto {
-  identifier: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phoneNumber: string | null;
   role: UserRole;
-  displayName: string;
+  otpChannel: OtpChannel;
+  displayName?: string;
 }

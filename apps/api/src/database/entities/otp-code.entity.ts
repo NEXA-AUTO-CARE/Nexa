@@ -1,10 +1,10 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 import { AuditEntity } from './audit.entity';
 
 @Entity('otp_codes')
 @Index('idx_otp_codes_identifier', ['identifier'])
 export class OtpCode extends AuditEntity {
-  @PrimaryGeneratedColumn('uuid', { name: 'id' })
+  @PrimaryColumn({ type: 'uuid', name: 'id', default: () => 'uuidv7()' })
   id: string;
 
   @Column({ type: 'varchar', length: 255 })
