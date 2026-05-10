@@ -6,8 +6,6 @@ describe('parseIdentifier', () => {
       kind: 'email',
       email: 'alice@example.com',
       phoneNumber: null,
-      firstName: null,
-      lastName: null,
     });
   });
 
@@ -16,8 +14,6 @@ describe('parseIdentifier', () => {
       kind: 'email',
       email: 'bob@nexa.test',
       phoneNumber: null,
-      firstName: null,
-      lastName: null,
     });
   });
 
@@ -26,8 +22,6 @@ describe('parseIdentifier', () => {
       kind: 'phone',
       email: null,
       phoneNumber: '+447700900123',
-      firstName: null,
-      lastName: null,
     });
   });
 
@@ -36,8 +30,6 @@ describe('parseIdentifier', () => {
       kind: 'phone',
       email: null,
       phoneNumber: '+447700900123',
-      firstName: null,
-      lastName: null,
     });
   });
 
@@ -46,15 +38,11 @@ describe('parseIdentifier', () => {
       kind: 'phone',
       email: null,
       phoneNumber: '447700900123',
-      firstName: null,
-      lastName: null,
     });
   });
 
   it('throws on garbage input', () => {
-    expect(() => parseIdentifier('not-an-id')).toThrow(
-      /valid email or E.164/i,
-    );
+    expect(() => parseIdentifier('not-an-id')).toThrow(/valid email or E.164/i);
   });
 
   it('throws on empty input', () => {

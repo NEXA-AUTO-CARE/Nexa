@@ -7,23 +7,25 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { AuthResponse, Permission, PublicUser, UserRole } from '@nexa/shared';
+import { AuthResponse, OtpChannel, Permission, PublicUser, UserRole } from '@nexa/shared';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'node:crypto';
 import { IsNull, MoreThan, Repository } from 'typeorm';
 import { RefreshToken, User } from '../../database/entities';
 import { RolesService } from '../roles/roles.service';
-import { UsersService, parseIdentifier } from '../users/users.service';
+import { UsersService, normalizeEmail, normalizePhone } from '../users/users.service';
 import { OtpService } from './otp.service';
 
 const BCRYPT_ROUNDS = 12;
 const SETUP_TOKEN_TTL_SECONDS = 5 * 60;
+const SETUP_TOKEN_AUDIENCE = 'nexa:set-password';
 
 const SELF_SIGNUP_ROLES: ReadonlySet<string> = new Set([UserRole.CUSTOMER, UserRole.VENDOR]);
 
 interface SetupTokenPayload {
   sub: string;
   type: 'setup';
+  aud: typeof SETUP_TOKEN_AUDIENCE;
 }
 
 interface AccessTokenPayload {
@@ -39,6 +41,16 @@ export interface AuthIssueResult {
   refreshExpiresAt: Date;
 }
 
+export interface SignupArgs {
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phoneNumber: string | null;
+  role: UserRole;
+  otpChannel: OtpChannel;
+  displayName?: string;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -51,29 +63,40 @@ export class AuthService {
     private readonly refreshRepo: Repository<RefreshToken>,
   ) {}
 
-  async signup(args: {
-    identifier: string;
-    role: UserRole;
-    displayName: string;
-  }): Promise<{ ok: true }> {
-    try {
-      parseIdentifier(args.identifier);
-    } catch (err) {
-      throw new BadRequestException((err as Error).message);
-    }
+  async signup(args: SignupArgs): Promise<{ ok: true }> {
     if (!SELF_SIGNUP_ROLES.has(args.role)) {
       throw new BadRequestException('Only customer or vendor accounts can self-register');
     }
-    const role = await this.roles.findByNameOrFail(args.role);
-    const user = await this.users.createOtpPending({
-      identifier: args.identifier,
-      role,
-      displayName: args.displayName,
-    });
-    if (user.passwordHash) {
-      throw new ConflictException('Account already exists; please log in instead');
+
+    const email = args.email ? normalizeEmail(args.email) : null;
+    const phoneNumber = args.phoneNumber ? normalizePhone(args.phoneNumber) : null;
+
+    if (!email && !phoneNumber) {
+      throw new BadRequestException('Provide an email or a phone number');
     }
-    await this.otp.issue(args.identifier);
+    if (args.otpChannel === 'email' && !email) {
+      throw new BadRequestException('OTP channel "email" requires an email address');
+    }
+    if (args.otpChannel === 'phone' && !phoneNumber) {
+      throw new BadRequestException('OTP channel "phone" requires a phone number');
+    }
+
+    const otpTarget = args.otpChannel === 'email' ? email! : phoneNumber!;
+
+    const role = await this.roles.findByNameOrFail(args.role);
+    const displayName =
+      args.displayName?.trim() || `${args.firstName} ${args.lastName}`.trim();
+
+    await this.users.createOtpPending({
+      firstName: args.firstName,
+      lastName: args.lastName,
+      email,
+      phoneNumber,
+      role,
+      displayName,
+    });
+
+    await this.otp.issue(otpTarget);
     return { ok: true };
   }
 
@@ -82,7 +105,11 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Unknown identifier');
     await this.otp.verify(identifier, code);
     await this.users.markOtpVerified(user.userId);
-    const payload: SetupTokenPayload = { sub: user.userId, type: 'setup' };
+    const payload: SetupTokenPayload = {
+      sub: user.userId,
+      type: 'setup',
+      aud: SETUP_TOKEN_AUDIENCE,
+    };
     const setupToken = await this.jwt.signAsync(payload, { expiresIn: SETUP_TOKEN_TTL_SECONDS });
     return { setupToken };
   }
@@ -90,17 +117,23 @@ export class AuthService {
   async setPassword(setupToken: string, password: string): Promise<AuthIssueResult> {
     let payload: SetupTokenPayload;
     try {
-      payload = await this.jwt.verifyAsync<SetupTokenPayload>(setupToken);
+      payload = await this.jwt.verifyAsync<SetupTokenPayload>(setupToken, {
+        audience: SETUP_TOKEN_AUDIENCE,
+      });
     } catch {
       throw new UnauthorizedException('Invalid or expired setup token');
     }
     if (payload.type !== 'setup') {
       throw new UnauthorizedException('Invalid setup token');
     }
+    const user = await this.users.findById(payload.sub);
+    if (user.passwordHash) {
+      throw new ConflictException('Password already set; use the password reset flow');
+    }
     const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     await this.users.setPasswordHash(payload.sub, hash);
-    const user = await this.users.findById(payload.sub);
-    return this.issueAuthResult(user);
+    const refreshed = await this.users.findById(payload.sub);
+    return this.issueAuthResult(refreshed);
   }
 
   async login(identifier: string, password: string): Promise<AuthIssueResult> {

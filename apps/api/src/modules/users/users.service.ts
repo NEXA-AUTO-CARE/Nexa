@@ -1,16 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Permission, PublicUser } from '@nexa/shared';
 import { Repository } from 'typeorm';
 import { Role, User } from '../../database/entities';
+import { PublicUserDto } from './dto/public-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 export type UserIdentifierKind = 'email' | 'phone';
 
 export interface IdentifierParts {
   kind: UserIdentifierKind;
-  firstName: string | null;
-  lastName: string | null;
   email: string | null;
   phoneNumber: string | null;
 }
@@ -21,12 +20,21 @@ const PHONE_RX = /^\+?[1-9]\d{6,14}$/;
 export function parseIdentifier(identifier: string): IdentifierParts {
   const trimmed = identifier.trim();
   if (EMAIL_RX.test(trimmed)) {
-    return { kind: 'email', firstName: null, lastName: null, email: trimmed.toLowerCase(), phoneNumber: null };
+    return { kind: 'email', email: trimmed.toLowerCase(), phoneNumber: null };
   }
-  if (PHONE_RX.test(trimmed.replace(/\s/g, ''))) {
-    return { kind: 'phone', firstName: null, lastName: null, email: null, phoneNumber: trimmed.replace(/\s/g, '') };
+  const phoneCandidate = trimmed.replace(/\s/g, '');
+  if (PHONE_RX.test(phoneCandidate)) {
+    return { kind: 'phone', email: null, phoneNumber: phoneCandidate };
   }
   throw new Error('Identifier must be a valid email or E.164-style phone number');
+}
+
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+export function normalizePhone(phone: string): string {
+  return phone.replace(/\s/g, '');
 }
 
 @Injectable()
@@ -46,24 +54,54 @@ export class UsersService {
     });
   }
 
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepo.findOne({ where: { email: normalizeEmail(email) } });
+  }
+
+  async findByPhone(phoneNumber: string): Promise<User | null> {
+    return this.userRepo.findOne({ where: { phoneNumber: normalizePhone(phoneNumber) } });
+  }
+
   /**
    * Create a placeholder user pending OTP verification (no password yet).
-   * Idempotent on identifier — returns the existing pending user if one exists.
+   *
+   * Idempotent on contact: if a pending row already exists for the same email or phone
+   * AND the supplied details are consistent (same role, same names), the existing row is
+   * returned. Any mismatch — different role, different name, or an existing password —
+   * raises ConflictException so a half-signed-up account can't be silently inherited.
    */
   async createOtpPending(args: {
-    identifier: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    phoneNumber: string | null;
     role: Role;
     displayName: string;
   }): Promise<User> {
-    const existing = await this.findByIdentifier(args.identifier);
-    if (existing) return existing;
+    const email = args.email ? normalizeEmail(args.email) : null;
+    const phoneNumber = args.phoneNumber ? normalizePhone(args.phoneNumber) : null;
 
-    const parts = parseIdentifier(args.identifier);
+    const existing = await this.findByContact(email, phoneNumber);
+    if (existing) {
+      if (existing.passwordHash) {
+        throw new ConflictException('Account already exists; please log in instead');
+      }
+      const sameRole = existing.roleId === args.role.roleId;
+      const sameFirst = (existing.firstName ?? '') === args.firstName;
+      const sameLast = (existing.lastName ?? '') === args.lastName;
+      if (!sameRole || !sameFirst || !sameLast) {
+        throw new ConflictException(
+          'An unfinished signup exists for this contact with different details',
+        );
+      }
+      return existing;
+    }
+
     const user = this.userRepo.create({
-      firstName: parts.firstName,
-      lastName: parts.lastName,
-      email: parts.email,
-      phoneNumber: parts.phoneNumber,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      email,
+      phoneNumber,
       roleId: args.role.roleId,
       displayName: args.displayName,
       otpVerified: false,
@@ -96,7 +134,7 @@ export class UsersService {
    * an empty array is returned (caller is responsible for fetching permissions when
    * they matter — typically only at JWT issuance and on /users/me).
    */
-  toPublic(user: User, permissions: Permission[] = []): PublicUser {
+  toPublic(user: User, permissions: Permission[] = []): PublicUserDto {
     return {
       userId: user.userId,
       firstName: user.firstName,
@@ -109,5 +147,20 @@ export class UsersService {
       otpVerified: user.otpVerified,
       createdAt: user.createdOn.toISOString(),
     };
+  }
+
+  private async findByContact(
+    email: string | null,
+    phoneNumber: string | null,
+  ): Promise<User | null> {
+    if (email) {
+      const byEmail = await this.userRepo.findOne({ where: { email } });
+      if (byEmail) return byEmail;
+    }
+    if (phoneNumber) {
+      const byPhone = await this.userRepo.findOne({ where: { phoneNumber } });
+      if (byPhone) return byPhone;
+    }
+    return null;
   }
 }

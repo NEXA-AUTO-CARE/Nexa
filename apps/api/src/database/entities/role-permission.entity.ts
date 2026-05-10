@@ -4,7 +4,7 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
 } from 'typeorm';
 import { AuditEntity } from './audit.entity';
 import { Role } from './role.entity';
@@ -16,7 +16,7 @@ import { Role } from './role.entity';
 @Entity('role_permissions')
 @Index('uq_role_permissions', ['roleId', 'permission'], { unique: true })
 export class RolePermission extends AuditEntity {
-  @PrimaryGeneratedColumn('uuid', { name: 'role_permission_id' })
+  @PrimaryColumn({ type: 'uuid', name: 'role_permission_id', default: () => 'uuidv7()' })
   rolePermissionId: string;
 
   @Column({ type: 'uuid' })

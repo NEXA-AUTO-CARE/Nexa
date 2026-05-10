@@ -112,55 +112,100 @@ describe('AuthService', () => {
   });
 
   describe('signup', () => {
-    it('rejects malformed identifiers', async () => {
-      await expect(
-        service.signup({ identifier: 'bad', role: 'customer' as never, displayName: 'A' }),
-      ).rejects.toBeInstanceOf(BadRequestException);
-    });
+    const baseSignup = {
+      firstName: 'Alice',
+      lastName: 'Smith',
+      email: 'alice@example.com',
+      phoneNumber: null,
+      role: 'customer' as never,
+      otpChannel: 'email' as never,
+    };
 
     it('rejects admin or super_admin self-signup', async () => {
       await expect(
-        service.signup({
-          identifier: 'a@b.com',
-          role: 'admin' as never,
-          displayName: 'A',
-        }),
+        service.signup({ ...baseSignup, role: 'admin' as never }),
       ).rejects.toBeInstanceOf(BadRequestException);
       await expect(
+        service.signup({ ...baseSignup, role: 'super_admin' as never }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects when neither email nor phone is provided', async () => {
+      await expect(
+        service.signup({ ...baseSignup, email: null, phoneNumber: null }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects when otpChannel is "email" but no email is supplied', async () => {
+      await expect(
         service.signup({
-          identifier: 'a@b.com',
-          role: 'super_admin' as never,
-          displayName: 'A',
+          ...baseSignup,
+          email: null,
+          phoneNumber: '+447700900123',
+          otpChannel: 'email' as never,
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it('throws Conflict if a user already exists with a password', async () => {
-      roles.findByNameOrFail.mockResolvedValue({ roleId: 'r-c' } as Role);
-      users.createOtpPending.mockResolvedValue(makeUser({ passwordHash: 'pre-existing' }));
+    it('rejects when otpChannel is "phone" but no phoneNumber is supplied', async () => {
       await expect(
         service.signup({
-          identifier: 'a@b.com',
-          role: 'customer' as never,
-          displayName: 'A',
+          ...baseSignup,
+          email: 'a@b.com',
+          phoneNumber: null,
+          otpChannel: 'phone' as never,
         }),
-      ).rejects.toBeInstanceOf(ConflictException);
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('propagates Conflict from createOtpPending when the contact is already taken', async () => {
+      roles.findByNameOrFail.mockResolvedValue({ roleId: 'r-c' } as Role);
+      users.createOtpPending.mockRejectedValue(
+        new ConflictException('Account already exists; please log in instead'),
+      );
+      await expect(service.signup(baseSignup)).rejects.toBeInstanceOf(ConflictException);
       expect(otp.issue).not.toHaveBeenCalled();
     });
 
-    it('creates the pending user and dispatches an OTP on success', async () => {
+    it('creates the pending user, defaults displayName, and dispatches OTP via email', async () => {
       roles.findByNameOrFail.mockResolvedValue({ roleId: 'r-c' } as Role);
       users.createOtpPending.mockResolvedValue(makeUser({ passwordHash: null }));
       otp.issue.mockResolvedValue('123456');
-      await expect(
-        service.signup({
-          identifier: 'a@b.com',
-          role: 'customer' as never,
-          displayName: 'A',
-        }),
-      ).resolves.toEqual({ ok: true });
+
+      await expect(service.signup(baseSignup)).resolves.toEqual({ ok: true });
+
       expect(roles.findByNameOrFail).toHaveBeenCalledWith('customer');
-      expect(otp.issue).toHaveBeenCalledWith('a@b.com');
+      expect(users.createOtpPending).toHaveBeenCalledWith(
+        expect.objectContaining({
+          firstName: 'Alice',
+          lastName: 'Smith',
+          email: 'alice@example.com',
+          phoneNumber: null,
+          displayName: 'Alice Smith',
+        }),
+      );
+      expect(otp.issue).toHaveBeenCalledWith('alice@example.com');
+    });
+
+    it('uses the supplied displayName when provided', async () => {
+      roles.findByNameOrFail.mockResolvedValue({ roleId: 'r-c' } as Role);
+      users.createOtpPending.mockResolvedValue(makeUser({ passwordHash: null }));
+      await service.signup({ ...baseSignup, displayName: 'Ali' });
+      expect(users.createOtpPending).toHaveBeenCalledWith(
+        expect.objectContaining({ displayName: 'Ali' }),
+      );
+    });
+
+    it('routes the OTP to phone when otpChannel is "phone"', async () => {
+      roles.findByNameOrFail.mockResolvedValue({ roleId: 'r-c' } as Role);
+      users.createOtpPending.mockResolvedValue(makeUser({ passwordHash: null }));
+      await service.signup({
+        ...baseSignup,
+        email: null,
+        phoneNumber: '+447700900123',
+        otpChannel: 'phone' as never,
+      });
+      expect(otp.issue).toHaveBeenCalledWith('+447700900123');
     });
   });
 

@@ -84,17 +84,84 @@ describe('UsersService', () => {
   });
 
   describe('createOtpPending', () => {
-    it('returns the existing user when one already exists for the identifier', async () => {
-      const existing = makeUser({ otpVerified: true });
+    it('returns the existing pending user when details match', async () => {
+      const existing = makeUser({
+        otpVerified: false,
+        firstName: 'Alice',
+        lastName: 'Smith',
+        roleId: 'role-1',
+        passwordHash: null,
+      });
       repo.findOne.mockResolvedValue(existing);
       const result = await service.createOtpPending({
-        identifier: 'alice@example.com',
+        firstName: 'Alice',
+        lastName: 'Smith',
+        email: 'alice@example.com',
+        phoneNumber: null,
         role: { roleId: 'role-1' } as Role,
         displayName: 'Alice',
       });
       expect(result).toBe(existing);
       expect(repo.create).not.toHaveBeenCalled();
       expect(repo.save).not.toHaveBeenCalled();
+    });
+
+    it('throws Conflict when an existing user already has a password', async () => {
+      const { ConflictException } = require('@nestjs/common');
+      const existing = makeUser({ passwordHash: 'pre-existing' });
+      repo.findOne.mockResolvedValue(existing);
+      await expect(
+        service.createOtpPending({
+          firstName: 'Alice',
+          lastName: 'Smith',
+          email: 'alice@example.com',
+          phoneNumber: null,
+          role: { roleId: 'role-1' } as Role,
+          displayName: 'Alice',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('throws Conflict when the existing pending user has a different role', async () => {
+      const { ConflictException } = require('@nestjs/common');
+      const existing = makeUser({
+        firstName: 'Alice',
+        lastName: 'Smith',
+        roleId: 'role-other',
+        passwordHash: null,
+      });
+      repo.findOne.mockResolvedValue(existing);
+      await expect(
+        service.createOtpPending({
+          firstName: 'Alice',
+          lastName: 'Smith',
+          email: 'alice@example.com',
+          phoneNumber: null,
+          role: { roleId: 'role-1' } as Role,
+          displayName: 'Alice',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('throws Conflict when the existing pending user has different names', async () => {
+      const { ConflictException } = require('@nestjs/common');
+      const existing = makeUser({
+        firstName: 'Bob',
+        lastName: 'Jones',
+        roleId: 'role-1',
+        passwordHash: null,
+      });
+      repo.findOne.mockResolvedValue(existing);
+      await expect(
+        service.createOtpPending({
+          firstName: 'Alice',
+          lastName: 'Smith',
+          email: 'alice@example.com',
+          phoneNumber: null,
+          role: { roleId: 'role-1' } as Role,
+          displayName: 'Alice',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
     });
 
     it('creates a new pending user with the role-id derived from the role argument', async () => {
@@ -104,19 +171,22 @@ describe('UsersService', () => {
       repo.save.mockImplementation(async (entity) => entity);
 
       const result = await service.createOtpPending({
-        identifier: 'bob@example.com',
+        firstName: 'Bob',
+        lastName: 'Jones',
+        email: 'BOB@example.com',
+        phoneNumber: null,
         role: { roleId: 'vendor-role' } as Role,
-        displayName: 'Bob',
+        displayName: 'Bob Jones',
       });
 
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          firstName: 'Bob',
+          lastName: 'Jones',
           email: 'bob@example.com',
           phoneNumber: null,
-          firstName: null,
-          lastName: null,
           roleId: 'vendor-role',
-          displayName: 'Bob',
+          displayName: 'Bob Jones',
           otpVerified: false,
           passwordHash: null,
         }),
@@ -125,14 +195,17 @@ describe('UsersService', () => {
       expect(result).toBe(draft);
     });
 
-    it('routes phone identifiers to the phone column', async () => {
+    it('routes phone-only signups to the phone column', async () => {
       repo.findOne.mockResolvedValue(null);
       const draft = {} as Partial<User>;
       repo.create.mockReturnValue(draft);
       repo.save.mockResolvedValue(draft);
 
       await service.createOtpPending({
-        identifier: '+447700900123',
+        firstName: 'Carol',
+        lastName: 'Lee',
+        email: null,
+        phoneNumber: '+44 7700 900 123',
         role: { roleId: 'role-1' } as Role,
         displayName: 'Carol',
       });

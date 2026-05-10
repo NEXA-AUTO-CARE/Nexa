@@ -4,7 +4,7 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
 } from 'typeorm';
 import { AuditEntity } from './audit.entity';
 import { User } from './user.entity';
@@ -12,7 +12,7 @@ import { User } from './user.entity';
 @Entity('refresh_tokens')
 @Index('idx_refresh_tokens_user', ['userId'])
 export class RefreshToken extends AuditEntity {
-  @PrimaryGeneratedColumn('uuid', { name: 'id' })
+  @PrimaryColumn({ type: 'uuid', name: 'id', default: () => 'uuidv7()' })
   id: string;
 
   @Column({ type: 'uuid' })

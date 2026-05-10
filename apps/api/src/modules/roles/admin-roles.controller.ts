@@ -12,13 +12,16 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ALL_PERMISSIONS, Permission } from '@nexa/shared';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { PublicUserDto } from '../users/dto/public-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { CreateRoleDto } from './dto/create-role.dto';
+import { RoleDto } from './dto/role.dto';
+import { RoleWithPermissionsDto } from './dto/role-with-permissions.dto';
 import { SetPermissionsDto } from './dto/set-permissions.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { RolesService } from './roles.service';
@@ -41,6 +44,7 @@ export class AdminRolesController {
   @Get()
   @RequirePermissions(Permission.ROLES_READ)
   @ApiOperation({ summary: 'List all roles (system + custom)' })
+  @ApiResponse({ status: 200, type: [RoleDto] })
   list() {
     return this.roles.list();
   }
@@ -48,6 +52,7 @@ export class AdminRolesController {
   @Get('catalog/permissions')
   @RequirePermissions(Permission.ROLES_READ)
   @ApiOperation({ summary: 'Return the full code-defined permission catalog' })
+  @ApiResponse({ status: 200, schema: { example: { permissions: ALL_PERMISSIONS } } })
   catalog() {
     return { permissions: ALL_PERMISSIONS };
   }
@@ -55,6 +60,7 @@ export class AdminRolesController {
   @Get(':roleId')
   @RequirePermissions(Permission.ROLES_READ)
   @ApiOperation({ summary: 'Get a role and its assigned permissions' })
+  @ApiResponse({ status: 200, type: RoleWithPermissionsDto })
   async get(@Param('roleId', ParseUUIDPipe) roleId: string) {
     const role = await this.roles.findById(roleId);
     const permissions = await this.roles.listPermissions(roleId);
@@ -65,6 +71,7 @@ export class AdminRolesController {
   @RequirePermissions(Permission.ROLES_MANAGE)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new (non-system) role' })
+  @ApiResponse({ status: 201, type: RoleDto })
   create(@Body() dto: CreateRoleDto) {
     return this.roles.create(dto);
   }
@@ -72,6 +79,7 @@ export class AdminRolesController {
   @Patch(':roleId')
   @RequirePermissions(Permission.ROLES_MANAGE)
   @ApiOperation({ summary: 'Rename or re-describe a role (system roles are read-only)' })
+  @ApiResponse({ status: 200, type: RoleDto })
   update(
     @Param('roleId', ParseUUIDPipe) roleId: string,
     @Body() dto: UpdateRoleDto,
@@ -90,6 +98,7 @@ export class AdminRolesController {
   @Put(':roleId/permissions')
   @RequirePermissions(Permission.ROLES_MANAGE)
   @ApiOperation({ summary: 'Replace the permission set on a role' })
+  @ApiResponse({ status: 200, schema: { example: { roleId: 'uuid', permissions: ['roles:read'] } } })
   async setPermissions(
     @Param('roleId', ParseUUIDPipe) roleId: string,
     @Body() dto: SetPermissionsDto,
@@ -101,6 +110,7 @@ export class AdminRolesController {
   @Post('assign')
   @RequirePermissions(Permission.ROLES_ASSIGN)
   @ApiOperation({ summary: 'Assign a role to a user (replaces their current role)' })
+  @ApiResponse({ status: 200, type: PublicUserDto, description: 'Updated user with new role' })
   async assign(@Body() dto: AssignRoleDto) {
     const user = await this.roles.assignRoleToUser(dto.userId, dto.roleId);
     return { userId: user.userId, roleId: user.roleId };

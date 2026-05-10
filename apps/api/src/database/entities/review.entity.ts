@@ -6,7 +6,7 @@ import {
   JoinColumn,
   ManyToOne,
   OneToOne,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
 } from 'typeorm';
 import { AuditEntity } from './audit.entity';
 import { Booking } from './booking.entity';
@@ -15,7 +15,7 @@ import { User } from './user.entity';
 @Entity('reviews')
 @Check('"rating" BETWEEN 1 AND 5')
 export class Review extends AuditEntity {
-  @PrimaryGeneratedColumn('uuid', { name: 'review_id' })
+  @PrimaryColumn({ type: 'uuid', name: 'review_id', default: () => 'uuidv7()' })
   reviewId: string;
 
   @Index('uq_reviews_booking', { unique: true })
