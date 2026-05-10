@@ -13,7 +13,7 @@ import { Booking, Vehicle } from '../../database/entities';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { BookingCreatedEvent, BookingStatusChangedEvent } from './events/booking.events';
 
-/** Hard-coded pricing for MVP — replace with a pricing module later */
+/** Hard-coded pricing for MVP — replace with a pricing module later -potentially from the admin configured setiings in the database */
 const PRICING: Record<string, string> = {
   [ServiceType.BASIC]: '29.99',
   [ServiceType.FULL]: '59.99',
@@ -37,13 +37,11 @@ export class BookingsService {
     @InjectRepository(Vehicle)
     private readonly vehicleRepo: Repository<Vehicle>,
     private readonly events: EventEmitter2,
-  ) {}
+  ) { }
 
   async create(userId: string, dto: CreateBookingDto): Promise<Booking> {
     // Verify the vehicle belongs to the user
-    const vehicle = await this.vehicleRepo.findOne({
-      where: { vehicleId: dto.vehicleId, ownerId: userId },
-    });
+    const vehicle = await verifyMyVehicle(dto, userId);
     if (!vehicle) {
       throw new BadRequestException('Vehicle not found or does not belong to you');
     }
@@ -151,3 +149,10 @@ export class BookingsService {
     };
   }
 }
+
+async function verifyMyVehicle(dto: CreateBookingDto, userId: string) {
+  return await this.vehicleRepo.findOne({
+    where: { vehicleId: dto.vehicleId, ownerId: userId },
+  });
+}
+
