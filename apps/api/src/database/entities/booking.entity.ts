@@ -59,6 +59,9 @@ export class Booking extends AuditEntity {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   price: string;
 
+  @Column({ type: 'jsonb', nullable: true, default: [] })
+  addons: { addonId: string; name: string; price: string }[];
+
   @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.BOOKED })
   status: BookingStatus;
 

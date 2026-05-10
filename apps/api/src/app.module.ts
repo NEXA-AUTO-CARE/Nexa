@@ -10,6 +10,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import configuration from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
+import { AddonsModule } from './modules/addons/addons.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -37,6 +38,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
     NotificationsModule,
     BookingsModule,
     PaymentsModule,
+    AddonsModule,
   ],
 
 
