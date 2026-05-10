@@ -1,0 +1,89 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import type { BookingResponse } from '@nexa/shared';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { BookingsService } from './bookings.service';
+import { CreateBookingDto } from './dto/create-booking.dto';
+import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
+
+@ApiTags('bookings')
+@ApiBearerAuth('jwt')
+@Controller('bookings')
+@UseGuards(JwtAuthGuard)
+export class BookingsController {
+  constructor(private readonly bookings: BookingsService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Create a new booking' })
+  @ApiCreatedResponse({ description: 'Booking created' })
+  async create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateBookingDto,
+  ): Promise<BookingResponse> {
+    const booking = await this.bookings.create(user.userId, dto);
+    return this.bookings.toResponse(booking);
+  }
+
+  @Get()
+  @ApiOperation({ summary: "List the current user's bookings" })
+  @ApiOkResponse({ description: 'Array of bookings' })
+  async findAll(@CurrentUser() user: AuthenticatedUser): Promise<BookingResponse[]> {
+    const list = await this.bookings.findAllByUser(user.userId);
+    return list.map((b) => this.bookings.toResponse(b));
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a booking by ID' })
+  @ApiOkResponse({ description: 'Booking details' })
+  async findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<BookingResponse> {
+    const booking = await this.bookings.findByIdForUser(id, user.userId);
+    return this.bookings.toResponse(booking);
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Update booking status' })
+  @ApiOkResponse({ description: 'Updated booking' })
+  async updateStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateBookingStatusDto,
+  ): Promise<BookingResponse> {
+    const booking = await this.bookings.updateStatus(id, user.userId, dto.status);
+    return this.bookings.toResponse(booking);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Cancel a booking' })
+  @ApiNoContentResponse({ description: 'Booking cancelled' })
+  async cancel(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    await this.bookings.cancel(id, user.userId);
+  }
+}
