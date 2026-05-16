@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { api } from '../lib/api-client'
 import { describeError } from '../lib/errors'
 import { useVehicles } from '../hooks/useVehicles'
+import { Logo } from '../components/ui/Logo'
 
 export function GaragePage() {
   const { user, logout } = useAuth()
@@ -77,13 +78,7 @@ export function GaragePage() {
         }}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link
-            to="/"
-            className="text-2xl font-bold tracking-tight text-white"
-            style={{ fontFamily: "'Inter', sans-serif" }}
-          >
-            nexa<span className="text-nexa-mint">.</span>
-          </Link>
+          <Logo />
           <div className="flex items-center gap-4">
             <Link to="/book" className="text-sm text-nexa-text-secondary hover:text-white transition-colors">
               Book a Wash

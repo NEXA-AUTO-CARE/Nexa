@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { BookingSteps } from '../components/booking/BookingSteps'
 import { useAuth } from '../contexts/AuthContext'
+import { Logo } from '../components/ui/Logo'
 
 export function BookingPage() {
   const { user, logout } = useAuth()
@@ -18,13 +19,7 @@ export function BookingPage() {
         }}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link
-            to="/"
-            className="text-2xl font-bold tracking-tight text-white"
-            style={{ fontFamily: "'Inter', sans-serif" }}
-          >
-            nexa<span className="text-nexa-mint">.</span>
-          </Link>
+          <Logo />
           <div className="flex items-center gap-4">
             <Link to="/bookings" className="text-sm text-nexa-text-secondary hover:text-white transition-colors">
               My Bookings
