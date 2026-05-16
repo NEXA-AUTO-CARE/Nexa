@@ -144,7 +144,8 @@ export function SignupPage() {
         <Field label="I am a" error={errors.role?.message}>
           <select className={selectCls} {...register('role')}>
             <option value={UserRole.CUSTOMER}>Customer (book a wash)</option>
-            <option value={UserRole.VENDOR}>Vendor (provide detailing)</option>
+            {/* TODO: Enable vendor signup later when vendor portal is ready */}
+            {/* <option value={UserRole.VENDOR}>Vendor (provide detailing)</option> */}
           </select>
         </Field>
         <fieldset className="space-y-1">
