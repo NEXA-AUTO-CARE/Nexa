@@ -90,6 +90,14 @@ export function BookingCard({ booking, onCancel, onPay }: BookingCardProps) {
               Cancel
             </button>
           )}
+          {!canCancel && (
+             <a
+               href={`/book?vehicleId=${booking.vehicleId}`}
+               className="btn-secondary text-xs px-3 py-1"
+             >
+               Re-book
+             </a>
+          )}
         </div>
       </div>
     </div>

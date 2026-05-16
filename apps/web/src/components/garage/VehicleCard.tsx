@@ -3,8 +3,9 @@ import { VehicleType } from '@nexa/shared'
 
 const TYPE_LABELS: Record<string, string> = {
   [VehicleType.CAR]: 'Car',
-  [VehicleType.SUV]: 'SUV / 4×4',
-  [VehicleType.VAN]: 'Van',
+  [VehicleType.SUV]: '7 Seater / 4×4',
+  [VehicleType.SMALL_VAN]: 'Small Van',
+  [VehicleType.LARGE_VAN]: 'Large Van',
   [VehicleType.OTHER]: 'Other',
 }
 
@@ -48,8 +49,15 @@ export function VehicleCard({ vehicle, onEdit, onDelete }: VehicleCardProps) {
       </div>
 
       {/* Actions */}
-      <div className="mt-5 flex items-center gap-2 border-t border-nexa-border-subtle pt-4">
-        <button
+      <div className="mt-5 flex flex-col gap-2 border-t border-nexa-border-subtle pt-4">
+        <a
+          href={`/book?vehicleId=${vehicle.vehicleId}`}
+          className="btn-primary w-full text-center text-sm"
+        >
+          Book a wash
+        </a>
+        <div className="flex items-center gap-2">
+          <button
           onClick={() => onEdit(vehicle)}
           className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-nexa-text-secondary transition-colors hover:bg-nexa-bg-elevated hover:text-white"
         >
@@ -69,6 +77,7 @@ export function VehicleCard({ vehicle, onEdit, onDelete }: VehicleCardProps) {
           </svg>
           Remove
         </button>
+        </div>
       </div>
     </div>
   )

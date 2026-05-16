@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 
 const VEHICLE_TYPES = [
   { value: VehicleType.CAR, label: 'Car' },
-  { value: VehicleType.SUV, label: 'SUV / 4×4' },
-  { value: VehicleType.VAN, label: 'Van' },
+  { value: VehicleType.SUV, label: '7 Seater / 4x4' },
+  { value: VehicleType.SMALL_VAN, label: 'Small Van' },
+  { value: VehicleType.LARGE_VAN, label: 'Large Van' },
   { value: VehicleType.OTHER, label: 'Other' },
 ]
 

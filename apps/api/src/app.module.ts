@@ -18,6 +18,7 @@ import { RolesModule } from './modules/roles/roles.module';
 import { UsersModule } from './modules/users/users.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { FleetModule } from './modules/fleet/fleet.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
     BookingsModule,
     PaymentsModule,
     AddonsModule,
+    FleetModule,
   ],
 
 

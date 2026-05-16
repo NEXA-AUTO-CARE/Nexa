@@ -1,4 +1,5 @@
 import { CTABanner } from '../components/landing/CTABanner'
+import { CorporateFleet } from '../components/landing/CorporateFleet'
 import { FAQ } from '../components/landing/FAQ'
 import { Footer } from '../components/landing/Footer'
 import { HeroSection } from '../components/landing/HeroSection'
@@ -16,6 +17,7 @@ export function LandingPage() {
         <HowItWorks />
         <ServiceDetails />
         <WhyChooseNexa />
+        <CorporateFleet />
         <FAQ />
         <CTABanner />
       </main>

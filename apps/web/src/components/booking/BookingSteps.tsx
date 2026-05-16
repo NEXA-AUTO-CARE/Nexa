@@ -1,7 +1,8 @@
 import type { CreateBookingDto, VehicleResponse } from '@nexa/shared'
 import { ServiceType } from '@nexa/shared'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect } from 'react'
 import { useVehicles } from '../../hooks/useVehicles'
 import { useAddons } from '../../hooks/useAddons'
 import { api } from '../../lib/api-client'
@@ -38,7 +39,19 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
   const { addons, isLoading: loadingAddons } = useAddons()
 
   const [step, setStep] = useState(0)
+  const [searchParams] = useSearchParams()
+  const initialVehicleId = searchParams.get('vehicleId')
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleResponse | null>(null)
+
+  useEffect(() => {
+    if (initialVehicleId && vehicles.length > 0 && !selectedVehicle) {
+      const vehicle = vehicles.find(v => v.vehicleId === initialVehicleId)
+      if (vehicle) {
+        setSelectedVehicle(vehicle)
+        setStep(1)
+      }
+    }
+  }, [initialVehicleId, vehicles, selectedVehicle])
   const [selectedService, setSelectedService] = useState<typeof SERVICES[0] | null>(null)
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([])
   const [bookingDate, setBookingDate] = useState('')

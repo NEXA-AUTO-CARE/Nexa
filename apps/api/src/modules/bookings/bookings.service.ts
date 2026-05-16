@@ -49,6 +49,17 @@ export class BookingsService {
     }
 
     let basePrice = parseFloat(PRICING[dto.serviceType] ?? PRICING[ServiceType.BASIC]);
+
+    if (dto.serviceType === ServiceType.BASIC) {
+      switch (vehicle.vehicleType) {
+        case 'car': basePrice = 25; break;
+        case 'suv': basePrice = 30; break;
+        case 'small_van': basePrice = 35; break;
+        case 'large_van': basePrice = 40; break;
+        default: basePrice = 25; break;
+      }
+    }
+
     let addonsSnapshot: { addonId: string; name: string; price: string }[] = [];
 
     if (dto.addonIds && dto.addonIds.length > 0) {
