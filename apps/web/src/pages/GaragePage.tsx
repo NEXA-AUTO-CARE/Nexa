@@ -1,6 +1,6 @@
 import type { CreateVehicleDto, UpdateVehicleDto, VehicleResponse } from '@nexa/shared'
 import { useCallback, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ConfirmDeleteModal } from '../components/garage/ConfirmDeleteModal'
 import { VehicleCard } from '../components/garage/VehicleCard'
 import { VehicleFormModal } from '../components/garage/VehicleFormModal'
@@ -11,6 +11,7 @@ import { useVehicles } from '../hooks/useVehicles'
 
 export function GaragePage() {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const { vehicles, isLoading, refetch } = useVehicles()
 
   // Modal state
@@ -181,6 +182,7 @@ export function GaragePage() {
                   vehicle={v}
                   onEdit={openEdit}
                   onDelete={openDelete}
+                  onBook={(veh) => navigate(`/book?vehicleId=${veh.vehicleId}`)}
                 />
               ))}
             </div>

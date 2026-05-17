@@ -21,7 +21,7 @@ export class UpdateVehicleDto {
   @MaxLength(50)
   model?: string;
 
-  @ApiPropertyOptional({ enum: VehicleType, example: VehicleType.CAR })
+  @ApiPropertyOptional({ enum: VehicleType, example: VehicleType.REGULAR })
   @IsOptional()
   @IsEnum(VehicleType)
   vehicleType?: VehicleType;

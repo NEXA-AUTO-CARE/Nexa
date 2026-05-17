@@ -1,32 +1,11 @@
 import type { CreateBookingDto, VehicleResponse } from '@nexa/shared'
-import { ServiceType } from '@nexa/shared'
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { MINI_VALET_PRICING, VEHICLE_CATEGORY_LABELS } from '@nexa/shared'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useVehicles } from '../../hooks/useVehicles'
 import { useAddons } from '../../hooks/useAddons'
 import { api } from '../../lib/api-client'
 import { describeError } from '../../lib/errors'
-
-const SERVICES = [
-  {
-    value: ServiceType.BASIC,
-    label: 'Basic Wash',
-    price: '£29.99',
-    features: ['Exterior hand wash', 'Wheel clean', 'Tyre dressing', 'Window polish'],
-  },
-  {
-    value: ServiceType.FULL,
-    label: 'Full Detail',
-    price: '£59.99',
-    features: ['Everything in Basic', 'Interior vacuum', 'Dashboard & console wipe', 'Air freshener'],
-  },
-  {
-    value: ServiceType.PREMIUM,
-    label: 'Premium Detail',
-    price: '£99.99',
-    features: ['Everything in Full', 'Clay bar treatment', 'Machine polish', 'Ceramic sealant', 'Leather conditioning'],
-  },
-]
 
 interface BookingStepsProps {
   onSuccess: () => void
@@ -34,38 +13,68 @@ interface BookingStepsProps {
 
 export function BookingSteps({ onSuccess }: BookingStepsProps) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { vehicles, isLoading: loadingVehicles } = useVehicles()
   const { addons, isLoading: loadingAddons } = useAddons()
 
   const [step, setStep] = useState(0)
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleResponse | null>(null)
-  const [selectedService, setSelectedService] = useState<typeof SERVICES[0] | null>(null)
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([])
   const [bookingDate, setBookingDate] = useState('')
   const [bookingTime, setBookingTime] = useState('10:00')
   const [address, setAddress] = useState('')
+  const [agreedSafeSpace, setAgreedSafeSpace] = useState(false)
+  const [agreedDetailsCorrect, setAgreedDetailsCorrect] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Preselect a vehicle when arriving from "Book a Wash" on the garage card.
+  useEffect(() => {
+    const vehicleId = searchParams.get('vehicleId')
+    if (vehicleId && vehicles.length > 0 && !selectedVehicle) {
+      const match = vehicles.find((v) => v.vehicleId === vehicleId)
+      if (match) {
+        setSelectedVehicle(match)
+        setStep(1)
+      }
+    }
+  }, [searchParams, vehicles, selectedVehicle])
+
+  const basePrice = selectedVehicle
+    ? parseFloat(MINI_VALET_PRICING[selectedVehicle.vehicleType] ?? '0')
+    : 0
+  const addonsTotal = selectedAddonIds.reduce((sum, id) => {
+    const addon = addons.find((a) => a.addonId === id)
+    return sum + (addon ? parseFloat(addon.price) : 0)
+  }, 0)
+  const total = (basePrice + addonsTotal).toFixed(2)
+
   const canNext = () => {
     if (step === 0) return !!selectedVehicle
-    if (step === 1) return !!selectedService
-    if (step === 2) return true // addons are optional
-    if (step === 3) return !!bookingDate && !!bookingTime && !!address.trim()
+    if (step === 1) return true // addons are optional
+    if (step === 2)
+      return (
+        !!bookingDate &&
+        !!bookingTime &&
+        !!address.trim() &&
+        agreedSafeSpace &&
+        agreedDetailsCorrect
+      )
     return false
   }
 
   const handleSubmit = async () => {
-    if (!selectedVehicle || !selectedService) return
+    if (!selectedVehicle) return
     setSubmitting(true)
     setError(null)
 
     const dto: CreateBookingDto = {
       vehicleId: selectedVehicle.vehicleId,
-      serviceType: selectedService.value,
       bookingTime: new Date(`${bookingDate}T${bookingTime}:00`).toISOString(),
       serviceAddress: address.trim(),
       addonIds: selectedAddonIds,
+      agreedSafeSpace,
+      agreedDetailsCorrect,
     }
 
     try {
@@ -78,7 +87,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
     }
   }
 
-  const STEP_TITLES = ['Select Vehicle', 'Choose Service', 'Add-ons', 'Date & Location']
+  const STEP_TITLES = ['Select Vehicle', 'Add-ons', 'Date & Location']
 
   if (loadingVehicles || loadingAddons) {
     return (
@@ -134,44 +143,20 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
               }`}
             >
               <h4 className="font-semibold text-white">{v.make} {v.model}</h4>
+              <p className="mt-1 text-xs text-nexa-text-secondary">
+                {VEHICLE_CATEGORY_LABELS[v.vehicleType] ?? v.vehicleType}
+                {MINI_VALET_PRICING[v.vehicleType]
+                  ? ` — Mini Valet £${MINI_VALET_PRICING[v.vehicleType]}`
+                  : ''}
+              </p>
               <p className="mt-1 font-mono text-xs text-nexa-text-muted">{v.registrationNumber}</p>
             </button>
           ))}
         </div>
       )}
 
-      {/* Step 1 — Service */}
+      {/* Step 1 — Add-ons */}
       {step === 1 && (
-        <div className="grid gap-4 lg:grid-cols-3">
-          {SERVICES.map((svc) => (
-            <button
-              key={svc.value}
-              onClick={() => setSelectedService(svc)}
-              className={`nexa-card flex flex-col p-5 text-left transition-all ${
-                selectedService?.value === svc.value
-                  ? 'border-nexa-mint ring-1 ring-nexa-mint/30'
-                  : 'hover:border-white/15'
-              }`}
-            >
-              <h4 className="text-lg font-semibold text-white">{svc.label}</h4>
-              <p className="mt-1 text-2xl font-bold text-nexa-mint">{svc.price}</p>
-              <ul className="mt-3 flex-1 space-y-1.5">
-                {svc.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-nexa-text-secondary">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-nexa-mint">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Step 2 — Add-ons */}
-      {step === 2 && (
         <div className="grid gap-4 sm:grid-cols-2">
           {addons.map((addon) => {
             const isSelected = selectedAddonIds.includes(addon.addonId)
@@ -209,8 +194,8 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
         </div>
       )}
 
-      {/* Step 3 — Date/Time & Address */}
-      {step === 3 && (
+      {/* Step 2 — Date/Time, Address & Legal consent */}
+      {step === 2 && (
         <div className="mx-auto max-w-md space-y-4">
           <label className="block space-y-1">
             <span className="text-sm font-medium text-nexa-text-secondary">Date</span>
@@ -244,7 +229,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
           </label>
 
           {/* Summary */}
-          {selectedVehicle && selectedService && (
+          {selectedVehicle && (
             <div className="nexa-card-solid mt-6 p-4">
               <h4 className="text-sm font-medium text-nexa-text-muted">Booking Summary</h4>
               <div className="mt-2 space-y-1.5">
@@ -253,8 +238,10 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
                   {selectedVehicle.make} {selectedVehicle.model} ({selectedVehicle.registrationNumber})
                 </p>
                 <p className="flex justify-between text-sm text-white">
-                  <span className="text-nexa-text-secondary">Service: {selectedService.label}</span>
-                  <span>{selectedService.price}</span>
+                  <span className="text-nexa-text-secondary">
+                    Mini Valet — {VEHICLE_CATEGORY_LABELS[selectedVehicle.vehicleType] ?? selectedVehicle.vehicleType}
+                  </span>
+                  <span>£{basePrice.toFixed(2)}</span>
                 </p>
                 {selectedAddonIds.map((id) => {
                   const addon = addons.find((a) => a.addonId === id)
@@ -268,19 +255,34 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
                 })}
                 <div className="mt-2 border-t border-white/10 pt-2 flex justify-between text-base font-bold text-white">
                   <span>Total</span>
-                  <span className="text-nexa-mint">
-                    £{(
-                      parseFloat(selectedService.price.replace('£', '')) +
-                      selectedAddonIds.reduce((sum, id) => {
-                        const addon = addons.find((a) => a.addonId === id)
-                        return sum + (addon ? parseFloat(addon.price) : 0)
-                      }, 0)
-                    ).toFixed(2)}
-                  </span>
+                  <span className="text-nexa-mint">£{total}</span>
                 </div>
               </div>
             </div>
           )}
+
+          {/* Legal consent — required before payment can be initiated */}
+          <div className="nexa-card-solid space-y-3 p-4">
+            <h4 className="text-sm font-medium text-nexa-text-muted">Before you book</h4>
+            <label className="flex items-start gap-2.5 text-sm text-nexa-text-secondary">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-nexa-mint"
+                checked={agreedSafeSpace}
+                onChange={(e) => setAgreedSafeSpace(e.target.checked)}
+              />
+              <span>I confirm I have a safe space to wash the vehicle.</span>
+            </label>
+            <label className="flex items-start gap-2.5 text-sm text-nexa-text-secondary">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-nexa-mint"
+                checked={agreedDetailsCorrect}
+                onChange={(e) => setAgreedDetailsCorrect(e.target.checked)}
+              />
+              <span>All details provided about the vehicle are correct.</span>
+            </label>
+          </div>
         </div>
       )}
 
@@ -296,7 +298,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
           Back
         </button>
 
-        {step < 3 ? (
+        {step < 2 ? (
           <button
             onClick={() => setStep((s) => s + 1)}
             disabled={!canNext()}
