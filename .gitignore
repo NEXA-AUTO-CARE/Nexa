@@ -63,3 +63,9 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Railway CLI
 railway.toml
+
+# AI - VIBE coding tools
+.vibe
+.vibe-ai
+.claude
+.claude-project

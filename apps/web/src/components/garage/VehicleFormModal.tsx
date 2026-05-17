@@ -1,6 +1,7 @@
 import { VehicleType } from '@nexa/shared'
 import type { CreateVehicleDto, UpdateVehicleDto, VehicleResponse } from '@nexa/shared'
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 const VEHICLE_TYPES = [
   { value: VehicleType.CAR, label: 'Car' },
@@ -78,8 +79,8 @@ export function VehicleFormModal({
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -194,6 +195,7 @@ export function VehicleFormModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

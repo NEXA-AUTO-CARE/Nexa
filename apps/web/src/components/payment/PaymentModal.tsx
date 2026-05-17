@@ -1,6 +1,7 @@
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../../lib/api-client';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_replace_me');
@@ -86,7 +87,7 @@ function CheckoutForm({ onSuccess, onCancel, amount }: Omit<PaymentFormProps, 'c
 }
 
 export function PaymentModal({ clientSecret, onSuccess, onCancel, amount }: PaymentFormProps) {
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl bg-nexa-bg-elevated p-6 shadow-2xl ring-1 ring-white/10">
         <h3 className="mb-6 text-xl font-bold text-white">Complete Payment</h3>
@@ -94,6 +95,7 @@ export function PaymentModal({ clientSecret, onSuccess, onCancel, amount }: Paym
           <CheckoutForm onSuccess={onSuccess} onCancel={onCancel} amount={amount} />
         </Elements>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
