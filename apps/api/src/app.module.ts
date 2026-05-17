@@ -13,12 +13,12 @@ import { DatabaseModule } from './database/database.module';
 import { AddonsModule } from './modules/addons/addons.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
+import { CorporateModule } from './modules/corporate/corporate.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { UsersModule } from './modules/users/users.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { PaymentsModule } from './modules/payments/payments.module';
-import { FleetModule } from './modules/fleet/fleet.module';
 
 @Module({
   imports: [
@@ -40,7 +40,7 @@ import { FleetModule } from './modules/fleet/fleet.module';
     BookingsModule,
     PaymentsModule,
     AddonsModule,
-    FleetModule,
+    CorporateModule,
   ],
 
 

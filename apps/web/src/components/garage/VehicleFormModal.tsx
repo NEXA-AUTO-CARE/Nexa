@@ -1,15 +1,11 @@
-import { VehicleType } from '@nexa/shared'
+import { MINI_VALET_PRICING, VEHICLE_CATEGORY_LABELS, VehicleType } from '@nexa/shared'
 import type { CreateVehicleDto, UpdateVehicleDto, VehicleResponse } from '@nexa/shared'
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
 
-const VEHICLE_TYPES = [
-  { value: VehicleType.CAR, label: 'Car' },
-  { value: VehicleType.SUV, label: '7 Seater / 4x4' },
-  { value: VehicleType.SMALL_VAN, label: 'Small Van' },
-  { value: VehicleType.LARGE_VAN, label: 'Large Van' },
-  { value: VehicleType.OTHER, label: 'Other' },
-]
+const VEHICLE_TYPES = (Object.values(VehicleType) as VehicleType[]).map((value) => ({
+  value,
+  label: `${VEHICLE_CATEGORY_LABELS[value]} — £${MINI_VALET_PRICING[value]}`,
+}))
 
 interface VehicleFormModalProps {
   open: boolean
@@ -31,7 +27,7 @@ export function VehicleFormModal({
   const [registrationNumber, setRegistrationNumber] = useState('')
   const [make, setMake] = useState('')
   const [model, setModel] = useState('')
-  const [vehicleType, setVehicleType] = useState<VehicleType>(VehicleType.CAR)
+  const [vehicleType, setVehicleType] = useState<VehicleType>(VehicleType.REGULAR)
   const [colour, setColour] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -47,7 +43,7 @@ export function VehicleFormModal({
       setRegistrationNumber('')
       setMake('')
       setModel('')
-      setVehicleType(VehicleType.CAR)
+      setVehicleType(VehicleType.REGULAR)
       setColour('')
     }
     setError(null)
@@ -79,8 +75,8 @@ export function VehicleFormModal({
     }
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -141,7 +137,7 @@ export function VehicleFormModal({
 
           <label className="block space-y-1">
             <span className="text-sm font-medium text-nexa-text-secondary">
-              Vehicle Type
+              Vehicle Category
             </span>
             <select
               className="nexa-select"
@@ -195,7 +191,6 @@ export function VehicleFormModal({
           </div>
         </form>
       </div>
-    </div>,
-    document.body
+    </div>
   )
 }

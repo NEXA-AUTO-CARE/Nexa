@@ -8,7 +8,6 @@ import {
   FileTextIcon,
   LeafIcon,
   SparklesIcon,
-  TireIcon,
   VacuumIcon,
   WindIcon,
   WindowIcon,

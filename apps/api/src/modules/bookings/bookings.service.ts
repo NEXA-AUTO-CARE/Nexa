@@ -6,19 +6,12 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BookingStatus, ServiceType } from '@nexa/shared';
+import { BookingStatus, MINI_VALET_PRICING, ServiceType } from '@nexa/shared';
 import type { BookingResponse } from '@nexa/shared';
 import { In, Repository } from 'typeorm';
 import { Booking, Vehicle, ServiceAddon } from '../../database/entities';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { BookingCancelledEvent, BookingCreatedEvent, BookingStatusChangedEvent } from './events/booking.events';
-
-/** Hard-coded pricing for MVP — replace with a pricing module later -potentially from the admin configured setiings in the database */
-const PRICING: Record<string, string> = {
-  [ServiceType.BASIC]: '29.99',
-  [ServiceType.FULL]: '59.99',
-  [ServiceType.PREMIUM]: '99.99',
-};
 
 /** Valid status transitions */
 const TRANSITIONS: Record<string, string[]> = {
@@ -48,18 +41,8 @@ export class BookingsService {
       throw new BadRequestException('Vehicle not found or does not belong to you');
     }
 
-    let basePrice = parseFloat(PRICING[dto.serviceType] ?? PRICING[ServiceType.BASIC]);
-
-    if (dto.serviceType === ServiceType.BASIC) {
-      switch (vehicle.vehicleType) {
-        case 'car': basePrice = 25; break;
-        case 'suv': basePrice = 30; break;
-        case 'small_van': basePrice = 35; break;
-        case 'large_van': basePrice = 40; break;
-        default: basePrice = 25; break;
-      }
-    }
-
+    // Mini Valet is the single base service; price is driven by vehicle category.
+    let basePrice = parseFloat(MINI_VALET_PRICING[vehicle.vehicleType]);
     let addonsSnapshot: { addonId: string; name: string; price: string }[] = [];
 
     if (dto.addonIds && dto.addonIds.length > 0) {
@@ -84,13 +67,15 @@ export class BookingsService {
     const booking = this.bookingRepo.create({
       userId,
       vehicleId: dto.vehicleId,
-      serviceType: dto.serviceType,
+      serviceType: dto.serviceType ?? ServiceType.BASIC,
       bookingTime: new Date(dto.bookingTime),
       serviceAddress: dto.serviceAddress.trim(),
       latitude: dto.latitude?.toString() ?? null,
       longitude: dto.longitude?.toString() ?? null,
       price: basePrice.toFixed(2),
       addons: addonsSnapshot,
+      agreedSafeSpace: dto.agreedSafeSpace,
+      agreedDetailsCorrect: dto.agreedDetailsCorrect,
       status: BookingStatus.BOOKED,
     });
 
@@ -171,7 +156,75 @@ export class BookingsService {
     this.events.emit(BookingCancelledEvent.EVENT_NAME, new BookingCancelledEvent(booking));
   }
 
+  /**
+   * Re-book a wash for a vehicle the customer has booked before, reusing the
+   * prior vehicle, address, service and add-ons. Consent carries over (the
+   * customer already agreed on the original booking). Price is recomputed from
+   * the vehicle's current category.
+   */
+  async rebook(
+    previousBookingId: string,
+    userId: string,
+    bookingTime?: string,
+  ): Promise<Booking> {
+    const previous = await this.verifyMyBooking(previousBookingId, userId);
+
+    const vehicle = await this.vehicleRepo.findOne({
+      where: { vehicleId: previous.vehicleId, ownerId: userId },
+    });
+    if (!vehicle) {
+      throw new BadRequestException(
+        'The vehicle for this booking no longer exists',
+      );
+    }
+
+    const when = bookingTime
+      ? new Date(bookingTime)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const addonsTotal = (previous.addons ?? []).reduce(
+      (sum, a) => sum + parseFloat(a.price),
+      0,
+    );
+    const basePrice = parseFloat(MINI_VALET_PRICING[vehicle.vehicleType]);
+
+    const booking = this.bookingRepo.create({
+      userId,
+      vehicleId: previous.vehicleId,
+      serviceType: previous.serviceType,
+      bookingTime: when,
+      serviceAddress: previous.serviceAddress,
+      latitude: previous.latitude,
+      longitude: previous.longitude,
+      price: (basePrice + addonsTotal).toFixed(2),
+      addons: previous.addons ?? [],
+      agreedSafeSpace: previous.agreedSafeSpace,
+      agreedDetailsCorrect: previous.agreedDetailsCorrect,
+      status: BookingStatus.BOOKED,
+    });
+
+    const saved = await this.bookingRepo.save(booking);
+    const full = await this.findByIdWithRelations(saved.bookingId);
+    this.events.emit(BookingCreatedEvent.EVENT_NAME, new BookingCreatedEvent(full));
+    return full;
+  }
+
   // Admin related booking methods
+  async findAllForAdmin(): Promise<Booking[]> {
+    return this.bookingRepo.find({
+      relations: ['vehicle', 'customer', 'vendor'],
+      order: { bookingTime: 'DESC' },
+    });
+  }
+
+  async assignVendor(bookingId: string, vendorId: string): Promise<Booking> {
+    const booking = await this.bookingRepo.findOne({ where: { bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    booking.vendorId = vendorId;
+    await this.bookingRepo.save(booking);
+    return this.findByIdWithRelations(bookingId);
+  }
+
   async acceptBooking(bookingId: string, userId: string): Promise<Booking> {
     return await this.updateStatus(bookingId, userId, BookingStatus.ACCEPTED);
   }

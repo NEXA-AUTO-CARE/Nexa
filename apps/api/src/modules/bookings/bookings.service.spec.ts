@@ -50,7 +50,7 @@ describe('BookingsService', () => {
 
   describe('create', () => {
     it('should create a booking and emit created event', async () => {
-      vehicleRepo.findOne.mockResolvedValue({ vehicleId: 'v1', ownerId: 'u1' });
+      vehicleRepo.findOne.mockResolvedValue({ vehicleId: 'v1', ownerId: 'u1', vehicleType: 'regular' });
       bookingRepo.create.mockReturnValue({ bookingId: 'b1', status: BookingStatus.BOOKED });
       bookingRepo.save.mockResolvedValue({ bookingId: 'b1' });
       bookingRepo.findOne.mockResolvedValue({ bookingId: 'b1', status: BookingStatus.BOOKED, customer: {} });
@@ -60,6 +60,8 @@ describe('BookingsService', () => {
         serviceType: ServiceType.BASIC,
         bookingTime: '2026-05-15T10:00:00.000Z',
         serviceAddress: '123 Test St',
+        agreedSafeSpace: true,
+        agreedDetailsCorrect: true,
       };
 
       const result = await service.create('u1', dto);
@@ -83,6 +85,8 @@ describe('BookingsService', () => {
         serviceType: ServiceType.BASIC,
         bookingTime: '2026-05-15T10:00:00.000Z',
         serviceAddress: '123 Test St',
+        agreedSafeSpace: true,
+        agreedDetailsCorrect: true,
       };
 
       await expect(service.create('u1', dto)).rejects.toThrow(BadRequestException);

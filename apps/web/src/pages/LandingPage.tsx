@@ -16,6 +16,7 @@ export function LandingPage() {
         <HeroSection />
         <HowItWorks />
         <ServiceDetails />
+        <CorporateFleet />
         <WhyChooseNexa />
         <CorporateFleet />
         <FAQ />

@@ -45,7 +45,7 @@ export function BookingPage() {
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Book a Wash</h1>
           <p className="mt-1 text-sm text-nexa-text-secondary">
-            Select your vehicle, choose a service, and pick a time
+            Select your vehicle, add any extras, and pick a time
           </p>
         </div>
 

@@ -11,7 +11,7 @@ import { Logo } from '../components/ui/Logo'
 export function BookingsPage() {
   const { user, logout } = useAuth()
   const { bookings, isLoading, refetch } = useBookings()
-  const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [, setCancellingId] = useState<string | null>(null)
   
   // Payment states
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null)
@@ -41,6 +41,15 @@ export function BookingsPage() {
       }
     } catch (err) {
       alert('Failed to initialize payment. It may already be paid or completed.')
+    }
+  }
+
+  const handleRebook = async (booking: BookingResponse) => {
+    try {
+      await api.post(`/bookings/${booking.bookingId}/rebook`, {})
+      await refetch()
+    } catch {
+      alert('Could not re-book. The vehicle may no longer exist.')
     }
   }
 
@@ -150,7 +159,7 @@ export function BookingsPage() {
                 <h2 className="mb-4 text-lg font-semibold text-nexa-text-muted">Past</h2>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {pastBookings.map((b) => (
-                    <BookingCard key={b.bookingId} booking={b} />
+                    <BookingCard key={b.bookingId} booking={b} onRebook={handleRebook} />
                   ))}
                 </div>
               </div>
