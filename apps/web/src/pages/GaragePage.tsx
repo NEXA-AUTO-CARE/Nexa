@@ -1,205 +1,333 @@
-import type { CreateVehicleDto, UpdateVehicleDto, VehicleResponse } from '@nexa/shared'
-import { useCallback, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { ConfirmDeleteModal } from '../components/garage/ConfirmDeleteModal'
-import { VehicleCard } from '../components/garage/VehicleCard'
-import { VehicleFormModal } from '../components/garage/VehicleFormModal'
-import { useAuth } from '../contexts/AuthContext'
-import { api } from '../lib/api-client'
-import { describeError } from '../lib/errors'
-import { useVehicles } from '../hooks/useVehicles'
-import { Logo } from '../components/ui/Logo'
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  MINI_VALET_PRICING,
+  VEHICLE_CATEGORY_LABELS,
+  VehicleType,
+  type CreateCorporateFleetEnquiryDto,
+  type CreateVehicleDto,
+} from "@nexa/shared";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { motion, AnimatePresence } from "framer-motion";
+import { Car, Plus, X, Truck, Send, Trash2, Droplets, Gift } from "lucide-react";
+import VehicleCategorySelector, {
+  type VehicleCategoryId,
+  vehicleCategories,
+} from "@/components/VehicleCategorySelector";
+import CorporateFleetFields, { type CorporateFleetData } from "@/components/CorporateFleetFields";
+import GiftRecipientFields, { type GiftRecipientData } from "@/components/GiftRecipientFields";
+import { useToast } from "@/hooks/use-toast";
+import { useVehicles } from "../hooks/useVehicles";
+import { api } from "../lib/api-client";
+import { describeError } from "../lib/errors";
 
-export function GaragePage() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
-  const { vehicles, isLoading, refetch } = useVehicles()
+// Bridge the prototype's category ids to the shared billable VehicleType.
+const CATEGORY_TO_VEHICLE_TYPE: Record<Exclude<VehicleCategoryId, "corporate_fleet">, VehicleType> = {
+  regular_car: VehicleType.REGULAR,
+  suv_7_seat_4x4: VehicleType.SEVEN_SEATER_4X4,
+  small_van: VehicleType.SMALL_VAN,
+  large_van: VehicleType.LARGE_VAN,
+};
 
-  // Modal state
-  const [formOpen, setFormOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<VehicleResponse | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<VehicleResponse | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [deleting, setDeleting] = useState(false)
+const emptyCorporateData: CorporateFleetData = {
+  companyName: "",
+  fleetSize: "",
+  contactPerson: "",
+  businessEmail: "",
+  businessPhone: "",
+};
 
-  const openAdd = () => {
-    setEditTarget(null)
-    setFormOpen(true)
-  }
-  const openEdit = (v: VehicleResponse) => {
-    setEditTarget(v)
-    setFormOpen(true)
-  }
-  const openDelete = (v: VehicleResponse) => {
-    setDeleteTarget(v)
-  }
+const emptyGiftData: GiftRecipientData = {
+  fullName: "",
+  email: "",
+  telephone: "",
+  address: "",
+};
 
-  const handleSubmit = useCallback(
-    async (data: CreateVehicleDto | UpdateVehicleDto) => {
-      setSubmitting(true)
-      try {
-        if (editTarget) {
-          await api.patch(`/vehicles/${editTarget.vehicleId}`, data)
-        } else {
-          await api.post('/vehicles', data)
-        }
-        await refetch()
-      } catch (err) {
-        throw new Error(describeError(err))
-      } finally {
-        setSubmitting(false)
-      }
-    },
-    [editTarget, refetch],
-  )
+const GaragePage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { vehicles, isLoading, refetch } = useVehicles();
+  const { toast } = useToast();
 
-  const handleDelete = useCallback(async () => {
-    if (!deleteTarget) return
-    setDeleting(true)
-    try {
-      await api.delete(`/vehicles/${deleteTarget.vehicleId}`)
-      setDeleteTarget(null)
-      await refetch()
-    } catch {
-      // silently fail for now — user will see vehicle still there
-    } finally {
-      setDeleting(false)
+  const [showForm, setShowForm] = useState(false);
+  const [isGiftMode, setIsGiftMode] = useState(false);
+  const [plate, setPlate] = useState("");
+  const [make, setMake] = useState("");
+  const [model, setModel] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<VehicleCategoryId | null>(null);
+  const [corporateData, setCorporateData] = useState<CorporateFleetData>(emptyCorporateData);
+  const [giftData, setGiftData] = useState<GiftRecipientData>(emptyGiftData);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if ((location.state as { giftMode?: boolean } | null)?.giftMode) {
+      setIsGiftMode(true);
+      setShowForm(true);
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [deleteTarget, refetch])
+  }, [location.state, location.pathname, navigate]);
+
+  const isCorporate = selectedCategory === "corporate_fleet";
+  const categoryMeta = selectedCategory
+    ? vehicleCategories.find((c) => c.id === selectedCategory)!
+    : null;
+
+  const resetForm = () => {
+    setPlate("");
+    setMake("");
+    setModel("");
+    setSelectedCategory(null);
+    setCorporateData(emptyCorporateData);
+    setGiftData(emptyGiftData);
+    setIsGiftMode(false);
+    setShowForm(false);
+  };
+
+  const canSubmit = () => {
+    if (!selectedCategory || submitting) return false;
+    if (isCorporate) {
+      return !!(corporateData.companyName && corporateData.contactPerson && corporateData.businessEmail);
+    }
+    const vehicleValid = !!(plate && make && model);
+    if (isGiftMode) {
+      return vehicleValid && !!(giftData.fullName && giftData.email && giftData.telephone && giftData.address);
+    }
+    return vehicleValid;
+  };
+
+  const handleAdd = async () => {
+    if (!canSubmit() || !categoryMeta) return;
+
+    // TODO(api): gift bookings have no backend yet — mock confirmation only.
+    if (isGiftMode) {
+      toast({
+        title: "Gift wash sent 🎁",
+        description: `A wash gift for the ${make} ${model} has been sent to ${giftData.fullName}.`,
+      });
+      resetForm();
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      if (isCorporate) {
+        const dto: CreateCorporateFleetEnquiryDto = {
+          companyName: corporateData.companyName,
+          fleetSize: Number(corporateData.fleetSize) || 1,
+          contactPerson: corporateData.contactPerson,
+          businessEmail: corporateData.businessEmail,
+          businessPhone: corporateData.businessPhone,
+        };
+        await api.post("/corporate-fleet", dto);
+        toast({
+          title: "Fleet request submitted",
+          description: "Our team will follow up with pricing and invoicing details.",
+        });
+      } else {
+        const dto: CreateVehicleDto = {
+          registrationNumber: plate,
+          make,
+          model,
+          vehicleType: CATEGORY_TO_VEHICLE_TYPE[selectedCategory as Exclude<VehicleCategoryId, "corporate_fleet">],
+        };
+        await api.post("/vehicles", dto);
+        await refetch();
+        toast({
+          title: "Vehicle added",
+          description: `${make} ${model} has been added to your garage.`,
+        });
+      }
+      resetForm();
+    } catch (err) {
+      toast({ title: "Something went wrong", description: describeError(err) });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRemove = async (id: string, name: string) => {
+    try {
+      await api.delete(`/vehicles/${id}`);
+      await refetch();
+      toast({ title: "Vehicle removed", description: `${name} has been removed from your garage.` });
+    } catch (err) {
+      toast({ title: "Could not remove vehicle", description: describeError(err) });
+    }
+  };
+
+  const inputClass = "h-11 bg-secondary border-border text-foreground placeholder:text-muted-foreground";
 
   return (
-    <div className="nexa-bg-pattern min-h-full bg-nexa-bg">
-      {/* Navbar */}
-      <nav
-        className="sticky top-0 z-50 w-full"
-        style={{
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          backgroundColor: 'rgba(15, 25, 35, 0.85)',
-        }}
-      >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Logo />
-          <div className="flex items-center gap-4">
-            <Link to="/book" className="text-sm text-nexa-text-secondary hover:text-white transition-colors">
-              Book a Wash
-            </Link>
-            <Link to="/bookings" className="text-sm text-nexa-text-secondary hover:text-white transition-colors">
-              My Bookings
-            </Link>
-            <span className="hidden text-sm text-nexa-text-secondary sm:inline">
-              {user?.displayName}
-            </span>
-            <button
-              onClick={() => void logout()}
-              className="btn-secondary text-sm px-4 py-1.5"
-            >
-              Log out
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Content */}
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">My Garage</h1>
-            <p className="mt-1 text-sm text-nexa-text-secondary">
-              Manage your vehicles and book washes
-            </p>
-          </div>
-          <button onClick={openAdd} className="btn-primary text-sm">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Add Vehicle
-          </button>
-        </div>
-
-        {/* Vehicle Grid / Loading / Empty State */}
-        <div className="mt-8">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-nexa-mint/30 border-t-nexa-mint" />
-                <span className="text-sm text-nexa-text-secondary">
-                  Loading your vehicles…
-                </span>
-              </div>
-            </div>
-          ) : vehicles.length === 0 ? (
-            <div className="nexa-card flex flex-col items-center justify-center p-14 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-nexa-mint/10">
-                <svg
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-nexa-mint"
-                >
-                  <path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
-                  <path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
-                  <path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0H9" />
-                  <path d="M10 6l-1 5h7" />
-                </svg>
-              </div>
-              <h3 className="mt-4 text-lg font-semibold text-white">
-                No vehicles yet
-              </h3>
-              <p className="mt-2 max-w-sm text-sm text-nexa-text-secondary">
-                Add your first vehicle to get started with booking a wash.
-              </p>
-              <button onClick={openAdd} className="btn-primary mt-6 text-sm">
-                Add Your First Vehicle
-              </button>
-            </div>
-          ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {vehicles.map((v) => (
-                <VehicleCard
-                  key={v.vehicleId}
-                  vehicle={v}
-                  onEdit={openEdit}
-                  onDelete={openDelete}
-                  onBook={(veh) => navigate(`/book?vehicleId=${veh.vehicleId}`)}
-                />
-              ))}
-            </div>
-          )}
+    <div className="px-4 pt-12 pb-6 space-y-5">
+      <div className="flex items-center justify-between">
+        <h1 className="font-heading text-2xl font-bold">My Garage</h1>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1"
+            onClick={() => {
+              setIsGiftMode(true);
+              setShowForm(true);
+            }}
+          >
+            <Gift className="h-4 w-4" />
+            Gift
+          </Button>
+          <Button size="sm" onClick={() => (showForm ? resetForm() : setShowForm(true))} className="gap-1">
+            {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {showForm ? "Cancel" : "Add"}
+          </Button>
         </div>
       </div>
 
-      {/* Modals */}
-      <VehicleFormModal
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSubmit={handleSubmit}
-        vehicle={editTarget}
-        isSubmitting={submitting}
-      />
-      <ConfirmDeleteModal
-        open={!!deleteTarget}
-        vehicle={deleteTarget}
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
-        isDeleting={deleting}
-      />
+      <AnimatePresence>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="space-y-4 overflow-hidden"
+          >
+            <VehicleCategorySelector selected={selectedCategory} onSelect={setSelectedCategory} />
+
+            <AnimatePresence>
+              {selectedCategory && !isCorporate && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="glass-card p-4 space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vehicle Details</p>
+                    <Input
+                      placeholder="Registration (e.g. AB23 XYZ)"
+                      value={plate}
+                      onChange={(e) => setPlate(e.target.value.toUpperCase())}
+                      className={inputClass}
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input
+                        placeholder="Make"
+                        value={make}
+                        onChange={(e) => setMake(e.target.value)}
+                        className={inputClass}
+                      />
+                      <Input
+                        placeholder="Model"
+                        value={model}
+                        onChange={(e) => setModel(e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {isCorporate && <CorporateFleetFields data={corporateData} onChange={setCorporateData} />}
+            </AnimatePresence>
+
+            {selectedCategory && !isCorporate && (
+              <GiftRecipientFields data={giftData} onChange={setGiftData} disabled={!isGiftMode} />
+            )}
+
+            <Button
+              variant="hero"
+              className="w-full h-12 gap-2"
+              onClick={handleAdd}
+              disabled={!canSubmit()}
+            >
+              {isCorporate ? (
+                <>
+                  <Send className="h-4 w-4" />
+                  Submit Fleet Request
+                </>
+              ) : isGiftMode ? (
+                <>
+                  <Gift className="h-4 w-4" />
+                  Send Gift Wash
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4" />
+                  Add Vehicle{categoryMeta ? ` · ${categoryMeta.priceLabel}` : ""}
+                </>
+              )}
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Vehicle list */}
+      <div className="space-y-3">
+        {isLoading ? (
+          <div className="glass-card p-4 text-sm text-muted-foreground">Loading your vehicles…</div>
+        ) : vehicles.length === 0 ? (
+          <div className="glass-card p-6 text-center text-sm text-muted-foreground">
+            No vehicles yet — add your first to book a wash.
+          </div>
+        ) : (
+          vehicles.map((v, i) => (
+            <motion.div
+              key={v.vehicleId}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="glass-card p-4 space-y-3"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
+                  <span className="text-muted-foreground">
+                    {v.vehicleType === VehicleType.REGULAR ? (
+                      <Car className="h-5 w-5" />
+                    ) : (
+                      <Truck className="h-5 w-5" />
+                    )}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-heading font-semibold">
+                    {v.make} {v.model}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {v.registrationNumber} · {VEHICLE_CATEGORY_LABELS[v.vehicleType]}
+                  </p>
+                </div>
+                <span className="rounded-full px-2.5 py-1 text-[10px] font-medium bg-secondary text-muted-foreground">
+                  £{MINI_VALET_PRICING[v.vehicleType]}
+                </span>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="hero"
+                  size="sm"
+                  className="flex-1 gap-1.5"
+                  onClick={() => navigate(`/book?vehicleId=${v.vehicleId}`)}
+                >
+                  <Droplets className="h-3.5 w-3.5" />
+                  Book a Wash
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1 text-destructive hover:text-destructive hover:bg-destructive/10 px-2"
+                  onClick={() => handleRemove(v.vehicleId, `${v.make} ${v.model}`)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </motion.div>
+          ))
+        )}
+      </div>
     </div>
-  )
-}
+  );
+};
+
+export default GaragePage;

@@ -3,6 +3,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
+import { Toaster } from './components/ui/toaster'
+import { Toaster as Sonner } from './components/ui/sonner'
+import { TooltipProvider } from './components/ui/tooltip'
 import { AuthProvider } from './contexts/AuthContext'
 import './index.css'
 
@@ -17,7 +20,11 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <App />
+          <TooltipProvider>
+            <App />
+            <Toaster />
+            <Sonner />
+          </TooltipProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

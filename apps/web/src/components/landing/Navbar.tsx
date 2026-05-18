@@ -6,13 +6,15 @@ export function Navbar() {
   const { user } = useAuth()
 
   return (
-    <nav className="sticky top-0 z-50 w-full" style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', backgroundColor: 'rgba(15, 25, 35, 0.85)' }}>
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+    <nav
+      className="sticky top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur-md"
+    >
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         {/* Logo */}
         <Logo />
 
         {/* Right Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           {user ? (
             <Link to="/garage" className="btn-primary text-sm">
               My Garage
