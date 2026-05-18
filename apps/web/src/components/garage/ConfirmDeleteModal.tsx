@@ -1,4 +1,5 @@
 import type { VehicleResponse } from '@nexa/shared'
+import { createPortal } from 'react-dom'
 
 interface ConfirmDeleteModalProps {
   open: boolean
@@ -17,8 +18,8 @@ export function ConfirmDeleteModal({
 }: ConfirmDeleteModalProps) {
   if (!open || !vehicle) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -56,6 +57,7 @@ export function ConfirmDeleteModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

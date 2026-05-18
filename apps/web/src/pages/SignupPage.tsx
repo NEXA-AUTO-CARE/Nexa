@@ -141,12 +141,7 @@ export function SignupPage() {
             {...register('displayName')}
           />
         </Field>
-        <Field label="I am a" error={errors.role?.message}>
-          <select className={selectCls} {...register('role')}>
-            <option value={UserRole.CUSTOMER}>Customer (book a wash)</option>
-            <option value={UserRole.VENDOR}>Vendor (provide detailing)</option>
-          </select>
-        </Field>
+        <input type="hidden" value={UserRole.CUSTOMER} {...register('role')} />
         <fieldset className="space-y-1">
           <legend className="text-sm font-medium text-nexa-text-secondary">Send my verification code via</legend>
           <div className="flex gap-4 pt-1">

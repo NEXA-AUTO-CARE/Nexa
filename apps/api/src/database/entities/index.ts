@@ -10,3 +10,4 @@ export { RefreshToken } from './refresh-token.entity';
 export { Role } from './role.entity';
 export { RolePermission } from './role-permission.entity';
 export { ServiceAddon } from './service-addon.entity';
+export { CorporateFleetEnquiry } from './corporate-fleet-enquiry.entity';

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Logo } from './ui/Logo'
 
 interface Props {
   title: string
@@ -13,13 +13,7 @@ export function AuthLayout({ title, subtitle, children, footer }: Props) {
     <div className="nexa-bg-pattern flex min-h-full flex-col bg-nexa-bg">
       {/* Mini navbar */}
       <nav className="px-6 py-4">
-        <Link
-          to="/"
-          className="text-2xl font-bold tracking-tight text-white"
-          style={{ fontFamily: "'Inter', sans-serif" }}
-        >
-          nexa<span className="text-nexa-mint">.</span>
-        </Link>
+        <Logo />
       </nav>
 
       {/* Auth card */}

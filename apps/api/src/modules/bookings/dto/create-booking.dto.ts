@@ -1,4 +1,15 @@
-import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, IsArray } from 'class-validator';
+import {
+  Equals,
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  IsArray,
+} from 'class-validator';
 import { ServiceType } from '@nexa/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -7,9 +18,10 @@ export class CreateBookingDto {
   @IsUUID()
   vehicleId: string;
 
-  @ApiProperty({ enum: ServiceType, example: ServiceType.BASIC })
+  @ApiPropertyOptional({ enum: ServiceType, example: ServiceType.BASIC })
+  @IsOptional()
   @IsEnum(ServiceType)
-  serviceType: ServiceType;
+  serviceType?: ServiceType;
 
   @ApiProperty({ example: '2026-05-15T10:00:00.000Z' })
   @IsDateString()
@@ -36,4 +48,27 @@ export class CreateBookingDto {
   @IsUUID('4', { each: true })
   @IsOptional()
   addonIds?: string[];
+
+  @ApiProperty({ example: true, description: 'Customer confirms a safe space to wash' })
+  @IsBoolean()
+  @Equals(true, { message: 'You must confirm you have a safe space to wash' })
+  agreedSafeSpace: boolean;
+
+  @ApiProperty({ example: true, description: 'Customer confirms vehicle details are correct' })
+  @IsBoolean()
+  @Equals(true, { message: 'You must confirm all vehicle details are correct' })
+  agreedDetailsCorrect: boolean;
+}
+
+export class RebookDto {
+  @ApiPropertyOptional({ example: '2026-05-20T10:00:00.000Z' })
+  @IsOptional()
+  @IsDateString()
+  bookingTime?: string;
+}
+
+export class AssignVendorDto {
+  @ApiProperty({ example: 'a1b2c3d4-...' })
+  @IsUUID()
+  vendorId: string;
 }

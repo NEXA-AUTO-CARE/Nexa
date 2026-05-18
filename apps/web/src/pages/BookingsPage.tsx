@@ -1,177 +1,110 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import type { BookingResponse } from '@nexa/shared'
-import { BookingCard } from '../components/booking/BookingCard'
-import { PaymentModal } from '../components/payment/PaymentModal'
-import { useAuth } from '../contexts/AuthContext'
-import { useBookings } from '../hooks/useBookings'
-import { api } from '../lib/api-client'
+import { BookingStatus, type BookingResponse } from "@nexa/shared";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Car, ChevronRight, Gift } from "lucide-react";
+import { useBookings } from "../hooks/useBookings";
+import { mockGiftBookings } from "@/lib/mock";
 
-export function BookingsPage() {
-  const { user, logout } = useAuth()
-  const { bookings, isLoading, refetch } = useBookings()
-  const [cancellingId, setCancellingId] = useState<string | null>(null)
-  
-  // Payment states
-  const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null)
-  const [paymentAmount, setPaymentAmount] = useState<string>('0.00')
+const statusMeta: Record<BookingStatus, { label: string; color: string }> = {
+  [BookingStatus.BOOKED]: { label: "Booked", color: "text-warning" },
+  [BookingStatus.ACCEPTED]: { label: "Accepted", color: "text-info" },
+  [BookingStatus.IN_PROGRESS]: { label: "In Progress", color: "text-warning" },
+  [BookingStatus.COMPLETED]: { label: "Completed", color: "text-success" },
+  [BookingStatus.CANCELLED]: { label: "Cancelled", color: "text-destructive" },
+};
 
-  const handleCancel = async (booking: BookingResponse) => {
-    if (!confirm(`Cancel booking for ${booking.vehicleSummary}?`)) return
-    setCancellingId(booking.bookingId)
-    try {
-      await api.delete(`/bookings/${booking.bookingId}`)
-      await refetch()
-    } catch {
-      // booking stays visible
-    } finally {
-      setCancellingId(null)
-    }
-  }
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
 
-  const handlePay = async (booking: BookingResponse) => {
-    try {
-      const { data } = await api.post<{ clientSecret: string; amount: string }>('/payments/intent', {
-        bookingId: booking.bookingId,
-      })
-      if (data.clientSecret) {
-        setPaymentClientSecret(data.clientSecret)
-        setPaymentAmount(data.amount)
-      }
-    } catch (err) {
-      alert('Failed to initialize payment. It may already be paid or completed.')
-    }
-  }
-
-  const handlePaymentSuccess = () => {
-    setPaymentClientSecret(null)
-    void refetch()
-    // Ideally show a success toast here
-  }
-
-  const activeBookings = bookings.filter((b) => b.status !== 'completed' && b.status !== 'cancelled')
-  const pastBookings = bookings.filter((b) => b.status === 'completed' || b.status === 'cancelled')
+const BookingsPage = () => {
+  const navigate = useNavigate();
+  const { bookings, isLoading } = useBookings();
 
   return (
-    <div className="nexa-bg-pattern min-h-full bg-nexa-bg">
-      {/* Navbar */}
-      <nav
-        className="sticky top-0 z-50 w-full"
-        style={{
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          backgroundColor: 'rgba(15, 25, 35, 0.85)',
-        }}
-      >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link
-            to="/"
-            className="text-2xl font-bold tracking-tight text-white"
-            style={{ fontFamily: "'Inter', sans-serif" }}
-          >
-            nexa<span className="text-nexa-mint">.</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link to="/book" className="text-sm text-nexa-text-secondary hover:text-white transition-colors">
-              Book a Wash
-            </Link>
-            <Link to="/garage" className="text-sm text-nexa-text-secondary hover:text-white transition-colors">
-              Garage
-            </Link>
-            <span className="hidden text-sm text-nexa-text-secondary sm:inline">
-              {user?.displayName}
-            </span>
-            <button
-              onClick={() => void logout()}
-              className="btn-secondary text-sm px-4 py-1.5"
-            >
-              Log out
-            </button>
-          </div>
-        </div>
-      </nav>
+    <div className="px-4 pt-12 pb-6 space-y-6">
+      <h1 className="font-heading text-2xl font-bold">My Bookings</h1>
 
-      {/* Content */}
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">My Bookings</h1>
-            <p className="mt-1 text-sm text-nexa-text-secondary">
-              Track and manage your car wash bookings
-            </p>
-          </div>
-          <Link to="/book" className="btn-primary text-sm">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            New Booking
-          </Link>
-        </div>
-
+      {/* Personal Bookings */}
+      <div className="space-y-3">
+        <p className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">Your Bookings</p>
         {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="flex flex-col items-center gap-3">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-nexa-mint/30 border-t-nexa-mint" />
-              <span className="text-sm text-nexa-text-secondary">Loading bookings…</span>
-            </div>
-          </div>
+          <div className="glass-card p-4 text-sm text-muted-foreground">Loading bookings…</div>
         ) : bookings.length === 0 ? (
-          <div className="nexa-card mt-8 flex flex-col items-center justify-center p-14 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-nexa-mint/10">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-nexa-mint">
-                <rect x="3" y="4" width="18" height="18" rx="2" />
-                <path d="M16 2v4M8 2v4M3 10h18" />
-              </svg>
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-white">No bookings yet</h3>
-            <p className="mt-2 max-w-sm text-sm text-nexa-text-secondary">
-              Book your first car wash and we'll take care of the rest.
-            </p>
-            <Link to="/book" className="btn-primary mt-6 text-sm">
-              Book Your First Wash
-            </Link>
-          </div>
+          <button
+            onClick={() => navigate("/book")}
+            className="glass-card w-full p-4 text-left text-sm text-muted-foreground"
+          >
+            No bookings yet — book your first wash.
+          </button>
         ) : (
-          <div className="mt-8 space-y-8">
-            {activeBookings.length > 0 && (
-              <div>
-                <h2 className="mb-4 text-lg font-semibold text-white">Active</h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {activeBookings.map((b) => (
-                    <BookingCard
-                      key={b.bookingId}
-                      booking={b}
-                      onCancel={handleCancel}
-                      onPay={handlePay}
-                    />
-                  ))}
+          bookings.map((b: BookingResponse, i) => {
+            const meta = statusMeta[b.status];
+            return (
+              <motion.button
+                key={b.bookingId}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                onClick={() => navigate(`/bookings/status/${b.bookingId}`)}
+                className="w-full glass-card p-4 flex items-center gap-3 text-left"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                  <Car className="h-5 w-5 text-muted-foreground" />
                 </div>
-              </div>
-            )}
-
-            {pastBookings.length > 0 && (
-              <div>
-                <h2 className="mb-4 text-lg font-semibold text-nexa-text-muted">Past</h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {pastBookings.map((b) => (
-                    <BookingCard key={b.bookingId} booking={b} />
-                  ))}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{b.vehicleSummary}</p>
+                  <p className="text-xs text-muted-foreground">
+                    £{b.price} · {formatDate(b.bookingTime)}
+                  </p>
                 </div>
-              </div>
-            )}
-          </div>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-xs font-medium ${meta.color}`}>{meta.label}</span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </motion.button>
+            );
+          })
         )}
       </div>
 
-      {paymentClientSecret && (
-        <PaymentModal
-          clientSecret={paymentClientSecret}
-          amount={paymentAmount}
-          onSuccess={handlePaymentSuccess}
-          onCancel={() => setPaymentClientSecret(null)}
-        />
-      )}
+      {/* Gift Bookings — TODO(api): replace with real gift-bookings endpoint */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Gift className="h-4 w-4 text-primary" />
+          <p className="text-xs font-heading font-semibold text-primary uppercase tracking-wider">Gift Bookings</p>
+        </div>
+        {mockGiftBookings.map((g, i) => (
+          <motion.div
+            key={g.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className="glass-card p-4 space-y-2 border-primary/10"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Gift className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">{g.vehicle}</p>
+                <p className="text-xs text-muted-foreground">{g.service} · {g.date}</p>
+              </div>
+              <span className={`text-xs font-medium ${g.statusColor}`}>{g.status}</span>
+            </div>
+            <div className="pl-[52px]">
+              <p className="text-xs text-muted-foreground">
+                <span className="text-foreground font-medium">To:</span> {g.recipient}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">{g.recipientEmail}</p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
     </div>
-  )
-}
+  );
+};
+
+export default BookingsPage;

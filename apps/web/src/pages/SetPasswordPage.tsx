@@ -44,7 +44,7 @@ export function SetPasswordPage() {
     setServerError(null)
     try {
       await setPassword({ setupToken, password })
-      navigate('/garage', { replace: true })
+      navigate('/dashboard', { replace: true })
     } catch (err) {
       setServerError(describeError(err))
     }

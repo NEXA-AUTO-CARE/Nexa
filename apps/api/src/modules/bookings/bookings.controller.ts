@@ -22,9 +22,10 @@ import {
 import type { BookingResponse } from '@nexa/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { BookingsService } from './bookings.service';
-import { CreateBookingDto } from './dto/create-booking.dto';
+import { AssignVendorDto, CreateBookingDto, RebookDto } from './dto/create-booking.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 
 @ApiTags('bookings')
@@ -51,6 +52,39 @@ export class BookingsController {
   async findAll(@CurrentUser() user: AuthenticatedUser): Promise<BookingResponse[]> {
     const list = await this.bookings.findAllByUser(user.userId);
     return list.map((b) => this.bookings.toResponse(b));
+  }
+
+  @Post(':id/rebook')
+  @ApiOperation({ summary: 'Re-book a previous wash without re-entering details' })
+  @ApiCreatedResponse({ description: 'New booking created from a previous one' })
+  async rebook(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RebookDto,
+  ): Promise<BookingResponse> {
+    const booking = await this.bookings.rebook(id, user.userId, dto.bookingTime);
+    return this.bookings.toResponse(booking);
+  }
+
+  @Get('admin/all')
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Admin: list all bookings' })
+  @ApiOkResponse({ description: 'Array of all bookings' })
+  async findAllForAdmin(): Promise<BookingResponse[]> {
+    const list = await this.bookings.findAllForAdmin();
+    return list.map((b) => this.bookings.toResponse(b));
+  }
+
+  @Patch(':id/assign-vendor')
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Admin: assign a vendor to a booking' })
+  @ApiOkResponse({ description: 'Updated booking' })
+  async assignVendor(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AssignVendorDto,
+  ): Promise<BookingResponse> {
+    const booking = await this.bookings.assignVendor(id, dto.vendorId);
+    return this.bookings.toResponse(booking);
   }
 
   @Get(':id')

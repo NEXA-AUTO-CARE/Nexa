@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import heroImg from '../../assets/hero-detailer.png'
+import heroImg from '../../assets/hero-detailing.jpg'
 import { ArrowRightIcon } from './icons'
 
 export function HeroSection() {

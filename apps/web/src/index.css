@@ -1,251 +1,200 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Space+Grotesk:wght@300..700&display=swap');
 @import "tailwindcss";
 
-/* ─── NEXA Design System ─── Dark Premium Theme ─── */
+@layer base {
+  :root {
+    --font-heading: 'Space Grotesk', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+
+    --background: 213 66% 11%;
+    --foreground: 0 0% 95%;
+
+    --card: 213 50% 14%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 213 50% 14%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 160 100% 70%;
+    --primary-foreground: 213 66% 11%;
+
+    --secondary: 213 40% 20%;
+    --secondary-foreground: 0 0% 85%;
+
+    --muted: 213 30% 18%;
+    --muted-foreground: 213 15% 55%;
+
+    --accent: 160 100% 70%;
+    --accent-foreground: 213 66% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 213 30% 22%;
+    --input: 213 30% 22%;
+    --ring: 160 100% 70%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 213 50% 14%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 160 100% 70%;
+    --sidebar-primary-foreground: 213 66% 11%;
+    --sidebar-accent: 213 40% 20%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 213 30% 22%;
+    --sidebar-ring: 160 100% 70%;
+
+    --success: 160 60% 45%;
+    --warning: 38 92% 50%;
+    --info: 200 80% 55%;
+
+    --color-nexa-mint: hsl(var(--primary));
+    --color-nexa-mint-hover: hsl(160 100% 64%);
+    --color-nexa-mint-dim: hsl(var(--primary) / 0.15);
+    --color-nexa-bg-deep: hsl(213 66% 8%);
+    --color-nexa-bg: hsl(var(--background));
+    --color-nexa-bg-elevated: hsl(var(--secondary));
+    --color-nexa-bg-card: hsl(var(--card) / 0.65);
+    --color-nexa-bg-card-solid: hsl(var(--card));
+    --color-nexa-border: hsl(var(--primary) / 0.1);
+    --color-nexa-border-subtle: hsl(0 0% 100% / 0.06);
+    --color-nexa-border-card: hsl(var(--border) / 0.8);
+    --color-nexa-text: hsl(var(--foreground));
+    --color-nexa-text-secondary: hsl(var(--muted-foreground));
+    --color-nexa-text-muted: hsl(213 15% 40%);
+    --color-nexa-text-dark: hsl(var(--primary-foreground));
+    --color-nexa-success: hsl(var(--success));
+    --color-nexa-error: hsl(var(--destructive));
+    --color-nexa-warning: hsl(var(--warning));
+
+    --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.25);
+    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.08);
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-body), sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading), sans-serif;
+  }
+}
 
 @theme {
-  /* Primary mint/teal accent */
-  --color-nexa-mint: #5BE9B0;
-  --color-nexa-mint-hover: #4AD89F;
-  --color-nexa-mint-dim: rgba(91, 233, 176, 0.15);
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-success: hsl(var(--success));
+  --color-warning: hsl(var(--warning));
+  --color-info: hsl(var(--info));
 
-  /* Dark backgrounds */
-  --color-nexa-bg-deep: #0B1118;
-  --color-nexa-bg: #0f1923;
-  --color-nexa-bg-elevated: #1a2332;
-  --color-nexa-bg-card: rgba(26, 40, 56, 0.65);
-  --color-nexa-bg-card-solid: #1e2d3d;
+  --color-sidebar: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
 
-  /* Borders */
-  --color-nexa-border: rgba(91, 233, 176, 0.1);
-  --color-nexa-border-subtle: rgba(255, 255, 255, 0.06);
-  --color-nexa-border-card: rgba(255, 255, 255, 0.08);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 
-  /* Text */
-  --color-nexa-text: #FFFFFF;
-  --color-nexa-text-secondary: #94A3B8;
-  --color-nexa-text-muted: #64748B;
-  --color-nexa-text-dark: #0f1923;
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-fade-in: fade-in 0.4s ease-out;
+  --animate-slide-up: slide-up 0.5s ease-out;
 
-  /* Semantic */
-  --color-nexa-success: #22C55E;
-  --color-nexa-error: #EF4444;
-  --color-nexa-warning: #F59E0B;
-
-  /* Fonts */
-  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-
-  /* Shadows */
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.25);
-  --shadow-glow: 0 0 40px rgba(91, 233, 176, 0.08);
+  --color-nexa-mint: hsl(var(--primary));
+  --color-nexa-mint-hover: hsl(160 100% 64%);
+  --color-nexa-mint-dim: hsl(var(--primary) / 0.15);
+  --color-nexa-bg-deep: hsl(213 66% 8%);
+  --color-nexa-bg: hsl(var(--background));
+  --color-nexa-bg-elevated: hsl(var(--secondary));
+  --color-nexa-bg-card: hsl(var(--card) / 0.65);
+  --color-nexa-bg-card-solid: hsl(var(--card));
+  --color-nexa-border: hsl(var(--primary) / 0.1);
+  --color-nexa-border-subtle: hsl(0 0% 100% / 0.06);
+  --color-nexa-border-card: hsl(var(--border) / 0.8);
+  --color-nexa-text: hsl(var(--foreground));
+  --color-nexa-text-secondary: hsl(var(--muted-foreground));
+  --color-nexa-text-muted: hsl(213 15% 40%);
+  --color-nexa-text-dark: hsl(var(--primary-foreground));
+  --color-nexa-success: hsl(var(--success));
+  --color-nexa-error: hsl(var(--destructive));
+  --color-nexa-warning: hsl(var(--warning));
+  --font-display: var(--font-heading);
+  --font-sans: var(--font-body);
+  --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.25);
+  --shadow-glow: 0 0 40px hsl(var(--primary) / 0.08);
 }
 
-/* ─── Base ─── */
-
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-display: swap;
-  src: url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
 }
 
-html, body, #root {
-  height: 100%;
-  margin: 0;
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
 }
 
-body {
-  font-family: var(--font-sans);
-  background-color: var(--color-nexa-bg);
-  color: var(--color-nexa-text);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* ─── Custom Scrollbar ─── */
-
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--color-nexa-bg-deep);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-nexa-bg-elevated);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-nexa-text-muted);
-}
-
-/* ─── Background wave/light-streak effect ─── */
-
-.nexa-bg-pattern {
-  position: relative;
-  overflow: hidden;
-}
-
-.nexa-bg-pattern::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 10% 90%, rgba(91, 233, 176, 0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 85% 20%, rgba(91, 233, 176, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse 100% 80% at 50% 100%, rgba(15, 25, 35, 0.8) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.nexa-bg-pattern > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* ─── Typography Helpers ─── */
-
-.font-display {
-  font-family: var(--font-display);
-}
-
-/* ─── Glass Card ─── */
-
-.nexa-card {
-  background: var(--color-nexa-bg-card);
-  border: 1px solid var(--color-nexa-border-card);
-  border-radius: 12px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.nexa-card-solid {
-  background: var(--color-nexa-bg-card-solid);
-  border: 1px solid var(--color-nexa-border-card);
-  border-radius: 12px;
-}
-
-/* ─── Button Styles ─── */
-
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 2rem;
-  background-color: var(--color-nexa-mint);
-  color: var(--color-nexa-text-dark);
-  font-weight: 600;
-  font-size: 0.9375rem;
-  border-radius: 9999px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-}
-
-.btn-primary:hover {
-  background-color: var(--color-nexa-mint-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(91, 233, 176, 0.3);
-}
-
-.btn-primary:active {
-  transform: translateY(0);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 2rem;
-  background-color: transparent;
-  color: var(--color-nexa-text);
-  font-weight: 500;
-  font-size: 0.9375rem;
-  border-radius: 9999px;
-  border: 1px solid var(--color-nexa-border-card);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-}
-
-.btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-/* ─── Input Styles (Auth forms) ─── */
-
-.nexa-input {
-  width: 100%;
-  padding: 0.625rem 0.875rem;
-  background-color: var(--color-nexa-bg-elevated);
-  border: 1px solid var(--color-nexa-border-card);
-  border-radius: 0.5rem;
-  color: var(--color-nexa-text);
-  font-size: 0.875rem;
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.nexa-input::placeholder {
-  color: var(--color-nexa-text-muted);
-}
-
-.nexa-input:focus {
-  border-color: var(--color-nexa-mint);
-  box-shadow: 0 0 0 3px var(--color-nexa-mint-dim);
-}
-
-.nexa-select {
-  width: 100%;
-  padding: 0.625rem 0.875rem;
-  background-color: var(--color-nexa-bg-elevated);
-  border: 1px solid var(--color-nexa-border-card);
-  border-radius: 0.5rem;
-  color: var(--color-nexa-text);
-  font-size: 0.875rem;
-  outline: none;
-  transition: border-color 0.2s ease;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-}
-
-.nexa-select:focus {
-  border-color: var(--color-nexa-mint);
-  box-shadow: 0 0 0 3px var(--color-nexa-mint-dim);
-}
-
-.nexa-select option {
-  background-color: var(--color-nexa-bg-card-solid);
-  color: var(--color-nexa-text);
-}
-
-
-/* ─── Smooth Scroll ─── */
-html {
-  scroll-behavior: smooth;
-}
-
-/* ─── Animations ─── */
-
-@keyframes fadeInUp {
+@keyframes slide-up {
   from {
     opacity: 0;
     transform: translateY(20px);
@@ -256,21 +205,30 @@ html {
   }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+@layer utilities {
+  .glow-teal {
+    box-shadow: 0 0 20px hsl(160 100% 70% / 0.15);
+  }
 
-.animate-fade-in-up {
-  animation: fadeInUp 0.6s ease-out forwards;
-}
+  .glass-card {
+    background-color: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border) / 0.5);
+    border-radius: 0.75rem;
+  }
 
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
-}
+  .text-gradient {
+    background-clip: text;
+    background-image: linear-gradient(to right, hsl(var(--primary)), hsl(180 80% 65%));
+    color: transparent;
+  }
 
-.animate-delay-100 { animation-delay: 0.1s; }
-.animate-delay-200 { animation-delay: 0.2s; }
-.animate-delay-300 { animation-delay: 0.3s; }
-.animate-delay-400 { animation-delay: 0.4s; }
-.animate-delay-500 { animation-delay: 0.5s; }
+  .font-display {
+    font-family: var(--font-heading), sans-serif;
+  }
+
+  .font-body {
+    font-family: var(--font-body), sans-serif;
+  }
+}

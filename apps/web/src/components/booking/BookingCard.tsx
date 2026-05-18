@@ -9,20 +9,22 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }>
 }
 
 const SERVICE_LABELS: Record<string, string> = {
-  basic: 'Basic Wash',
-  full: 'Full Detail',
-  premium: 'Premium Detail',
+  basic: 'Mini Valet & Spray Polish',
+  full: 'Mini Valet & Spray Polish',
+  premium: 'Mini Valet & Spray Polish',
 }
 
 interface BookingCardProps {
   booking: BookingResponse
   onCancel?: (b: BookingResponse) => void
   onPay?: (b: BookingResponse) => void
+  onRebook?: (b: BookingResponse) => void
 }
 
-export function BookingCard({ booking, onCancel, onPay }: BookingCardProps) {
+export function BookingCard({ booking, onCancel, onPay, onRebook }: BookingCardProps) {
   const status = STATUS_STYLES[booking.status] ?? STATUS_STYLES.booked
   const canCancel = booking.status === 'booked' || booking.status === 'accepted'
+  const canRebook = booking.status === 'completed' || booking.status === 'cancelled'
 
   const dateStr = new Date(booking.bookingTime).toLocaleDateString('en-GB', {
     weekday: 'short',
@@ -74,6 +76,14 @@ export function BookingCard({ booking, onCancel, onPay }: BookingCardProps) {
       <div className="mt-4 flex items-center justify-between border-t border-nexa-border-subtle pt-3">
         <span className="text-lg font-bold text-nexa-mint">£{booking.price}</span>
         <div className="flex items-center gap-2">
+          {onRebook && canRebook && (
+            <button
+              onClick={() => onRebook(booking)}
+              className="btn-primary text-xs px-3 py-1"
+            >
+              Book again
+            </button>
+          )}
           {onPay && canCancel && (
              <button
               onClick={() => onPay(booking)}
@@ -89,6 +99,14 @@ export function BookingCard({ booking, onCancel, onPay }: BookingCardProps) {
             >
               Cancel
             </button>
+          )}
+          {!canCancel && (
+             <a
+               href={`/book?vehicleId=${booking.vehicleId}`}
+               className="btn-secondary text-xs px-3 py-1"
+             >
+               Re-book
+             </a>
           )}
         </div>
       </div>

@@ -1,19 +1,20 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { Logo } from '../ui/Logo'
 
 export function Navbar() {
   const { user } = useAuth()
 
   return (
-    <nav className="sticky top-0 z-50 w-full" style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', backgroundColor: 'rgba(15, 25, 35, 0.85)' }}>
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+    <nav
+      className="sticky top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur-md"
+    >
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         {/* Logo */}
-        <Link to="/" className="text-2xl font-bold tracking-tight text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
-          nexa<span className="text-nexa-mint">.</span>
-        </Link>
+        <Logo />
 
         {/* Right Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           {user ? (
             <Link to="/garage" className="btn-primary text-sm">
               My Garage

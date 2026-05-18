@@ -3,8 +3,8 @@ import { ArrowRightIcon } from './icons'
 
 export function CTABanner() {
   return (
-    <section id="cta" className="px-6 py-20 md:py-28">
-      <div className="mx-auto max-w-2xl">
+    <section id="cta" className="relative px-6 py-20 md:py-28 overflow-hidden">
+      <div className="relative z-10 mx-auto max-w-2xl">
         <div className="nexa-card p-10 text-center md:p-14">
           <h2 className="text-2xl font-bold text-white md:text-3xl">
             Ready to get started?
