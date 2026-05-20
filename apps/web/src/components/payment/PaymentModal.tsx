@@ -3,7 +3,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_replace_me');
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_replace_me');
 
 interface PaymentFormProps {
   clientSecret: string;
