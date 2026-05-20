@@ -9,6 +9,19 @@ import { Payment } from '../../database/entities';
 import { BookingsService } from '../bookings/bookings.service';
 import { CreatePaymentIntentDto } from './dto/create-payment.dto';
 
+/**
+ * Platform commission applied to every booking. The vendor receives the
+ * remainder. Keep as a single source of truth — pricing tweaks happen here.
+ */
+const PLATFORM_FEE_RATE = 0.15;
+
+function splitPayout(amount: string): { platformFee: string; vendorPayout: string } {
+  const total = parseFloat(amount);
+  const platformFee = Math.round(total * PLATFORM_FEE_RATE * 100) / 100;
+  const vendorPayout = Math.round((total - platformFee) * 100) / 100;
+  return { platformFee: platformFee.toFixed(2), vendorPayout: vendorPayout.toFixed(2) };
+}
+
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
@@ -20,7 +33,7 @@ export class PaymentsService {
     private readonly bookingsService: BookingsService,
     private readonly config: ConfigService,
   ) {
-    const stripeKey = this.config.get<string>('app.stripe.secretKey') || 'sk_test_replace_me';
+    const stripeKey = this.config.get<string>('app.stripe.secret') || 'sk_test_replace_me';
     this.stripe = new Stripe(stripeKey);
   }
 
@@ -73,23 +86,29 @@ export class PaymentsService {
         clientSecret = paymentIntent.client_secret;
 
         // 4. Save Payment record to database
+        const split = splitPayout(booking.price);
         payment = this.paymentRepo.create({
           bookingId: booking.bookingId,
           stripePaymentIntentId: paymentIntent.id,
           amount: booking.price,
+          platformFee: split.platformFee,
+          vendorPayout: split.vendorPayout,
           status: PaymentStatus.PENDING,
         });
-        
+
         await this.paymentRepo.save(payment);
       } catch (err) {
         this.logger.error('Failed to create Stripe PaymentIntent', err);
         // Fallback for dev mode if stripe isn't configured properly
-        if (err.message?.includes('Invalid API Key') || this.config.get('app.stripe.secretKey') === 'sk_test_replace_me') {
+        if (err.message?.includes('Invalid API Key') || !this.config.get('app.stripe.secret') || this.config.get('app.stripe.secret') === 'sk_test_replace_me') {
           this.logger.warn('Mocking payment intent for development');
+          const split = splitPayout(booking.price);
           payment = this.paymentRepo.create({
             bookingId: booking.bookingId,
             stripePaymentIntentId: 'pi_mock_' + Date.now(),
             amount: booking.price,
+            platformFee: split.platformFee,
+            vendorPayout: split.vendorPayout,
             status: PaymentStatus.PENDING,
           });
           await this.paymentRepo.save(payment);

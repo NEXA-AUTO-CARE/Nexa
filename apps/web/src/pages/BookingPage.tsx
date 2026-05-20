@@ -31,17 +31,21 @@ const BookingPage = () => {
 
   const effectiveVehicleId = selectedVehicle || vehicles[0]?.vehicleId || "";
   const vehicle = vehicles.find((v) => v.vehicleId === effectiveVehicleId);
+  const basePriceStr = vehicle ? MINI_VALET_PRICING[vehicle.vehicleType] : undefined;
+  const hasPrice = basePriceStr !== undefined;
 
   const total = useMemo(() => {
-    const base = vehicle ? Number(MINI_VALET_PRICING[vehicle.vehicleType]) : 0;
+    if (!hasPrice) return null;
+    const base = Number(basePriceStr);
     const extras = addons
       .filter((a) => selectedAddons.includes(a.addonId))
       .reduce((sum, a) => sum + Number(a.price), 0);
     return (base + extras).toFixed(2);
-  }, [vehicle, addons, selectedAddons]);
+  }, [hasPrice, basePriceStr, addons, selectedAddons]);
 
   const canSubmit =
     !!effectiveVehicleId &&
+    hasPrice &&
     !!date &&
     !!time &&
     address.trim().length > 0 &&
@@ -128,7 +132,7 @@ const BookingPage = () => {
             <p className="text-xs text-muted-foreground">Priced by vehicle category</p>
           </div>
           <span className="font-heading font-bold text-lg text-primary">
-            £{vehicle ? MINI_VALET_PRICING[vehicle.vehicleType] : "—"}
+            {basePriceStr ? `£${basePriceStr}` : "—"}
           </span>
         </div>
       </motion.div>
@@ -233,10 +237,12 @@ const BookingPage = () => {
       {/* Confirm */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
         <Button variant="hero" className="w-full h-12" onClick={handleSubmit} disabled={!canSubmit}>
-          {submitting ? "Creating booking…" : (
+          {submitting ? "Creating booking…" : total ? (
             <>
               Continue to Payment · £{total} <ChevronRight className="h-4 w-4" />
             </>
+          ) : (
+            <>Continue to Payment <ChevronRight className="h-4 w-4" /></>
           )}
         </Button>
       </motion.div>
