@@ -36,6 +36,13 @@ export class VehiclesService {
     });
   }
 
+  async findAllForAdmin(): Promise<Vehicle[]> {
+    return this.vehicleRepo.find({
+      relations: ['owner'],
+      order: { createdOn: 'DESC' },
+    });
+  }
+
   async findById(vehicleId: string): Promise<Vehicle> {
     const vehicle = await this.vehicleRepo.findOne({ where: { vehicleId } });
     if (!vehicle) throw new NotFoundException('Vehicle not found');

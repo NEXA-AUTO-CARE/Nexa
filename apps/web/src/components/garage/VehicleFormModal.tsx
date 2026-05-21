@@ -1,11 +1,7 @@
-import { MINI_VALET_PRICING, VEHICLE_CATEGORY_LABELS, VehicleType } from '@nexa/shared'
+import { VehicleType } from '@nexa/shared'
 import type { CreateVehicleDto, UpdateVehicleDto, VehicleResponse } from '@nexa/shared'
-import { useEffect, useState } from 'react'
-
-const VEHICLE_TYPES = (Object.values(VehicleType) as VehicleType[]).map((value) => ({
-  value,
-  label: `${VEHICLE_CATEGORY_LABELS[value]} — £${MINI_VALET_PRICING[value]}`,
-}))
+import { useEffect, useMemo, useState } from 'react'
+import { useSettings } from '../../contexts/SettingsContext'
 
 interface VehicleFormModalProps {
   open: boolean
@@ -23,11 +19,22 @@ export function VehicleFormModal({
   vehicle,
   isSubmitting,
 }: VehicleFormModalProps) {
+  const { priceFor, labelFor } = useSettings()
+
+  const VEHICLE_TYPES = useMemo(
+    () =>
+      (Object.values(VehicleType) as VehicleType[]).map((value) => ({
+        value,
+        label: `${labelFor(value)} — £${priceFor(value)}`,
+      })),
+    [priceFor, labelFor],
+  )
+
   const isEdit = !!vehicle
   const [registrationNumber, setRegistrationNumber] = useState('')
   const [make, setMake] = useState('')
   const [model, setModel] = useState('')
-  const [vehicleType, setVehicleType] = useState<VehicleType>(VehicleType.REGULAR)
+  const [vehicleType, setVehicleType] = useState<VehicleType>(VehicleType.STANDARD)
   const [colour, setColour] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -43,7 +50,7 @@ export function VehicleFormModal({
       setRegistrationNumber('')
       setMake('')
       setModel('')
-      setVehicleType(VehicleType.REGULAR)
+      setVehicleType(VehicleType.STANDARD)
       setColour('')
     }
     setError(null)

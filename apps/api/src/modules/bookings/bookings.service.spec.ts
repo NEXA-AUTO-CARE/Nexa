@@ -6,6 +6,7 @@ import { BookingStatus, ServiceType } from '@nexa/shared';
 import { Booking, Vehicle, ServiceAddon } from '../../database/entities';
 import { BookingsService } from './bookings.service';
 import { BookingCancelledEvent, BookingCreatedEvent, BookingStatusChangedEvent } from './events/booking.events';
+import { SettingsService } from '../settings/settings.service';
 
 describe('BookingsService', () => {
   let service: BookingsService;
@@ -13,6 +14,7 @@ describe('BookingsService', () => {
   let vehicleRepo: any;
   let addonRepo: any;
   let events: any;
+  let settingsService: any;
 
   beforeEach(async () => {
     bookingRepo = {
@@ -30,6 +32,9 @@ describe('BookingsService', () => {
     events = {
       emit: jest.fn(),
     };
+    settingsService = {
+      findOne: jest.fn().mockResolvedValue(null),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -38,6 +43,7 @@ describe('BookingsService', () => {
         { provide: getRepositoryToken(Vehicle), useValue: vehicleRepo },
         { provide: getRepositoryToken(ServiceAddon), useValue: addonRepo },
         { provide: EventEmitter2, useValue: events },
+        { provide: SettingsService, useValue: settingsService },
       ],
     }).compile();
 

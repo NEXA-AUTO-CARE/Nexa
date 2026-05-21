@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { MINI_VALET_PRICING, type BookingResponse, type CreateBookingDto } from "@nexa/shared";
+import { type BookingResponse, type CreateBookingDto } from "@nexa/shared";
+import { useSettings } from "../contexts/SettingsContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +19,7 @@ const BookingPage = () => {
   const [searchParams] = useSearchParams();
   const { vehicles, isLoading } = useVehicles();
   const { addons } = useAddons();
+  const { priceFor } = useSettings();
 
   const [selectedVehicle, setSelectedVehicle] = useState<string>(searchParams.get("vehicleId") ?? "");
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
@@ -31,7 +33,7 @@ const BookingPage = () => {
 
   const effectiveVehicleId = selectedVehicle || vehicles[0]?.vehicleId || "";
   const vehicle = vehicles.find((v) => v.vehicleId === effectiveVehicleId);
-  const basePriceStr = vehicle ? MINI_VALET_PRICING[vehicle.vehicleType] : undefined;
+  const basePriceStr = vehicle ? priceFor(vehicle.vehicleType) : undefined;
   const hasPrice = basePriceStr !== undefined;
 
   const total = useMemo(() => {

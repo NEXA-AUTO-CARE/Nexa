@@ -1,5 +1,5 @@
 import type { CreateBookingDto, VehicleResponse } from '@nexa/shared'
-import { MINI_VALET_PRICING, VEHICLE_CATEGORY_LABELS } from '@nexa/shared'
+import { useSettings } from '../../contexts/SettingsContext'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useVehicles } from '../../hooks/useVehicles'
@@ -16,6 +16,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
   const [searchParams] = useSearchParams()
   const { vehicles, isLoading: loadingVehicles } = useVehicles()
   const { addons, isLoading: loadingAddons } = useAddons()
+  const { priceFor, labelFor } = useSettings()
 
   const [step, setStep] = useState(0)
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleResponse | null>(null)
@@ -41,7 +42,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
   }, [searchParams, vehicles, selectedVehicle])
 
   const basePrice = selectedVehicle
-    ? parseFloat(MINI_VALET_PRICING[selectedVehicle.vehicleType] ?? '0')
+    ? parseFloat(priceFor(selectedVehicle.vehicleType))
     : 0
   const addonsTotal = selectedAddonIds.reduce((sum, id) => {
     const addon = addons.find((a) => a.addonId === id)
@@ -144,10 +145,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
             >
               <h4 className="font-semibold text-white">{v.make} {v.model}</h4>
               <p className="mt-1 text-xs text-nexa-text-secondary">
-                {VEHICLE_CATEGORY_LABELS[v.vehicleType] ?? v.vehicleType}
-                {MINI_VALET_PRICING[v.vehicleType]
-                  ? ` — Mini Valet £${MINI_VALET_PRICING[v.vehicleType]}`
-                  : ''}
+                {labelFor(v.vehicleType)} — Mini Valet £{priceFor(v.vehicleType)}
               </p>
               <p className="mt-1 font-mono text-xs text-nexa-text-muted">{v.registrationNumber}</p>
             </button>
@@ -239,7 +237,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
                 </p>
                 <p className="flex justify-between text-sm text-white">
                   <span className="text-nexa-text-secondary">
-                    Mini Valet — {VEHICLE_CATEGORY_LABELS[selectedVehicle.vehicleType] ?? selectedVehicle.vehicleType}
+                    Mini Valet — {labelFor(selectedVehicle.vehicleType)}
                   </span>
                   <span>£{basePrice.toFixed(2)}</span>
                 </p>

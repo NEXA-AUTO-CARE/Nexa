@@ -21,7 +21,7 @@ export class CreateVehicleDto {
   @MaxLength(50)
   model: string;
 
-  @ApiProperty({ enum: VehicleType, example: VehicleType.REGULAR })
+  @ApiProperty({ enum: VehicleType, example: VehicleType.STANDARD })
   @IsEnum(VehicleType)
   vehicleType: VehicleType;
 

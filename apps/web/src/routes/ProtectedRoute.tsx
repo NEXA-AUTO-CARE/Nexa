@@ -28,8 +28,9 @@ export function ProtectedRoute({ children, roles, permissions }: Props) {
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
-  if (roles && roles.length > 0 && !roles.includes(user.role)) {
-    return <AccessDenied />
+  if (roles && roles.length > 0) {
+    const hasRole = roles.some((r) => r.toUpperCase() === user.role.toUpperCase())
+    if (!hasRole) return <AccessDenied />
   }
   if (permissions && permissions.length > 0) {
     const have = new Set(user.permissions ?? [])

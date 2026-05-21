@@ -252,7 +252,7 @@ describe('AuthService', () => {
     it('hashes the password and issues new tokens', async () => {
       jwt.verifyAsync.mockResolvedValue({ sub: 'user-1', type: 'setup' });
       bcryptMock.hash.mockResolvedValue('bcrypt-hash' as never);
-      users.findById.mockResolvedValue(makeUser());
+      users.findById.mockResolvedValue(makeUser({ passwordHash: null }));
 
       const result = await service.setPassword('valid', 'Password123!');
 

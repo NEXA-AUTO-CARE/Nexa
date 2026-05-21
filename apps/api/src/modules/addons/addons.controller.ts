@@ -28,7 +28,7 @@ export class AddonsController {
   @Post()
   @ApiBearerAuth('jwt')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER_ADMIN') // or Organization Admin
+  @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Create a new add-on' })
   async create(@Body() dto: CreateAddonDto): Promise<AddonResponse> {
     return this.addonsService.create(dto);
@@ -37,7 +37,7 @@ export class AddonsController {
   @Put(':id')
   @ApiBearerAuth('jwt')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER_ADMIN')
+  @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Update an add-on' })
   async update(@Param('id') id: string, @Body() dto: UpdateAddonDto): Promise<AddonResponse> {
     return this.addonsService.update(id, dto);
@@ -46,7 +46,7 @@ export class AddonsController {
   @Delete(':id')
   @ApiBearerAuth('jwt')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER_ADMIN')
+  @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Delete an add-on' })
   async remove(@Param('id') id: string): Promise<void> {
     return this.addonsService.delete(id);
