@@ -1,15 +1,21 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { CreateCorporateFleetEnquiryDto } from '@nexa/shared'
-import { MINI_VALET_PRICING, VEHICLE_CATEGORY_LABELS, VehicleType } from '@nexa/shared'
+import { VehicleType } from '@nexa/shared'
 import { api } from '../../lib/api-client'
 import { describeError } from '../../lib/errors'
-
-const CATEGORIES = (Object.values(VehicleType) as VehicleType[]).map((value) => ({
-  label: VEHICLE_CATEGORY_LABELS[value],
-  price: MINI_VALET_PRICING[value],
-}))
+import { useSettings } from '../../contexts/SettingsContext'
 
 export function CorporateFleet() {
+  const { priceFor, labelFor } = useSettings()
+
+  const CATEGORIES = useMemo(
+    () =>
+      (Object.values(VehicleType) as VehicleType[]).map((value) => ({
+        label: labelFor(value),
+        price: priceFor(value),
+      })),
+    [priceFor, labelFor],
+  )
   const [form, setForm] = useState<CreateCorporateFleetEnquiryDto>({
     companyName: '',
     fleetSize: 1,

@@ -16,4 +16,6 @@ export interface PublicUser {
   displayName: string;
   otpVerified: boolean;
   createdAt: string;
+  stripeAccountId: string | null;
 }
+

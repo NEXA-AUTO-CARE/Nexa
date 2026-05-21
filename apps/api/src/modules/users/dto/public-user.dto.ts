@@ -35,4 +35,7 @@ export class PublicUserDto implements PublicUser {
 
   @ApiProperty({ example: '2026-05-09T10:00:00.000Z', description: 'ISO 8601 timestamp' })
   createdAt: string;
+
+  @ApiProperty({ example: 'acct_1032D82e319d', nullable: true, description: 'Stripe connected account ID' })
+  stripeAccountId: string | null;
 }

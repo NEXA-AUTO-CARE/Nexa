@@ -47,6 +47,9 @@ export class User extends AuditEntity {
   @Column({ type: 'boolean', default: false })
   otpVerified: boolean;
 
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'stripe_account_id' })
+  stripeAccountId: string | null;
+
   @OneToMany(() => Vehicle, (v) => v.owner)
   vehicles: Vehicle[];
 

@@ -19,6 +19,8 @@ import { RolesModule } from './modules/roles/roles.module';
 import { UsersModule } from './modules/users/users.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -41,6 +43,8 @@ import { PaymentsModule } from './modules/payments/payments.module';
     PaymentsModule,
     AddonsModule,
     CorporateModule,
+    SettingsModule,
+    AdminModule,
   ],
 
 

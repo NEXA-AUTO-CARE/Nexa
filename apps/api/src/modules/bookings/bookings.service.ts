@@ -6,12 +6,13 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BookingStatus, MINI_VALET_PRICING, ServiceType } from '@nexa/shared';
+import { BookingStatus, MINI_VALET_PRICING, ServiceType, BOOKING_FEE } from '@nexa/shared';
 import type { BookingResponse } from '@nexa/shared';
 import { In, Repository } from 'typeorm';
 import { Booking, Vehicle, ServiceAddon } from '../../database/entities';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { BookingCancelledEvent, BookingCreatedEvent, BookingStatusChangedEvent } from './events/booking.events';
+import { SettingsService } from '../settings/settings.service';
 
 /** Valid status transitions */
 const TRANSITIONS: Record<string, string[]> = {
@@ -32,7 +33,35 @@ export class BookingsService {
     @InjectRepository(ServiceAddon)
     private readonly addonRepo: Repository<ServiceAddon>,
     private readonly events: EventEmitter2,
+    private readonly settingsService: SettingsService,
   ) { }
+
+  async getBasePriceForCategory(vehicleType: string): Promise<number> {
+    let categoryPricing = MINI_VALET_PRICING;
+    try {
+      const setting = await this.settingsService.findOne('car_category_pricing');
+      if (setting && setting.value) {
+        categoryPricing = JSON.parse(setting.value);
+      }
+    } catch (e) {
+      // Fallback gracefully
+    }
+    const priceString = categoryPricing[vehicleType as any] ?? MINI_VALET_PRICING[vehicleType as any];
+    return parseFloat(priceString);
+  }
+
+  async getBookingFee(): Promise<number> {
+    let fee = BOOKING_FEE;
+    try {
+      const setting = await this.settingsService.findOne('booking_fee');
+      if (setting && setting.value) {
+        fee = setting.value;
+      }
+    } catch (e) {
+      // Fallback gracefully
+    }
+    return parseFloat(fee);
+  }
 
   async create(userId: string, dto: CreateBookingDto): Promise<Booking> {
     // Verify the vehicle belongs to the user
@@ -42,7 +71,7 @@ export class BookingsService {
     }
 
     // Mini Valet is the single base service; price is driven by vehicle category.
-    let basePrice = parseFloat(MINI_VALET_PRICING[vehicle.vehicleType]);
+    let basePrice = await this.getBasePriceForCategory(vehicle.vehicleType);
     let addonsSnapshot: { addonId: string; name: string; price: string }[] = [];
 
     if (dto.addonIds && dto.addonIds.length > 0) {
@@ -63,6 +92,10 @@ export class BookingsService {
       const addonsTotal = addons.reduce((sum, a) => sum + parseFloat(a.price), 0);
       basePrice += addonsTotal;
     }
+
+    // Add the dynamic booking & protection fee
+    const dynamicFee = await this.getBookingFee();
+    basePrice += dynamicFee;
 
     const booking = this.bookingRepo.create({
       userId,
@@ -186,7 +219,12 @@ export class BookingsService {
       (sum, a) => sum + parseFloat(a.price),
       0,
     );
-    const basePrice = parseFloat(MINI_VALET_PRICING[vehicle.vehicleType]);
+    let basePrice = await this.getBasePriceForCategory(vehicle.vehicleType);
+    basePrice += addonsTotal;
+
+    // Add the dynamic booking & protection fee
+    const dynamicFee = await this.getBookingFee();
+    basePrice += dynamicFee;
 
     const booking = this.bookingRepo.create({
       userId,
@@ -196,7 +234,7 @@ export class BookingsService {
       serviceAddress: previous.serviceAddress,
       latitude: previous.latitude,
       longitude: previous.longitude,
-      price: (basePrice + addonsTotal).toFixed(2),
+      price: basePrice.toFixed(2),
       addons: previous.addons ?? [],
       agreedSafeSpace: previous.agreedSafeSpace,
       agreedDetailsCorrect: previous.agreedDetailsCorrect,
