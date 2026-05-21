@@ -18,6 +18,12 @@ import ReviewPage from './pages/ReviewPage'
 import { SetPasswordPage } from './pages/SetPasswordPage'
 import { SignupPage } from './pages/SignupPage'
 import { ProtectedRoute } from './routes/ProtectedRoute'
+import AdminLayout from './pages/admin/AdminLayout'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminBookingsPage from './pages/admin/AdminBookingsPage'
+import AdminCorporatePage from './pages/admin/AdminCorporatePage'
+import AdminAddonsPage from './pages/admin/AdminAddonsPage'
+import AdminSettingsPage from './pages/admin/AdminSettingsPage'
 
 function RootRedirect() {
   const { user, loading } = useAuth()
@@ -52,6 +58,21 @@ function App() {
         <Route path="/bookings/photos/:id" element={<PhotosPage />} />
         <Route path="/bookings/review/:id" element={<ReviewPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+      </Route>
+
+      <Route
+        element={
+          <ProtectedRoute roles={['admin', 'super_admin']}>
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/bookings" element={<AdminBookingsPage />} />
+        <Route path="/admin/corporate" element={<AdminCorporatePage />} />
+        <Route path="/admin/addons" element={<AdminAddonsPage />} />
+        <Route path="/admin/settings" element={<AdminSettingsPage />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

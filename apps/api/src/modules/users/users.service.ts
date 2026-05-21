@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Permission, PublicUser } from '@nexa/shared';
+import { Permission, PublicUser, UpdateUserAdminDto } from '@nexa/shared';
 import { Repository } from 'typeorm';
 import { Role, User } from '../../database/entities';
 import { PublicUserDto } from './dto/public-user.dto';
@@ -141,12 +141,42 @@ export class UsersService {
       lastName: user.lastName,
       email: user.email,
       phoneNumber: user.phoneNumber,
-      role: user.role.name,
+      role: user.role?.name ?? 'customer',
       permissions,
       displayName: user.displayName,
       otpVerified: user.otpVerified,
       createdAt: user.createdOn.toISOString(),
+      stripeAccountId: user.stripeAccountId,
     };
+  }
+
+  async findAllForAdmin(): Promise<User[]> {
+    return this.userRepo.find({
+      relations: ['role'],
+      order: { createdOn: 'DESC' },
+    });
+  }
+
+  async adminUpdateUser(userId: string, dto: UpdateUserAdminDto): Promise<User> {
+    const user = await this.userRepo.findOne({ where: { userId }, relations: ['role'] });
+    if (!user) throw new NotFoundException('User not found');
+
+    if (dto.displayName !== undefined) {
+      user.displayName = dto.displayName;
+    }
+    if (dto.stripeAccountId !== undefined) {
+      user.stripeAccountId = dto.stripeAccountId;
+    }
+    if (dto.role !== undefined) {
+      const role = await this.userRepo.manager.getRepository(Role).findOne({
+        where: { name: dto.role },
+      });
+      if (!role) throw new NotFoundException(`Role ${dto.role} not found`);
+      user.roleId = role.roleId;
+      user.role = role;
+    }
+
+    return this.userRepo.save(user);
   }
 
   private async findByContact(

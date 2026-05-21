@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BookingStatus, PaymentStatus } from '@nexa/shared';
@@ -154,6 +154,73 @@ export class PaymentsService {
         // Can optionally update booking status or emit an event
       }
     }
+  }
+
+  async refundBookingPayment(bookingId: string): Promise<Payment> {
+    const payment = await this.paymentRepo.findOne({ where: { bookingId } });
+    if (!payment) throw new NotFoundException('Payment record not found');
+    if (payment.status !== PaymentStatus.CAPTURED) {
+      throw new BadRequestException('Only captured payments can be refunded');
+    }
+
+    try {
+      if (!payment.stripePaymentIntentId.startsWith('pi_mock_')) {
+        await this.stripe.refunds.create({
+          payment_intent: payment.stripePaymentIntentId,
+        });
+      }
+    } catch (e) {
+      this.logger.error('Failed to trigger Stripe refund', e);
+    }
+
+    payment.status = PaymentStatus.REFUNDED;
+    await this.paymentRepo.save(payment);
+
+    // Also update booking status to cancelled
+    try {
+      const booking = await this.bookingsService.findById(bookingId);
+      if (booking) {
+        await this.bookingsService.updateStatus(bookingId, booking.userId, BookingStatus.CANCELLED);
+      }
+    } catch (e) {
+      this.logger.error('Failed to automatically transition booking to CANCELLED on refund', e);
+    }
+
+    return payment;
+  }
+
+  async payoutVendor(bookingId: string): Promise<Payment> {
+    const payment = await this.paymentRepo.findOne({ where: { bookingId } });
+    if (!payment) throw new NotFoundException('Payment record not found');
+    if (payment.status !== PaymentStatus.CAPTURED) {
+      throw new BadRequestException('Payment must be captured before paying out');
+    }
+
+    const booking = await this.bookingsService.findByIdWithRelations(bookingId);
+    if (!booking.vendorId) {
+      throw new BadRequestException('No vendor is assigned to this booking');
+    }
+
+    const vendor = booking.vendor;
+    if (!vendor || !vendor.stripeAccountId) {
+      throw new BadRequestException('Vendor does not have a Stripe Connect account connected');
+    }
+
+    try {
+      if (!payment.stripePaymentIntentId.startsWith('pi_mock_')) {
+        const amountInCents = Math.round(parseFloat(payment.vendorPayout) * 100);
+        await this.stripe.transfers.create({
+          amount: amountInCents,
+          currency: 'gbp',
+          destination: vendor.stripeAccountId,
+          description: `Payout for booking ${bookingId}`,
+        });
+      }
+    } catch (e) {
+      this.logger.error('Failed to trigger Stripe transfer/payout', e);
+    }
+
+    return payment;
   }
 
   toResponse(payment: Payment, clientSecret?: string): PaymentResponse {

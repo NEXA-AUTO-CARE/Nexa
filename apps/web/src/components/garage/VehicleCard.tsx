@@ -1,5 +1,5 @@
 import type { VehicleResponse } from '@nexa/shared'
-import { MINI_VALET_PRICING, VEHICLE_CATEGORY_LABELS } from '@nexa/shared'
+import { useSettings } from '../../contexts/SettingsContext'
 
 interface VehicleCardProps {
   vehicle: VehicleResponse
@@ -9,6 +9,8 @@ interface VehicleCardProps {
 }
 
 export function VehicleCard({ vehicle, onEdit, onDelete, onBook }: VehicleCardProps) {
+  const { priceFor, labelFor } = useSettings()
+
   return (
     <div className="nexa-card group flex flex-col justify-between p-6 transition-transform duration-200 hover:-translate-y-0.5">
       {/* Header */}
@@ -19,10 +21,8 @@ export function VehicleCard({ vehicle, onEdit, onDelete, onBook }: VehicleCardPr
               {vehicle.make} {vehicle.model}
             </h3>
             <span className="mt-0.5 inline-block rounded-full bg-nexa-mint/15 px-2.5 py-0.5 text-xs font-medium text-nexa-mint">
-              {VEHICLE_CATEGORY_LABELS[vehicle.vehicleType] ?? vehicle.vehicleType}
-              {MINI_VALET_PRICING[vehicle.vehicleType]
-                ? ` · £${MINI_VALET_PRICING[vehicle.vehicleType]}`
-                : ''}
+              {labelFor(vehicle.vehicleType)}
+              {` · £${priceFor(vehicle.vehicleType)}`}
             </span>
           </div>
 

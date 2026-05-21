@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useSettings } from "../contexts/SettingsContext";
 import {
-  MINI_VALET_PRICING,
-  VEHICLE_CATEGORY_LABELS,
   VehicleType,
   type CreateCorporateFleetEnquiryDto,
   type CreateVehicleDto,
@@ -24,10 +23,10 @@ import { describeError } from "../lib/errors";
 
 // Bridge the prototype's category ids to the shared billable VehicleType.
 const CATEGORY_TO_VEHICLE_TYPE: Record<Exclude<VehicleCategoryId, "corporate_fleet">, VehicleType> = {
-  regular_car: VehicleType.REGULAR,
-  suv_7_seat_4x4: VehicleType.SEVEN_SEATER_4X4,
-  small_van: VehicleType.SMALL_VAN,
-  large_van: VehicleType.LARGE_VAN,
+  regular_car: VehicleType.STANDARD,
+  suv_7_seat_4x4: VehicleType.GRANDE,
+  small_van: VehicleType.MAXI,
+  large_van: VehicleType.TRANSIT,
 };
 
 const emptyCorporateData: CorporateFleetData = {
@@ -50,6 +49,7 @@ const GaragePage = () => {
   const location = useLocation();
   const { vehicles, isLoading, refetch } = useVehicles();
   const { toast } = useToast();
+  const { priceFor, labelFor } = useSettings();
 
   const [showForm, setShowForm] = useState(false);
   const [isGiftMode, setIsGiftMode] = useState(false);
@@ -283,7 +283,7 @@ const GaragePage = () => {
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
                   <span className="text-muted-foreground">
-                    {v.vehicleType === VehicleType.REGULAR ? (
+                    {v.vehicleType === VehicleType.STANDARD ? (
                       <Car className="h-5 w-5" />
                     ) : (
                       <Truck className="h-5 w-5" />
@@ -295,11 +295,11 @@ const GaragePage = () => {
                     {v.make} {v.model}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {v.registrationNumber} · {VEHICLE_CATEGORY_LABELS[v.vehicleType]}
+                    {v.registrationNumber} · {labelFor(v.vehicleType)}
                   </p>
                 </div>
                 <span className="rounded-full px-2.5 py-1 text-[10px] font-medium bg-secondary text-muted-foreground">
-                  £{MINI_VALET_PRICING[v.vehicleType]}
+                  £{priceFor(v.vehicleType)}
                 </span>
               </div>
 

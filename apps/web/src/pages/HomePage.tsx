@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { VEHICLE_CATEGORY_LABELS } from "@nexa/shared";
+import { useSettings } from "../contexts/SettingsContext";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Sparkles, Car, MapPin, Gift } from "lucide-react";
@@ -8,6 +8,7 @@ import { useVehicles } from "../hooks/useVehicles";
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const { labelFor } = useSettings();
   const { user } = useAuth();
   const { vehicles, isLoading } = useVehicles();
 
@@ -81,7 +82,7 @@ const HomePage = () => {
                 <div className="flex-1">
                   <p className="font-medium text-sm">{v.make} {v.model}</p>
                   <p className="text-xs text-muted-foreground">
-                    {v.registrationNumber} · {VEHICLE_CATEGORY_LABELS[v.vehicleType]}
+                    {v.registrationNumber} · {labelFor(v.vehicleType)}
                   </p>
                 </div>
               </div>

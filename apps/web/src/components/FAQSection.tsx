@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Accordion,
@@ -5,35 +6,55 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { api } from "../lib/api-client";
 
-const faqs = [
-  {
-    q: "How does NEXA work?",
-    a: "Simply register your vehicle, pick a date and time, and one of our professional detailers will come to your location. No need to travel to a car wash — we bring the service to you.",
-  },
-  {
-    q: "What areas do you cover?",
-    a: "We currently serve Aberdeen, Scotland and the surrounding area. We're expanding soon — sign up to be notified when we reach your location.",
-  },
-  {
-    q: "How long does a Mini Valet & Spray Polish take?",
-    a: "A standard session takes approximately 45–60 minutes depending on the vehicle size and condition.",
-  },
-  {
-    q: "What payment methods do you accept?",
-    a: "We accept all major debit and credit cards through our secure Stripe-powered checkout. Corporate fleet customers are invoiced separately.",
-  },
-  {
-    q: "Can I book for multiple vehicles?",
-    a: "Yes! You can add multiple vehicles to your Garage and book services for each one individually. For businesses with fleets, we offer a dedicated Corporate Fleet option with custom pricing.",
-  },
-  {
-    q: "What if I need to cancel or reschedule?",
-    a: "You can cancel or reschedule your booking up to 24 hours before the appointment at no charge through the app.",
-  },
-];
+interface FaqItem {
+  q: string;
+  a: string;
+}
+
+/**
+ * Convert newlines to <br> tags for proper HTML rendering.
+ * The seed data already stores answers with inline HTML (<strong>, etc.)
+ * so we only need to handle line breaks here.
+ */
+function formatAnswer(raw: string): string {
+  return raw.replace(/\n/g, "<br />");
+}
 
 const FAQSection = () => {
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadFaqs() {
+      try {
+        const { data } = await api.get<{ key: string; value: string }[]>("/settings");
+        const faqsSetting = data.find((s) => s.key === "faqs");
+        if (faqsSetting) {
+          const parsed = JSON.parse(faqsSetting.value) as { question: string; answer: string }[];
+          if (parsed && parsed.length > 0) {
+            setFaqs(
+              parsed.map((item) => ({
+                q: item.question,
+                a: item.answer,
+              }))
+            );
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load dynamic FAQs:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadFaqs();
+  }, []);
+
+  if (loading && faqs.length === 0) {
+    return null; // Don't flash empty state while fetching
+  }
+
   return (
     <section className="px-4 py-12">
       <div className="mx-auto max-w-3xl space-y-8">
@@ -63,8 +84,8 @@ const FAQSection = () => {
                 <AccordionTrigger className="text-left text-sm font-semibold hover:no-underline hover:text-primary">
                   {faq.q}
                 </AccordionTrigger>
-                <AccordionContent className="text-sm text-muted-foreground">
-                  {faq.a}
+                <AccordionContent className="text-sm text-muted-foreground leading-relaxed">
+                  <div dangerouslySetInnerHTML={{ __html: formatAnswer(faq.a) }} />
                 </AccordionContent>
               </AccordionItem>
             ))}
