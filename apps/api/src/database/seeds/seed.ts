@@ -42,7 +42,7 @@ async function seed() {
   const superAdmin = userRepo.create({
     firstName: 'Super',
     lastName: 'Admin',
-    email: 'superadmin@nexaautocare.com',
+    email: 'superadmin@nexa.test',
     phoneNumber: '+447700900000',
     displayName: 'Super Admin',
     otpVerified: true,
@@ -55,7 +55,7 @@ async function seed() {
   const admin = userRepo.create({
     firstName: 'Nexa',
     lastName: 'Admin',
-    email: 'admin@nexaautocare.com',
+    email: 'admin@nexa.test',
     phoneNumber: '+447700900001',
     displayName: 'Nexa Admin',
     otpVerified: true,
@@ -68,7 +68,7 @@ async function seed() {
   const vendor = userRepo.create({
     firstName: 'Aberdeen',
     lastName: 'Detailer',
-    email: 'vendor@nexaautocare.com',
+    email: 'vendor@nexa.test',
     phoneNumber: '+447700900002',
     displayName: 'Aberdeen Detailer Pro',
     otpVerified: true,
