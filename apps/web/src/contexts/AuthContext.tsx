@@ -15,8 +15,8 @@ interface AuthContextValue {
   loading: boolean
   signup: (dto: SignupDto) => Promise<void>
   verifyOtp: (dto: VerifyOtpDto) => Promise<VerifyOtpResponse>
-  setPassword: (dto: SetPasswordDto) => Promise<void>
-  login: (dto: LoginDto) => Promise<void>
+  setPassword: (dto: SetPasswordDto) => Promise<PublicUser>
+  login: (dto: LoginDto) => Promise<PublicUser>
   logout: () => Promise<void>
 }
 
@@ -77,11 +77,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data } = await api.post<AuthResponse>('/auth/set-password', dto)
         accessTokenStore.set(data.accessToken)
         setUser(data.user)
+        return data.user
       },
       async login(dto) {
         const { data } = await api.post<AuthResponse>('/auth/login', dto)
         accessTokenStore.set(data.accessToken)
         setUser(data.user)
+        return data.user
       },
       async logout() {
         try {

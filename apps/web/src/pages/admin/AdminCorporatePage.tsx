@@ -184,7 +184,25 @@ export default function AdminCorporatePage() {
       {/* PRINT-OPTIMIZED INVOICE GENERATOR MODAL */}
       <AnimatePresence>
         {selectedLead && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/75 flex items-center justify-center p-4 backdrop-blur-sm print:p-0 print:bg-white print:relative">
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/75 flex items-center justify-center p-4 backdrop-blur-sm print:p-0 print:bg-white print:fixed print:inset-0">
+            <style>{`
+              @media print {
+                body * {
+                  visibility: hidden;
+                }
+                #printable-invoice-container, #printable-invoice-container * {
+                  visibility: visible;
+                }
+                #printable-invoice-container {
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  width: 100%;
+                  margin: 0;
+                  padding: 0;
+                }
+              }
+            `}</style>
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -272,7 +290,7 @@ export default function AdminCorporatePage() {
               </div>
 
               {/* MODAL RIGHT SIDE: REALISTIC INVOICE SHEET (Styled for printing as well) */}
-              <div className="flex-1 bg-white p-8 text-slate-800 font-sans print:p-0 print:text-black min-h-[600px] flex flex-col justify-between overflow-y-auto">
+              <div id="printable-invoice-container" className="flex-1 bg-white p-8 text-slate-800 font-sans print:p-0 print:text-black min-h-[600px] flex flex-col justify-between overflow-y-auto">
                 <div className="space-y-8">
                   {/* INVOICE HEADER */}
                   <div className="flex justify-between items-start gap-4">
