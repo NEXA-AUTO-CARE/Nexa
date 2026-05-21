@@ -32,8 +32,12 @@ export function LoginPage() {
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null)
     try {
-      await login(values)
-      navigate('/dashboard', { replace: true })
+      const user = await login(values)
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        navigate('/admin/dashboard', { replace: true })
+      } else {
+        navigate('/dashboard', { replace: true })
+      }
     } catch (err) {
       setServerError(describeError(err))
     }
