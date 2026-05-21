@@ -43,8 +43,12 @@ export function SetPasswordPage() {
   const onSubmit = handleSubmit(async ({ password }) => {
     setServerError(null)
     try {
-      await setPassword({ setupToken, password })
-      navigate('/dashboard', { replace: true })
+      const user = await setPassword({ setupToken, password })
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        navigate('/admin/dashboard', { replace: true })
+      } else {
+        navigate('/dashboard', { replace: true })
+      }
     } catch (err) {
       setServerError(describeError(err))
     }
