@@ -50,7 +50,8 @@ export class BookingsService {
       // Fallback gracefully
     }
     const priceString = categoryPricing[vehicleType as any] ?? MINI_VALET_PRICING[vehicleType as any];
-    return parseFloat(priceString);
+    const parsed = parseFloat(priceString);
+    return Number.isNaN(parsed) ? 0.0 : parsed;
   }
 
   async getBookingFee(): Promise<number> {
@@ -63,7 +64,8 @@ export class BookingsService {
     } catch (e) {
       // Fallback gracefully
     }
-    return parseFloat(fee);
+    const parsed = parseFloat(fee);
+    return Number.isNaN(parsed) ? 0.0 : parsed;
   }
 
   async create(userId: string, dto: CreateBookingDto): Promise<Booking> {
