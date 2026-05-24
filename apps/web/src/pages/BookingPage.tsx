@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { type BookingResponse, type CreateBookingDto, type CreateCorporateFleetEnquiryDto } from "@nexa/shared";
 import { useSettings } from "../contexts/SettingsContext";
@@ -46,6 +46,7 @@ const BookingPage = () => {
     businessPhone: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   const isCorporateFlow = customerType === "Corporate";
@@ -75,7 +76,8 @@ const BookingPage = () => {
       !submitting;
 
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     setError(null);
     try {
@@ -110,6 +112,7 @@ const BookingPage = () => {
     } catch (err) {
       setError(describeError(err));
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
