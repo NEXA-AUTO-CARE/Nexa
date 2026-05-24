@@ -9,8 +9,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { BookingStatus, MINI_VALET_PRICING, ServiceType, BOOKING_FEE } from '@nexa/shared';
 import type { BookingResponse } from '@nexa/shared';
 import { In, Repository } from 'typeorm';
-import { Booking, Vehicle, ServiceAddon } from '../../database/entities';
+import { Booking, Vehicle, ServiceAddon, Review } from '../../database/entities';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { CreateReviewDto } from './dto/create-review.dto';
 import { BookingCancelledEvent, BookingCreatedEvent, BookingStatusChangedEvent } from './events/booking.events';
 import { SettingsService } from '../settings/settings.service';
 
@@ -32,6 +33,8 @@ export class BookingsService {
     private readonly vehicleRepo: Repository<Vehicle>,
     @InjectRepository(ServiceAddon)
     private readonly addonRepo: Repository<ServiceAddon>,
+    @InjectRepository(Review)
+    private readonly reviewRepo: Repository<Review>,
     private readonly events: EventEmitter2,
     private readonly settingsService: SettingsService,
   ) { }
@@ -314,5 +317,32 @@ export class BookingsService {
       throw new ForbiddenException('You do not own this booking');
     }
     return booking;
+  }
+
+  async createReview(bookingId: string, userId: string, dto: CreateReviewDto): Promise<Review> {
+    const booking = await this.verifyMyBooking(bookingId, userId);
+
+    if (booking.status !== BookingStatus.COMPLETED) {
+      throw new BadRequestException('You can only review completed bookings');
+    }
+
+    const existing = await this.reviewRepo.findOne({ where: { bookingId } });
+    if (existing) {
+      throw new BadRequestException('This booking has already been reviewed');
+    }
+
+    if (!booking.vendorId) {
+      throw new BadRequestException('No vendor was assigned to this booking');
+    }
+
+    const review = this.reviewRepo.create({
+      bookingId,
+      userId,
+      vendorId: booking.vendorId,
+      rating: dto.rating,
+      comment: dto.comment?.trim() || null,
+    });
+
+    return await this.reviewRepo.save(review);
   }
 }

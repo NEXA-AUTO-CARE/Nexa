@@ -17,8 +17,6 @@ function CheckoutForm({ onSuccess, onCancel, amount }: Omit<PaymentFormProps, 'c
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [termsAgreed, setTermsAgreed] = useState(false);
-  const [detailsCorrect, setDetailsCorrect] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,16 +51,7 @@ function CheckoutForm({ onSuccess, onCancel, amount }: Omit<PaymentFormProps, 'c
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <PaymentElement />
-      <div className="space-y-3 pt-4 border-t border-nexa-border-subtle">
-        <label className="flex items-start gap-3 text-sm text-nexa-text-secondary cursor-pointer">
-          <input type="checkbox" checked={termsAgreed} onChange={e => setTermsAgreed(e.target.checked)} className="mt-1 accent-nexa-mint" required />
-          <span>I agree I have a safe space to wash</span>
-        </label>
-        <label className="flex items-start gap-3 text-sm text-nexa-text-secondary cursor-pointer">
-          <input type="checkbox" checked={detailsCorrect} onChange={e => setDetailsCorrect(e.target.checked)} className="mt-1 accent-nexa-mint" required />
-          <span>All details provided about the vehicle are correct</span>
-        </label>
-      </div>
+
       {error && <div className="text-sm text-nexa-error">{error}</div>}
       <div className="flex justify-end gap-3 pt-4">
         <button
@@ -75,7 +64,7 @@ function CheckoutForm({ onSuccess, onCancel, amount }: Omit<PaymentFormProps, 'c
         </button>
         <button
           type="submit"
-          disabled={!stripe || processing || !termsAgreed || !detailsCorrect}
+          disabled={!stripe || processing}
           className="btn-primary text-sm disabled:opacity-50"
         >
           {processing ? 'Processing...' : `Pay £${amount}`}

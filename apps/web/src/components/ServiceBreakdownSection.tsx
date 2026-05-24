@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useSettings } from "../contexts/SettingsContext";
 
 import {
   ArrowRight,
@@ -38,6 +39,8 @@ const fadeUp = {
 
 const ServiceBreakdownSection = () => {
   const navigate = useNavigate();
+  const { serviceLabelFor } = useSettings();
+  const serviceLabel = serviceLabelFor();
 
   return (
     <section className="px-4 py-12">
@@ -46,7 +49,7 @@ const ServiceBreakdownSection = () => {
         <div className="text-center space-y-2">
           <h3 className="font-heading text-2xl font-bold">
             What's Included in Our{" "}
-            <span className="text-gradient">Mini Valet & Spray Polish</span>{" "}
+            <span className="text-gradient">{serviceLabel}</span>{" "}
             Service
           </h3>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
@@ -66,7 +69,7 @@ const ServiceBreakdownSection = () => {
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <h4 className="font-heading text-lg font-bold">
-              Mini Valet & Spray Polish
+              {serviceLabel}
             </h4>
           </div>
 

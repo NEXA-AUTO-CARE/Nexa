@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Booking, Vehicle, ServiceAddon } from '../../database/entities';
+import { Booking, Vehicle, ServiceAddon, Review } from '../../database/entities';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { BookingsController } from './bookings.controller';
 import { BookingsListener } from './bookings.listener';
@@ -9,7 +9,7 @@ import { SettingsModule } from '../settings/settings.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Booking, Vehicle, ServiceAddon]),
+    TypeOrmModule.forFeature([Booking, Vehicle, ServiceAddon, Review]),
     NotificationsModule,
     SettingsModule,
   ],

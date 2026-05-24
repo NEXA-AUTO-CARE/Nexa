@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useSettings } from '../../contexts/SettingsContext'
 import {
   ArrowRightIcon,
   CircleDotIcon,
@@ -26,6 +27,9 @@ const serviceItems = [
 ]
 
 export function ServiceDetails() {
+  const { serviceLabelFor } = useSettings()
+  const serviceLabel = serviceLabelFor()
+
   return (
     <section id="services" className="px-6 py-20 md:py-28">
       <div className="mx-auto max-w-7xl">
@@ -33,7 +37,7 @@ export function ServiceDetails() {
         <div className="text-center">
           <h2 className="text-3xl font-bold leading-tight md:text-4xl">
             <span className="font-display italic">What's Included in Our </span>
-            <span className="font-display italic text-nexa-mint">Mini Valet & Spray Polish</span>
+            <span className="font-display italic text-nexa-mint">{serviceLabel}</span>
             <span className="font-display italic"> Service</span>
           </h2>
           <p className="mt-4 text-nexa-text-secondary">
@@ -49,7 +53,7 @@ export function ServiceDetails() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-nexa-mint/15">
                 <SparklesIcon className="text-nexa-mint" size={22} />
               </div>
-              <h3 className="text-lg font-semibold text-white">Mini Valet & Spray Polish</h3>
+              <h3 className="text-lg font-semibold text-white">{serviceLabel}</h3>
             </div>
 
             {/* Service Items Grid */}

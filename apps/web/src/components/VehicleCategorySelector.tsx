@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Car, Truck, Building2, Check } from "lucide-react";
+import { useSettings } from "../contexts/SettingsContext";
 
 export type VehicleCategoryId =
   | "regular_car"
@@ -22,54 +23,63 @@ export interface VehicleCategory {
   bookingType: BookingType;
 }
 
-export const vehicleCategories: VehicleCategory[] = [
-  {
-    id: "regular_car",
-    label: "Regular Cars",
-    price: 25,
-    priceLabel: "£25",
-    icon: <Car className="h-5 w-5" />,
-    pricingMode: "fixed_price",
-    bookingType: "consumer_booking",
-  },
-  {
-    id: "suv_7_seat_4x4",
-    label: "7 Seat SUV & 4×4",
-    price: 30,
-    priceLabel: "£30",
-    icon: <Truck className="h-5 w-5" />,
-    pricingMode: "fixed_price",
-    bookingType: "consumer_booking",
-  },
-  {
-    id: "small_van",
-    label: "Small Van",
-    price: 35,
-    priceLabel: "£35",
-    icon: <Truck className="h-5 w-5" />,
-    pricingMode: "fixed_price",
-    bookingType: "consumer_booking",
-  },
-  {
-    id: "large_van",
-    label: "Large Van",
-    price: 40,
-    priceLabel: "£40",
-    icon: <Truck className="h-5 w-5" />,
-    pricingMode: "fixed_price",
-    bookingType: "consumer_booking",
-  },
-  {
-    id: "corporate_fleet",
-    label: "Corporate Fleet",
-    price: null,
-    priceLabel: "Custom pricing",
-    subtitle: "Invoiced by admin",
-    icon: <Building2 className="h-5 w-5" />,
-    pricingMode: "invoice_only",
-    bookingType: "corporate_request",
-  },
-];
+// TODO: Remove this, and use the system settings in context provider instead
+export const getVehicleCategories = (settings: ReturnType<typeof useSettings>): VehicleCategory[] => {
+  const showCorporate = (settings.customerTypes || []).some(
+    (t) => t.toLowerCase() === "corporate"
+  );
+
+  const all = [
+    {
+      id: "regular_car" as const,
+      label: settings.labelFor("standard") || "Regular Cars",
+      price: Number(settings.priceFor("standard")) || 25,
+      priceLabel: `£${settings.priceFor("standard")}`,
+      icon: <Car className="h-5 w-5" />,
+      pricingMode: "fixed_price" as const,
+      bookingType: "consumer_booking" as const,
+    },
+    {
+      id: "suv_7_seat_4x4" as const,
+      label: settings.labelFor("grande") || "7 Seat SUV & 4×4",
+      price: Number(settings.priceFor("grande")) || 30,
+      priceLabel: `£${settings.priceFor("grande")}`,
+      icon: <Truck className="h-5 w-5" />,
+      pricingMode: "fixed_price" as const,
+      bookingType: "consumer_booking" as const,
+    },
+    {
+      id: "small_van" as const,
+      label: settings.labelFor("maxi") || "Small Van",
+      price: Number(settings.priceFor("maxi")) || 35,
+      priceLabel: `£${settings.priceFor("maxi")}`,
+      icon: <Truck className="h-5 w-5" />,
+      pricingMode: "fixed_price" as const,
+      bookingType: "consumer_booking" as const,
+    },
+    {
+      id: "large_van" as const,
+      label: settings.labelFor("transit") || "Large Van",
+      price: Number(settings.priceFor("transit")) || 40,
+      priceLabel: `£${settings.priceFor("transit")}`,
+      icon: <Truck className="h-5 w-5" />,
+      pricingMode: "fixed_price" as const,
+      bookingType: "consumer_booking" as const,
+    },
+    {
+      id: "corporate_fleet" as const,
+      label: "Corporate Fleet",
+      price: null,
+      priceLabel: "Custom pricing",
+      subtitle: "Invoiced by admin",
+      icon: <Building2 className="h-5 w-5" />,
+      pricingMode: "invoice_only" as const,
+      bookingType: "corporate_request" as const,
+    },
+  ];
+
+  return all.filter((c) => c.id !== "corporate_fleet" || showCorporate);
+};
 
 interface VehicleCategorySelectorProps {
   selected: VehicleCategoryId | null;
@@ -77,11 +87,15 @@ interface VehicleCategorySelectorProps {
 }
 
 const VehicleCategorySelector = ({ selected, onSelect }: VehicleCategorySelectorProps) => {
+  const settings = useSettings();
+  const serviceLabel = settings.serviceLabelFor();
+  const categories = getVehicleCategories(settings);
+
   return (
     <div className="space-y-2">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vehicle Category</p>
       <div className="grid grid-cols-1 gap-2.5">
-        {vehicleCategories.map((cat, i) => {
+        {categories.map((cat, i) => {
           const isSelected = selected === cat.id;
           const isCorporate = cat.id === "corporate_fleet";
 
@@ -93,19 +107,17 @@ const VehicleCategorySelector = ({ selected, onSelect }: VehicleCategorySelector
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
               onClick={() => onSelect(cat.id)}
-              className={`relative flex items-center gap-3 rounded-xl p-3.5 text-left transition-all border ${
-                isSelected
-                  ? "border-primary bg-primary/10 ring-1 ring-primary/30"
-                  : "border-border bg-secondary/60 hover:border-primary/30"
-              } ${isCorporate ? "mt-1" : ""}`}
+              className={`relative flex items-center gap-3 rounded-xl p-3.5 text-left transition-all border ${isSelected
+                ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                : "border-border bg-secondary/60 hover:border-primary/30"
+                } ${isCorporate ? "mt-1" : ""}`}
             >
               {/* Icon */}
               <div
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                  isSelected
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                }`}
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${isSelected
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+                  }`}
               >
                 {cat.icon}
               </div>
@@ -118,7 +130,7 @@ const VehicleCategorySelector = ({ selected, onSelect }: VehicleCategorySelector
                     {cat.priceLabel} · {cat.subtitle}
                   </p>
                 ) : (
-                  <p className="text-xs text-muted-foreground mt-0.5">Mini Valet & Spray Polish</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{serviceLabel}</p>
                 )}
               </div>
 

@@ -28,3 +28,11 @@ export const VEHICLE_CATEGORY_DESCRIPTIONS: Record<VehicleType, string> = {
 
 export const BOOKING_FEE = '1.49';
 
+/**
+ * Service label defaults. Stored in system_settings under key `service_labels`.
+ * The `base` key is the main service name displayed app-wide.
+ */
+export const SERVICE_LABELS: Record<string, string> = {
+  base: 'Mini Valet & Spray Polish',
+};
+

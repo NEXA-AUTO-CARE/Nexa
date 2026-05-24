@@ -1,10 +1,12 @@
 import { BookingStatus, type BookingResponse } from "@nexa/shared";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Check, Clock, User, MapPin, Camera, Star } from "lucide-react";
+import { Check, Clock, User, MapPin, Camera, Star, XCircle } from "lucide-react";
 import { api } from "../lib/api-client";
+import { describeError } from "../lib/errors";
 import { mockVendor } from "@/lib/mock";
 
 const STEP_ORDER: BookingStatus[] = [
@@ -48,6 +50,27 @@ const BookingStatusPage = () => {
 
   const currentIndex = booking ? STEP_ORDER.indexOf(booking.status as BookingStatus) : -1;
   const cancelled = booking?.status === BookingStatus.CANCELLED;
+  const canCancel = booking?.status === BookingStatus.BOOKED || booking?.status === BookingStatus.ACCEPTED;
+
+  const queryClient = useQueryClient();
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  const handleCancel = async () => {
+    if (!booking) return;
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      await api.delete(`/bookings/${booking.bookingId}`);
+      setShowCancelConfirm(false);
+      queryClient.invalidateQueries({ queryKey: ["booking", id] });
+    } catch (err) {
+      setCancelError(describeError(err));
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   return (
     <div className="px-4 pt-12 pb-6 space-y-6">
@@ -163,6 +186,55 @@ const BookingStatusPage = () => {
               <Star className="h-4 w-4" /> Review
             </Button>
           </div>
+
+          {/* Cancel booking */}
+          {canCancel && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+            >
+              {showCancelConfirm ? (
+                <div className="glass-card p-5 space-y-3 border border-destructive/30">
+                  <p className="text-sm font-medium text-destructive">Are you sure you want to cancel this booking?</p>
+                  <p className="text-xs text-muted-foreground">
+                    Cancellations made more than 24 hours before your appointment are eligible for a full refund.
+                    Late cancellations may be subject to a 30% retention fee.
+                  </p>
+                  {cancelError && (
+                    <p className="text-xs text-destructive">{cancelError}</p>
+                  )}
+                  <div className="flex gap-3">
+                    <Button
+                      variant="destructive"
+                      className="flex-1 gap-1.5"
+                      onClick={handleCancel}
+                      disabled={cancelling}
+                    >
+                      <XCircle className="h-4 w-4" />
+                      {cancelling ? "Cancelling…" : "Yes, Cancel Booking"}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() => setShowCancelConfirm(false)}
+                      disabled={cancelling}
+                    >
+                      Go Back
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={() => setShowCancelConfirm(true)}
+                >
+                  <XCircle className="h-4 w-4" /> Cancel Booking
+                </Button>
+              )}
+            </motion.div>
+          )}
         </>
       )}
     </div>
