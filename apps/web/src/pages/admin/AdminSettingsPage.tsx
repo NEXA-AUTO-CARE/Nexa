@@ -10,6 +10,8 @@ import {
   CheckCircle,
   AlertCircle,
   Eye,
+  Mail,
+  RotateCcw,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -23,6 +25,58 @@ interface CategoryPricing {
   grande: string
   maxi: string
   transit: string
+}
+
+interface StatusTemplate {
+  title: string
+  emailBody: string
+  smsBody: string
+}
+
+type MessageTemplates = Record<string, StatusTemplate>
+
+const TEMPLATE_STATUSES = [
+  { key: 'booked', label: 'Booked' },
+  { key: 'accepted', label: 'Accepted' },
+  { key: 'in_progress', label: 'In Progress' },
+  { key: 'completed', label: 'Completed' },
+  { key: 'cancelled', label: 'Cancelled' },
+] as const
+
+const PLACEHOLDERS = [
+  '{{customerName}}',
+  '{{vehicleSummary}}',
+  '{{bookingTime}}',
+  '{{serviceType}}',
+  '{{bookingId}}',
+]
+
+const DEFAULT_TEMPLATES: MessageTemplates = {
+  booked: {
+    title: 'Booking Confirmed',
+    emailBody: "Your booking for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We'll notify you when a detailer accepts.",
+    smsBody: "NEXA: Your booking for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We'll notify you when a detailer accepts.",
+  },
+  accepted: {
+    title: 'Booking Accepted',
+    emailBody: "Great news! A detailer has accepted your booking for {{vehicleSummary}}. They'll arrive on {{bookingTime}}.",
+    smsBody: "NEXA: Great news! A detailer has accepted your booking for {{vehicleSummary}}. They'll arrive on {{bookingTime}}.",
+  },
+  in_progress: {
+    title: 'Detailing In Progress',
+    emailBody: 'Your detailer is now working on {{vehicleSummary}}. Sit back and relax!',
+    smsBody: 'NEXA: Your detailer is now working on {{vehicleSummary}}. Sit back and relax!',
+  },
+  completed: {
+    title: 'Wash Complete',
+    emailBody: "Your {{vehicleSummary}} is looking fresh! Your wash is complete. We'd love to hear your feedback.",
+    smsBody: "NEXA: Your {{vehicleSummary}} is looking fresh! Your wash is complete. We'd love to hear your feedback.",
+  },
+  cancelled: {
+    title: 'Booking Cancelled',
+    emailBody: 'Your booking for {{vehicleSummary}} on {{bookingTime}} has been cancelled.',
+    smsBody: 'NEXA: Your booking for {{vehicleSummary}} on {{bookingTime}} has been cancelled.',
+  },
 }
 
 export default function AdminSettingsPage() {
@@ -41,6 +95,8 @@ export default function AdminSettingsPage() {
   const [faqs, setFaqs] = useState<Faq[]>([])
   const [terms, setTerms] = useState('')
   const [showPreview, setShowPreview] = useState(false)
+  const [templates, setTemplates] = useState<MessageTemplates>(() => structuredClone(DEFAULT_TEMPLATES))
+  const [activeTemplateTab, setActiveTemplateTab] = useState<string>('booked')
 
   const loadSettings = async () => {
     try {
@@ -51,6 +107,7 @@ export default function AdminSettingsPage() {
       const bookingFeeSetting = data.find((s) => s.key === 'booking_fee')
       const faqsSetting = data.find((s) => s.key === 'faqs')
       const termsSetting = data.find((s) => s.key === 'terms_and_conditions')
+      const templatesSetting = data.find((s) => s.key === 'notification_templates')
 
       if (pricingSetting) {
         setPricing(JSON.parse(pricingSetting.value))
@@ -63,6 +120,15 @@ export default function AdminSettingsPage() {
       }
       if (termsSetting) {
         setTerms(termsSetting.value)
+      }
+      if (templatesSetting) {
+        try {
+          const parsed = JSON.parse(templatesSetting.value) as MessageTemplates
+          // Merge with defaults so new statuses aren't missing
+          setTemplates({ ...structuredClone(DEFAULT_TEMPLATES), ...parsed })
+        } catch {
+          // corrupt value — keep defaults
+        }
       }
     } catch (err) {
       console.error(err)
@@ -113,6 +179,27 @@ export default function AdminSettingsPage() {
       ...pricing,
       [category]: val,
     })
+  }
+
+  // Template mutations
+  const handleTemplateChange = (
+    status: string,
+    field: keyof StatusTemplate,
+    val: string,
+  ) => {
+    setTemplates((prev) => ({
+      ...prev,
+      [status]: { ...prev[status], [field]: val },
+    }))
+  }
+
+  const handleResetTemplate = (status: string) => {
+    const def = DEFAULT_TEMPLATES[status]
+    if (!def) return
+    setTemplates((prev) => ({
+      ...prev,
+      [status]: structuredClone(def),
+    }))
   }
 
   // Auto-dismiss banners
@@ -377,6 +464,144 @@ export default function AdminSettingsPage() {
               />
             )}
           </div>
+        </div>
+
+        {/* CARD 4: NOTIFICATION TEMPLATES */}
+        <div className="glass-card p-6 space-y-6">
+          <div className="flex items-center gap-3 border-b border-nexa-border-subtle/50 pb-4 justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-400">
+                <Mail className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-lg text-nexa-text">Notification Templates</h3>
+                <p className="text-xs text-nexa-text-secondary">
+                  Customise email &amp; SMS messages sent to customers for each booking status
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() =>
+                handleSaveSetting('notification_templates', JSON.stringify(templates))
+              }
+              disabled={saveLoading === 'notification_templates'}
+              className="flex items-center gap-2 py-2 px-4 rounded-xl bg-nexa-mint text-nexa-bg text-xs font-bold hover:bg-nexa-mint/90 transition-all duration-300 disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              <span>
+                {saveLoading === 'notification_templates'
+                  ? 'Saving...'
+                  : 'Save Templates'}
+              </span>
+            </button>
+          </div>
+
+          {/* Placeholder reference chips */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-nexa-text-secondary">
+              Available Placeholders:
+            </span>
+            {PLACEHOLDERS.map((p) => (
+              <span
+                key={p}
+                className="px-2.5 py-1 rounded-lg bg-nexa-bg border border-nexa-border-subtle text-[11px] font-mono text-amber-400/90 select-all cursor-pointer hover:bg-amber-500/10 transition-colors duration-200"
+                title="Click to select, then paste into a template field"
+              >
+                {p}
+              </span>
+            ))}
+          </div>
+
+          {/* Status tabs */}
+          <div className="flex gap-1 overflow-x-auto pb-1">
+            {TEMPLATE_STATUSES.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setActiveTemplateTab(key)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-300 ${
+                  activeTemplateTab === key
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : 'text-nexa-text-secondary hover:text-nexa-text hover:bg-nexa-bg-elevated border border-transparent'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Active tab content */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTemplateTab}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.15 }}
+              className="space-y-5"
+            >
+              {/* Title */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-nexa-text-secondary">
+                  Subject / Title
+                </label>
+                <input
+                  type="text"
+                  value={templates[activeTemplateTab]?.title ?? ''}
+                  onChange={(e) =>
+                    handleTemplateChange(activeTemplateTab, 'title', e.target.value)
+                  }
+                  placeholder="e.g. Booking Confirmed"
+                  className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg/40 focus:border-amber-500/40 focus:ring-0 text-sm text-nexa-text transition-all duration-300"
+                />
+              </div>
+
+              {/* Email Body */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-nexa-text-secondary">
+                  Email Body
+                </label>
+                <textarea
+                  rows={3}
+                  value={templates[activeTemplateTab]?.emailBody ?? ''}
+                  onChange={(e) =>
+                    handleTemplateChange(activeTemplateTab, 'emailBody', e.target.value)
+                  }
+                  placeholder="Email message body — use {{placeholders}} for dynamic values"
+                  className="w-full px-4 py-3 rounded-xl border border-nexa-border-subtle bg-nexa-bg/40 focus:border-amber-500/40 focus:ring-0 text-xs text-nexa-text-secondary leading-relaxed font-mono transition-all duration-300"
+                />
+              </div>
+
+              {/* SMS Body */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-nexa-text-secondary">
+                  SMS Body
+                </label>
+                <textarea
+                  rows={2}
+                  value={templates[activeTemplateTab]?.smsBody ?? ''}
+                  onChange={(e) =>
+                    handleTemplateChange(activeTemplateTab, 'smsBody', e.target.value)
+                  }
+                  placeholder="SMS text — keep concise (160 chars ideal)"
+                  className="w-full px-4 py-3 rounded-xl border border-nexa-border-subtle bg-nexa-bg/40 focus:border-amber-500/40 focus:ring-0 text-xs text-nexa-text-secondary leading-relaxed font-mono transition-all duration-300"
+                />
+                <p className="text-[11px] text-nexa-text-secondary/60">
+                  {(templates[activeTemplateTab]?.smsBody ?? '').length} characters
+                </p>
+              </div>
+
+              {/* Reset button */}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => handleResetTemplate(activeTemplateTab)}
+                  className="flex items-center gap-1.5 py-2 px-3 rounded-xl border border-nexa-border-subtle bg-nexa-bg hover:bg-nexa-bg-elevated text-xs font-semibold text-nexa-text-secondary hover:text-nexa-text transition-all duration-300"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset to Default</span>
+                </button>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>
