@@ -4,6 +4,7 @@ import {
   VEHICLE_CATEGORY_LABELS,
   VEHICLE_CATEGORY_DESCRIPTIONS,
   BOOKING_FEE,
+  SERVICE_LABELS,
   type VehicleType,
 } from '@nexa/shared'
 import { api } from '../lib/api-client'
@@ -21,6 +22,12 @@ interface SettingsData {
   categoryDescriptions: Record<string, string>
   /** e.g. "1.49" */
   bookingFee: string
+  /** The terms and conditions from settings */
+  termsAndConditions: string
+  /** e.g. { "service-labels": "MINI VALET" }  */
+  serviceLabels: Record<string, string>
+  /** Enabled customer types: Individual, Corporate */
+  customerTypes: string[]
 }
 
 interface SettingsContextValue extends SettingsData {
@@ -33,6 +40,8 @@ interface SettingsContextValue extends SettingsData {
   labelFor: (vehicleType: VehicleType | string) => string
   /** Helper: get the description for a vehicle type */
   descriptionFor: (vehicleType: VehicleType | string) => string
+  /** Helper: get a service label by key (e.g. 'base'). Defaults to the base service name. */
+  serviceLabelFor: (key?: string) => string
 }
 
 /* ------------------------------------------------------------------ */
@@ -44,6 +53,9 @@ const DEFAULTS: SettingsData = {
   categoryLabels: VEHICLE_CATEGORY_LABELS as Record<string, string>,
   categoryDescriptions: VEHICLE_CATEGORY_DESCRIPTIONS as Record<string, string>,
   bookingFee: BOOKING_FEE,
+  termsAndConditions: '',
+  serviceLabels: SERVICE_LABELS,
+  customerTypes: ['Individual', 'Corporate'],
 }
 
 const CACHE_KEY = 'nexa_settings_cache'
@@ -69,7 +81,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     // Hydrate from localStorage on first render for instant display
     try {
       const cached = localStorage.getItem(CACHE_KEY)
-      if (cached) return JSON.parse(cached) as SettingsData
+      if (cached) {
+        return {
+          ...DEFAULTS,
+          ...JSON.parse(cached),
+        } as SettingsData
+      }
     } catch { /* ignore corrupt cache */ }
     return DEFAULTS
   })
@@ -86,6 +103,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         categoryLabels: tryParseJson(map.get('vehicle_category_labels'), DEFAULTS.categoryLabels),
         categoryDescriptions: tryParseJson(map.get('vehicle_category_descriptions'), DEFAULTS.categoryDescriptions),
         bookingFee: map.get('booking_fee') ?? DEFAULTS.bookingFee,
+        termsAndConditions: map.get('terms_and_conditions') ?? DEFAULTS.termsAndConditions,
+        serviceLabels: tryParseJson(map.get('service_labels'), DEFAULTS.serviceLabels),
+        customerTypes: parseStringArray(map.get('customer_type'), DEFAULTS.customerTypes),
       }
       setData(next)
       // Persist to localStorage for cache-on-load
@@ -108,9 +128,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       ...data,
       loading,
       refresh: fetchSettings,
-      priceFor: (vt) => data.categoryPricing[vt] ?? DEFAULTS.categoryPricing[vt] ?? '0.00',
-      labelFor: (vt) => data.categoryLabels[vt] ?? DEFAULTS.categoryLabels[vt] ?? vt,
-      descriptionFor: (vt) => data.categoryDescriptions[vt] ?? DEFAULTS.categoryDescriptions[vt] ?? '',
+      priceFor: (vt) => {
+        if (!vt) return '0.00';
+        const key = vt.toLowerCase();
+        const upper = vt.toUpperCase();
+        return data.categoryPricing?.[key] ?? data.categoryPricing?.[upper] ?? DEFAULTS.categoryPricing[key] ?? '0.00';
+      },
+      labelFor: (vt) => {
+        if (!vt) return '';
+        const key = vt.toLowerCase();
+        const upper = vt.toUpperCase();
+        return data.categoryLabels?.[key] ?? data.categoryLabels?.[upper] ?? DEFAULTS.categoryLabels[key] ?? vt;
+      },
+      descriptionFor: (vt) => {
+        if (!vt) return '';
+        const key = vt.toLowerCase();
+        const upper = vt.toUpperCase();
+        return data.categoryDescriptions?.[key] ?? data.categoryDescriptions?.[upper] ?? DEFAULTS.categoryDescriptions[key] ?? '';
+      },
+      serviceLabelFor: (key = 'base') => data.serviceLabels?.[key] ?? DEFAULTS.serviceLabels[key] ?? '',
     }),
     [data, loading, fetchSettings],
   )
@@ -124,5 +160,33 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
 function tryParseJson<T>(raw: string | undefined, fallback: T): T {
   if (!raw) return fallback
-  try { return JSON.parse(raw) as T } catch { return fallback }
+  const trimmed = raw.trim()
+  const normalized = trimmed.replace(/""/g, '"')
+  try { return JSON.parse(normalized) as T } catch { return fallback }
+}
+
+function parseStringArray(raw: string | undefined, fallback: string[]): string[] {
+  if (!raw) return fallback
+  const trimmed = raw.trim()
+  const normalized = trimmed.replace(/""/g, '"')
+  if (normalized.startsWith('[') && normalized.endsWith(']')) {
+    try {
+      return JSON.parse(normalized) as string[]
+    } catch {
+      return fallback
+    }
+  }
+  if (normalized.startsWith('{') && normalized.endsWith('}')) {
+    // Postgres array format e.g. {"Individual","Corporate"} or {"Individual", "Corporate"} or {Individual,Corporate}
+    const inner = normalized.slice(1, -1).trim()
+    if (!inner) return []
+    return inner.split(',').map((s) => {
+      let val = s.trim()
+      if (val.startsWith('"') && val.endsWith('"')) {
+        val = val.slice(1, -1)
+      }
+      return val
+    })
+  }
+  return fallback
 }

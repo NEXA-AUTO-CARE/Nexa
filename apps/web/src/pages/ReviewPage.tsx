@@ -1,23 +1,42 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { Star, Send } from "lucide-react";
+import { api } from "../lib/api-client";
+import { describeError } from "../lib/errors";
 
 const ReviewPage = () => {
   const navigate = useNavigate();
+  const { id: bookingId } = useParams<{ id: string }>();
   const { toast } = useToast();
+  
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    // TODO(api): POST the review to a reviews endpoint once it exists.
-    toast({
-      title: "Thanks for your feedback!",
-      description: "Your review has been recorded.",
-    });
-    navigate("/bookings");
+  const handleSubmit = async () => {
+    if (rating === 0 || submitting) return;
+    setSubmitting(true);
+    try {
+      await api.post(`/bookings/${bookingId}/review`, {
+        rating,
+        comment: review.trim() || null,
+      });
+      toast({
+        title: "Thanks for your feedback!",
+        description: "Your review has been recorded.",
+      });
+      navigate("/bookings");
+    } catch (err) {
+      toast({
+        title: "Could not submit review",
+        description: describeError(err),
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -34,7 +53,13 @@ const ReviewPage = () => {
         className="flex justify-center gap-2 py-4"
       >
         {[1, 2, 3, 4, 5].map((star) => (
-          <button key={star} onClick={() => setRating(star)} className="transition-transform hover:scale-110">
+          <button
+            key={star}
+            type="button"
+            onClick={() => setRating(star)}
+            className="transition-transform hover:scale-110"
+            disabled={submitting}
+          >
             <Star
               className={`h-10 w-10 transition-colors ${
                 star <= rating ? "fill-primary text-primary" : "text-muted-foreground/30"
@@ -63,17 +88,18 @@ const ReviewPage = () => {
           placeholder="Tell us about your experience..."
           value={review}
           onChange={(e) => setReview(e.target.value)}
-          className="w-full h-32 rounded-xl bg-secondary border border-border p-4 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+          disabled={submitting}
+          className="w-full h-32 rounded-xl bg-secondary border border-border p-4 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
         />
       </motion.div>
 
       <Button
         variant="hero"
-        className="w-full h-12"
-        disabled={rating === 0}
+        className="w-full h-12 gap-2"
+        disabled={rating === 0 || submitting}
         onClick={handleSubmit}
       >
-        <Send className="h-4 w-4" /> Submit Review
+        <Send className="h-4 w-4" /> {submitting ? "Submitting Review..." : "Submit Review"}
       </Button>
     </div>
   );

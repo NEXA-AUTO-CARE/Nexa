@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import type { BookingResponse } from "@nexa/shared";
@@ -17,6 +17,64 @@ function formatWhen(iso?: string) {
   return d.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
+function parseBoldText(text: string): ReactNode[] {
+  const boldRegex = /\*\*([^*]+)\*\*/g;
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = boldRegex.exec(text)) !== null) {
+    const plain = text.substring(lastIndex, match.index);
+    if (plain) {
+      parts.push(plain);
+    }
+    parts.push(<strong key={`bold-${match.index}`} className="font-semibold text-foreground">{match[1]}</strong>);
+    lastIndex = boldRegex.lastIndex;
+  }
+
+  const remaining = text.substring(lastIndex);
+  if (remaining) {
+    parts.push(remaining);
+  }
+
+  return parts;
+}
+
+function parseInlineElements(text: string): ReactNode {
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    const plainText = text.substring(lastIndex, match.index);
+    if (plainText) {
+      parts.push(...parseBoldText(plainText));
+    }
+    const label = match[1];
+    const url = match[2];
+    parts.push(
+      <a
+        key={`link-${match.index}`}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary hover:underline font-semibold"
+      >
+        {label}
+      </a>
+    );
+    lastIndex = linkRegex.lastIndex;
+  }
+
+  const remaining = text.substring(lastIndex);
+  if (remaining) {
+    parts.push(...parseBoldText(remaining));
+  }
+
+  return parts;
+}
+
 const PaymentPage = () => {
   const navigate = useNavigate();
   const location = useLocation() as { state?: { bookingId?: string } };
@@ -26,6 +84,7 @@ const PaymentPage = () => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [amount, setAmount] = useState("0.00");
   const [initing, setIniting] = useState(false);
+  const initingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [agreed, setAgreed] = useState(false);
 
@@ -41,10 +100,13 @@ const PaymentPage = () => {
   if (!bookingId) return <Navigate to="/book" replace />;
 
   const startPayment = async () => {
-    if (!agreed) {
-      setError("Please confirm your agreement to the terms before continuing.");
+    if (!agreed || initingRef.current) {
+      if (!agreed) {
+        setError("Please confirm your agreement to the terms before continuing.");
+      }
       return;
     }
+    initingRef.current = true;
     setIniting(true);
     setError(null);
     try {
@@ -56,6 +118,7 @@ const PaymentPage = () => {
     } catch (err) {
       setError(describeError(err));
     } finally {
+      initingRef.current = false;
       setIniting(false);
     }
   };
@@ -65,6 +128,30 @@ const PaymentPage = () => {
   const addonsTotal = booking?.addons?.reduce((sum, a) => sum + parseFloat(a.price), 0) ?? 0;
   const bookingFee = parseFloat(settings.bookingFee || "1.49");
   const baseServicePrice = Math.max(0, totalVal - addonsTotal - bookingFee);
+
+  // Dynamic Terms & Conditions parsing
+  const lines = (settings.termsAndConditions || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  let parsedTitle = "Before you confirm your booking, please confirm:";
+  const listItems: string[] = [];
+
+  lines.forEach((line) => {
+    const match = line.match(/^[-*+]\s+(.*)$/) || line.match(/^\d+\.\s+(.*)$/);
+    if (match) {
+      listItems.push(match[1]);
+    } else if (line.startsWith("#")) {
+      parsedTitle = line.replace(/^#+\s+/, "");
+    } else {
+      if (listItems.length === 0) {
+        parsedTitle = line;
+      }
+    }
+  });
+
+  const hasListItems = listItems.length > 0;
 
   return (
     <div className="px-4 pt-12 pb-6 space-y-6 max-w-2xl mx-auto">
@@ -103,7 +190,7 @@ const PaymentPage = () => {
         {/* PRICING BREAKDOWN */}
         <div className="border-t border-border/50 pt-4 space-y-2.5 text-xs">
           <div className="flex justify-between text-muted-foreground">
-            <span>Mini Valet Service (Tier Base)</span>
+            <span>{settings.serviceLabelFor()} (Tier Base)</span>
             <span>£{baseServicePrice.toFixed(2)}</span>
           </div>
 
@@ -142,66 +229,23 @@ const PaymentPage = () => {
       >
         <h3 className="font-heading font-semibold text-sm text-primary flex items-center gap-2">
           <FileText className="w-4 h-4" />
-          <span>Before you confirm your booking, please confirm:</span>
+          <span>{parsedTitle}</span>
         </h3>
 
-        <ul className="space-y-3 text-xs text-muted-foreground leading-relaxed pl-1">
-          <li className="flex gap-2.5">
-            <span className="text-primary font-bold shrink-0 mt-0.5">•</span>
-            <span>
-              I confirm that the vehicle details I have provided are accurate. I understand that if my vehicle does not match the tier I have selected, I may be asked to pay an additional amount in line with the correct NEXA rate. See{" "}
-              <a
-                href="https://nexa-autocare.co.uk/classification"
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary font-semibold hover:underline"
-              >
-                NEXA Vehicle Classification Guide
-              </a>.
-            </span>
-          </li>
-          <li className="flex gap-2.5">
-            <span className="text-primary font-bold shrink-0 mt-0.5">•</span>
-            <span>
-              I confirm that I have a suitable and safe space available for the service to be carried out at the address provided. I understand that if the space is deemed unsuitable on arrival, my booking may be cancelled and a 70% refund will be issued.
-            </span>
-          </li>
-          <li className="flex gap-2.5">
-            <span className="text-primary font-bold shrink-0 mt-0.5">•</span>
-            <span>
-              I confirm that I am the registered owner of the vehicle or have the permission of the registered owner to book this service.
-            </span>
-          </li>
-          <li className="flex gap-2.5">
-            <span className="text-primary font-bold shrink-0 mt-0.5">•</span>
-            <span>
-              I agree to the{" "}
-              <a
-                href="https://nexa-autocare.co.uk/terms"
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary font-semibold hover:underline"
-              >
-                Nexa Terms of Service
-              </a>{" "}
-              and{" "}
-              <a
-                href="https://nexa-autocare.co.uk/privacy"
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary font-semibold hover:underline"
-              >
-                Privacy Policy
-              </a>.
-            </span>
-          </li>
-          <li className="flex gap-2.5">
-            <span className="text-primary font-bold shrink-0 mt-0.5">•</span>
-            <span>
-              I confirm that I have read the Cancellation Policy: full refund 24h prior, 70% refund if cancelled within 24h of booking slot.
-            </span>
-          </li>
-        </ul>
+        {hasListItems ? (
+          <ul className="space-y-3">
+            {listItems.map((item, idx) => (
+              <li key={idx} className="text-xs text-muted-foreground flex items-start gap-2 leading-relaxed">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                <span>{parseInlineElements(item)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto pr-2">
+            {settings.termsAndConditions || "No terms and conditions configured."}
+          </div>
+        )}
 
         {/* AGREEMENT CHECKBOX */}
         <label className="flex items-start gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5 cursor-pointer mt-4 select-none group transition-all duration-300">

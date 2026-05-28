@@ -38,43 +38,43 @@ const CATEGORY_DEFS: {
   bookingType: BookingType;
   subtitle?: string;
 }[] = [
-  {
-    id: "regular_car",
-    vehicleType: VehicleType.STANDARD,
-    icon: <Car className="h-5 w-5" />,
-    pricingMode: "fixed_price",
-    bookingType: "consumer_booking",
-  },
-  {
-    id: "suv_7_seat_4x4",
-    vehicleType: VehicleType.GRANDE,
-    icon: <Truck className="h-5 w-5" />,
-    pricingMode: "fixed_price",
-    bookingType: "consumer_booking",
-  },
-  {
-    id: "small_van",
-    vehicleType: VehicleType.MAXI,
-    icon: <Truck className="h-5 w-5" />,
-    pricingMode: "fixed_price",
-    bookingType: "consumer_booking",
-  },
-  {
-    id: "large_van",
-    vehicleType: VehicleType.TRANSIT,
-    icon: <Truck className="h-5 w-5" />,
-    pricingMode: "fixed_price",
-    bookingType: "consumer_booking",
-  },
-  {
-    id: "corporate_fleet",
-    vehicleType: null,
-    icon: <Building2 className="h-5 w-5" />,
-    pricingMode: "invoice_only",
-    bookingType: "corporate_request",
-    subtitle: "Invoiced by admin",
-  },
-];
+    {
+      id: "regular_car",
+      vehicleType: VehicleType.STANDARD,
+      icon: <Car className="h-5 w-5" />,
+      pricingMode: "fixed_price",
+      bookingType: "consumer_booking",
+    },
+    {
+      id: "suv_7_seat_4x4",
+      vehicleType: VehicleType.GRANDE,
+      icon: <Truck className="h-5 w-5" />,
+      pricingMode: "fixed_price",
+      bookingType: "consumer_booking",
+    },
+    {
+      id: "small_van",
+      vehicleType: VehicleType.MAXI,
+      icon: <Truck className="h-5 w-5" />,
+      pricingMode: "fixed_price",
+      bookingType: "consumer_booking",
+    },
+    {
+      id: "large_van",
+      vehicleType: VehicleType.TRANSIT,
+      icon: <Truck className="h-5 w-5" />,
+      pricingMode: "fixed_price",
+      bookingType: "consumer_booking",
+    },
+    {
+      id: "corporate_fleet",
+      vehicleType: null,
+      icon: <Building2 className="h-5 w-5" />,
+      pricingMode: "invoice_only",
+      bookingType: "corporate_request",
+      subtitle: "Invoiced by admin",
+    },
+  ];
 
 /**
  * Build the full VehicleCategory list from the static defs + live settings.
@@ -128,7 +128,7 @@ const VehicleCategorySelector = ({ selected, onSelect }: VehicleCategorySelector
     <div className="space-y-2">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vehicle Category</p>
       <div className="grid grid-cols-1 gap-2.5">
-        {vehicleCategories.map((cat, i) => {
+        {categories.map((cat, i) => {
           const isSelected = selected === cat.id;
           const isCorporate = cat.id === "corporate_fleet";
 
@@ -140,19 +140,17 @@ const VehicleCategorySelector = ({ selected, onSelect }: VehicleCategorySelector
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
               onClick={() => onSelect(cat.id)}
-              className={`relative flex items-center gap-3 rounded-xl p-3.5 text-left transition-all border ${
-                isSelected
-                  ? "border-primary bg-primary/10 ring-1 ring-primary/30"
-                  : "border-border bg-secondary/60 hover:border-primary/30"
-              } ${isCorporate ? "mt-1" : ""}`}
+              className={`relative flex items-center gap-3 rounded-xl p-3.5 text-left transition-all border ${isSelected
+                ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                : "border-border bg-secondary/60 hover:border-primary/30"
+                } ${isCorporate ? "mt-1" : ""}`}
             >
               {/* Icon */}
               <div
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                  isSelected
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                }`}
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${isSelected
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+                  }`}
               >
                 {cat.icon}
               </div>

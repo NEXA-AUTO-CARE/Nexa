@@ -1,41 +1,44 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChevronDownIcon } from './icons'
-
-const faqs = [
-  {
-    question: 'How does NEXA work?',
-    answer:
-      'Simply create an account, register your vehicle, and book a wash. Choose your preferred date and time slot, enter your address, and a professional detailer will come to you. You\'ll receive before & after photos of the job and can rate your experience.',
-  },
-  {
-    question: 'What areas do you cover?',
-    answer:
-      'We currently serve Aberdeen, Scotland and the surrounding areas. We\'re working on expanding to more cities across Scotland — stay tuned!',
-  },
-  {
-    question: 'How long does a Mini Valet & Spray Polish take?',
-    answer:
-      'A typical Mini Valet & Spray Polish takes between 45 minutes to 1.5 hours, depending on the size and condition of your vehicle.',
-  },
-  {
-    question: 'What payment methods do you accept?',
-    answer:
-      'We accept all major debit and credit cards through our secure Stripe payment system. Apple Pay and Google Pay are also supported.',
-  },
-  {
-    question: 'Can I book for multiple vehicles?',
-    answer:
-      'Absolutely! You can register multiple vehicles in your Garage and book washes for any of them. Each vehicle can have its own booking schedule.',
-  },
-  {
-    question: 'What if I need to cancel or reschedule?',
-    answer:
-      'You can cancel or reschedule your booking up to 24 hours before your appointment at no charge. Late cancellations may incur a fee.',
-  },
-]
+import { useSettings } from '../../contexts/SettingsContext'
 
 export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
+  const { serviceLabelFor } = useSettings()
+  const serviceLabel = serviceLabelFor()
+
+  const faqs = useMemo(() => [
+    {
+      question: 'How does NEXA work?',
+      answer:
+        'Simply create an account, register your vehicle, and book a wash. Choose your preferred date and time slot, enter your address, and a professional detailer will come to you. You\'ll receive before & after photos of the job and can rate your experience.',
+    },
+    {
+      question: 'What areas do you cover?',
+      answer:
+        'We currently serve Aberdeen, Scotland and the surrounding areas. We\'re working on expanding to more cities across Scotland — stay tuned!',
+    },
+    {
+      question: `How long does a ${serviceLabel} take?`,
+      answer:
+        `A typical ${serviceLabel} takes between 45 minutes to 1.5 hours, depending on the size and condition of your vehicle.`,
+    },
+    {
+      question: 'What payment methods do you accept?',
+      answer:
+        'We accept all major debit and credit cards through our secure Stripe payment system. Apple Pay and Google Pay are also supported.',
+    },
+    {
+      question: 'Can I book for multiple vehicles?',
+      answer:
+        'Absolutely! You can register multiple vehicles in your Garage and book washes for any of them. Each vehicle can have its own booking schedule.',
+    },
+    {
+      question: 'What if I need to cancel or reschedule?',
+      answer:
+        'You can cancel or reschedule your booking up to 24 hours before your appointment at no charge. Late cancellations may incur a fee.',
+    },
+  ], [serviceLabel])
 
   const toggle = (i: number) => {
     setOpenIndex(openIndex === i ? null : i)

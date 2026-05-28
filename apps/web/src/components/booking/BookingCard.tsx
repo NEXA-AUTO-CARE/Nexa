@@ -1,4 +1,5 @@
 import type { BookingResponse } from '@nexa/shared'
+import { useSettings } from '../../contexts/SettingsContext'
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   booked: { bg: 'bg-blue-500/15', text: 'text-blue-400', label: 'Booked' },
@@ -6,12 +7,6 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }>
   in_progress: { bg: 'bg-purple-500/15', text: 'text-purple-400', label: 'In Progress' },
   completed: { bg: 'bg-nexa-mint/15', text: 'text-nexa-mint', label: 'Completed' },
   cancelled: { bg: 'bg-red-500/15', text: 'text-red-400', label: 'Cancelled' },
-}
-
-const SERVICE_LABELS: Record<string, string> = {
-  basic: 'Mini Valet & Spray Polish',
-  full: 'Mini Valet & Spray Polish',
-  premium: 'Mini Valet & Spray Polish',
 }
 
 interface BookingCardProps {
@@ -22,6 +17,8 @@ interface BookingCardProps {
 }
 
 export function BookingCard({ booking, onCancel, onPay, onRebook }: BookingCardProps) {
+  const { serviceLabelFor } = useSettings()
+  const serviceLabel = serviceLabelFor()
   const status = STATUS_STYLES[booking.status] ?? STATUS_STYLES.booked
   const canCancel = booking.status === 'booked' || booking.status === 'accepted'
   const canRebook = booking.status === 'completed' || booking.status === 'cancelled'
@@ -46,7 +43,7 @@ export function BookingCard({ booking, onCancel, onPay, onRebook }: BookingCardP
             {booking.vehicleSummary}
           </h3>
           <span className="mt-0.5 inline-block text-xs text-nexa-text-muted">
-            {SERVICE_LABELS[booking.serviceType] ?? booking.serviceType}
+            {serviceLabel}
           </span>
         </div>
         <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${status.bg} ${status.text}`}>
@@ -85,7 +82,7 @@ export function BookingCard({ booking, onCancel, onPay, onRebook }: BookingCardP
             </button>
           )}
           {onPay && canCancel && (
-             <button
+            <button
               onClick={() => onPay(booking)}
               className="btn-primary text-xs px-3 py-1"
             >
@@ -101,12 +98,12 @@ export function BookingCard({ booking, onCancel, onPay, onRebook }: BookingCardP
             </button>
           )}
           {!canCancel && (
-             <a
-               href={`/book?vehicleId=${booking.vehicleId}`}
-               className="btn-secondary text-xs px-3 py-1"
-             >
-               Re-book
-             </a>
+            <a
+              href={`/book?vehicleId=${booking.vehicleId}`}
+              className="btn-secondary text-xs px-3 py-1"
+            >
+              Re-book
+            </a>
           )}
         </div>
       </div>

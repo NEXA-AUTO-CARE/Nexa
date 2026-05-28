@@ -16,16 +16,16 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
   const [searchParams] = useSearchParams()
   const { vehicles, isLoading: loadingVehicles } = useVehicles()
   const { addons, isLoading: loadingAddons } = useAddons()
-  const { priceFor, labelFor } = useSettings()
+  const { priceFor, labelFor, serviceLabelFor } = useSettings()
+
+  const serviceLabel = serviceLabelFor()
 
   const [step, setStep] = useState(0)
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleResponse | null>(null)
-  const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([])
+  const [selectedAddonId, setSelectedAddonId] = useState<string | null>(null)
   const [bookingDate, setBookingDate] = useState('')
   const [bookingTime, setBookingTime] = useState('10:00')
   const [address, setAddress] = useState('')
-  const [agreedSafeSpace, setAgreedSafeSpace] = useState(false)
-  const [agreedDetailsCorrect, setAgreedDetailsCorrect] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,10 +44,9 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
   const basePrice = selectedVehicle
     ? parseFloat(priceFor(selectedVehicle.vehicleType))
     : 0
-  const addonsTotal = selectedAddonIds.reduce((sum, id) => {
-    const addon = addons.find((a) => a.addonId === id)
-    return sum + (addon ? parseFloat(addon.price) : 0)
-  }, 0)
+  const addonsTotal = selectedAddonId
+    ? (parseFloat(addons.find((a) => a.addonId === selectedAddonId)?.price ?? '0'))
+    : 0
   const total = (basePrice + addonsTotal).toFixed(2)
 
   const canNext = () => {
@@ -57,9 +56,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
       return (
         !!bookingDate &&
         !!bookingTime &&
-        !!address.trim() &&
-        agreedSafeSpace &&
-        agreedDetailsCorrect
+        !!address.trim()
       )
     return false
   }
@@ -73,9 +70,9 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
       vehicleId: selectedVehicle.vehicleId,
       bookingTime: new Date(`${bookingDate}T${bookingTime}:00`).toISOString(),
       serviceAddress: address.trim(),
-      addonIds: selectedAddonIds,
-      agreedSafeSpace,
-      agreedDetailsCorrect,
+      addonIds: selectedAddonId ? [selectedAddonId] : [],
+      agreedSafeSpace: true,
+      agreedDetailsCorrect: true,
     }
 
     try {
@@ -145,7 +142,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
             >
               <h4 className="font-semibold text-white">{v.make} {v.model}</h4>
               <p className="mt-1 text-xs text-nexa-text-secondary">
-                {labelFor(v.vehicleType)} — Mini Valet £{priceFor(v.vehicleType)}
+                {labelFor(v.vehicleType)} — {serviceLabel} £{priceFor(v.vehicleType)}
               </p>
               <p className="mt-1 font-mono text-xs text-nexa-text-muted">{v.registrationNumber}</p>
             </button>
@@ -155,40 +152,48 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
 
       {/* Step 1 — Add-ons */}
       {step === 1 && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {addons.map((addon) => {
-            const isSelected = selectedAddonIds.includes(addon.addonId)
-            return (
-              <button
-                key={addon.addonId}
-                onClick={() => {
-                  setSelectedAddonIds((prev) =>
+        <div className="space-y-4">
+          <p className="text-sm text-nexa-text-secondary">Select one add-on or skip to continue.</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {addons.map((addon) => {
+              const isSelected = selectedAddonId === addon.addonId
+              return (
+                <button
+                  key={addon.addonId}
+                  onClick={() => {
+                    setSelectedAddonId((prev) =>
+                      prev === addon.addonId ? null : addon.addonId
+                    )
+                  }}
+                  className={`nexa-card flex flex-col p-5 text-left transition-all ${
                     isSelected
-                      ? prev.filter((id) => id !== addon.addonId)
-                      : [...prev, addon.addonId]
-                  )
-                }}
-                className={`nexa-card flex flex-col p-5 text-left transition-all ${
-                  isSelected
-                    ? 'border-nexa-mint ring-1 ring-nexa-mint/30 bg-nexa-mint/5'
-                    : 'hover:border-white/15'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="text-base font-semibold text-white">{addon.name}</h4>
-                  <span className="text-sm font-bold text-nexa-mint">+£{addon.price}</span>
-                </div>
-                {addon.description && (
-                  <p className="mt-2 text-sm text-nexa-text-secondary">{addon.description}</p>
-                )}
-              </button>
-            )
-          })}
-          {addons.length === 0 && (
-            <div className="col-span-full py-8 text-center text-nexa-text-muted">
-              No add-ons available at this time.
-            </div>
-          )}
+                      ? 'border-nexa-mint ring-1 ring-nexa-mint/30 bg-nexa-mint/5'
+                      : 'hover:border-white/15'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                        isSelected ? 'border-nexa-mint bg-nexa-mint' : 'border-nexa-text-muted'
+                      }`}>
+                        {isSelected && <div className="h-2 w-2 rounded-full bg-nexa-text-dark" />}
+                      </div>
+                      <h4 className="text-base font-semibold text-white">{addon.name}</h4>
+                    </div>
+                    <span className="text-sm font-bold text-nexa-mint">+£{addon.price}</span>
+                  </div>
+                  {addon.description && (
+                    <p className="mt-2 pl-8 text-sm text-nexa-text-secondary">{addon.description}</p>
+                  )}
+                </button>
+              )
+            })}
+            {addons.length === 0 && (
+              <div className="col-span-full py-8 text-center text-nexa-text-muted">
+                No add-ons available at this time.
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -237,20 +242,20 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
                 </p>
                 <p className="flex justify-between text-sm text-white">
                   <span className="text-nexa-text-secondary">
-                    Mini Valet — {labelFor(selectedVehicle.vehicleType)}
+                    {serviceLabel} — {labelFor(selectedVehicle.vehicleType)}
                   </span>
                   <span>£{basePrice.toFixed(2)}</span>
                 </p>
-                {selectedAddonIds.map((id) => {
-                  const addon = addons.find((a) => a.addonId === id)
+                {selectedAddonId && (() => {
+                  const addon = addons.find((a) => a.addonId === selectedAddonId)
                   if (!addon) return null
                   return (
-                    <p key={id} className="flex justify-between text-sm text-white">
+                    <p className="flex justify-between text-sm text-white">
                       <span className="text-nexa-text-secondary">Add-on: {addon.name}</span>
                       <span>+£{addon.price}</span>
                     </p>
                   )
-                })}
+                })()}
                 <div className="mt-2 border-t border-white/10 pt-2 flex justify-between text-base font-bold text-white">
                   <span>Total</span>
                   <span className="text-nexa-mint">£{total}</span>
@@ -259,28 +264,6 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
             </div>
           )}
 
-          {/* Legal consent — required before payment can be initiated */}
-          <div className="nexa-card-solid space-y-3 p-4">
-            <h4 className="text-sm font-medium text-nexa-text-muted">Before you book</h4>
-            <label className="flex items-start gap-2.5 text-sm text-nexa-text-secondary">
-              <input
-                type="checkbox"
-                className="mt-0.5 h-4 w-4 shrink-0 accent-nexa-mint"
-                checked={agreedSafeSpace}
-                onChange={(e) => setAgreedSafeSpace(e.target.checked)}
-              />
-              <span>I confirm I have a safe space to wash the vehicle.</span>
-            </label>
-            <label className="flex items-start gap-2.5 text-sm text-nexa-text-secondary">
-              <input
-                type="checkbox"
-                className="mt-0.5 h-4 w-4 shrink-0 accent-nexa-mint"
-                checked={agreedDetailsCorrect}
-                onChange={(e) => setAgreedDetailsCorrect(e.target.checked)}
-              />
-              <span>All details provided about the vehicle are correct.</span>
-            </label>
-          </div>
         </div>
       )}
 

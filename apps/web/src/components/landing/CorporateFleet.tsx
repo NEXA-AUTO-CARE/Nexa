@@ -6,7 +6,8 @@ import { describeError } from '../../lib/errors'
 import { useSettings } from '../../contexts/SettingsContext'
 
 export function CorporateFleet() {
-  const { priceFor, labelFor } = useSettings()
+  const { priceFor, labelFor, serviceLabelFor } = useSettings()
+  const serviceLabel = serviceLabelFor()
 
   const CATEGORIES = useMemo(
     () =>
@@ -58,7 +59,7 @@ export function CorporateFleet() {
             <span className="font-display italic"> pricing</span>
           </h2>
           <p className="mt-4 text-nexa-text-secondary">
-            Every booking is our Mini Valet &amp; Spray Polish. Price depends only
+            Every booking is our {serviceLabel}. Price depends only
             on your vehicle category.
           </p>
           <div className="mt-8 space-y-3">

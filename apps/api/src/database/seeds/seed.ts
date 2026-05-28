@@ -42,7 +42,7 @@ async function seed() {
   const superAdmin = userRepo.create({
     firstName: 'Super',
     lastName: 'Admin',
-    email: 'superadmin@nexa.test',
+    email: 'superadmin@nexaautocare.com',
     phoneNumber: '+447700900000',
     displayName: 'Super Admin',
     otpVerified: true,
@@ -55,7 +55,7 @@ async function seed() {
   const admin = userRepo.create({
     firstName: 'Nexa',
     lastName: 'Admin',
-    email: 'admin@nexa.test',
+    email: 'admin@nexaautocare.com',
     phoneNumber: '+447700900001',
     displayName: 'Nexa Admin',
     otpVerified: true,
@@ -68,7 +68,7 @@ async function seed() {
   const vendor = userRepo.create({
     firstName: 'Aberdeen',
     lastName: 'Detailer',
-    email: 'vendor@nexa.test',
+    email: 'vendor@nexaautocare.com',
     phoneNumber: '+447700900002',
     displayName: 'Aberdeen Detailer Pro',
     otpVerified: true,
@@ -82,7 +82,7 @@ async function seed() {
   const customer = userRepo.create({
     firstName: 'John',
     lastName: 'Doe',
-    email: 'customer@nexa.test',
+    email: 'customer@nexaautocare.com',
     phoneNumber: '+447700900003',
     displayName: 'John Doe',
     otpVerified: true,
@@ -145,15 +145,13 @@ async function seed() {
 
   const termsSetting = settingRepo.create({
     key: 'terms_and_conditions',
-    value: `## Nexa Booking Terms & Conditions
-Last updated: May 2026
+    value: `Before you confirm your booking, please confirm:
 
-Welcome to NEXA. Before booking or initiating checkout, please review and accept these terms:
-
-1. **Vehicle Classifications**: The booking rate is bound to your selected vehicle type (Standard, Grande, Maxi, or Transit). If a vehicle is found to belong to a higher tier than booked, additional payments will be requested at the correct rate.
-2. **Safe Workspace Obligation**: You must supply a suitable, safe and off-road driveway, driveway bay, or off-road space for our service. If the space is deemed unsafe or unsuitable, the wash may be cancelled with a 70% refund.
-3. **Cancellation Policy**: Cancellations must be made at least 24 hours prior. Cancellations within 24 hours will be subject to a 30% retention fee, resulting in a 70% refund.
-4. **Aberdeen Service Region**: Currently serving domestic addresses in the Aberdeen and suburban area.`,
+- I confirm that the vehicle details I have provided are accurate. I understand that if my vehicle does not match the tier I have selected, I may be asked to pay an additional amount in line with the correct NEXA rate. See [NEXA Vehicle Classification Guide](/docs/nexa-vehicle-classification-guide.pdf).
+- I confirm that I have a suitable and safe space available for the service to be carried out at the address provided. I understand that if the space is deemed unsuitable on arrival, my booking may be cancelled and a 70% refund will be issued.
+- I confirm that I am the registered owner of the vehicle or have the permission of the registered owner to book this service.
+- I agree to the [Nexa Terms of Service](/docs/nexa-terms-of-service.pdf) and [Privacy Policy](/docs/nexa-privacy-policy.pdf).
+- I confirm that I have read the Cancellation Policy: full refund 24h prior, 70% refund if cancelled within 24h of booking slot.`,
   });
 
   const faqsSetting = settingRepo.create({
@@ -229,6 +227,18 @@ Welcome to NEXA. Before booking or initiating checkout, please review and accept
     value: '1.49',
   });
 
+  const serviceLabelsSetting = settingRepo.create({
+    key: 'service_labels',
+    value: JSON.stringify({
+      base: 'Mini Valet',
+    }),
+  });
+
+  const customerTypeSetting = settingRepo.create({
+    key: 'customer_type',
+    value: '["Individual","Corporate"]',
+  });
+
   await settingRepo.save([
     categoryPricingSetting,
     termsSetting,
@@ -236,6 +246,8 @@ Welcome to NEXA. Before booking or initiating checkout, please review and accept
     categoryLabelsSetting,
     categoryDescriptionsSetting,
     bookingFeeSetting,
+    serviceLabelsSetting,
+    customerTypeSetting,
   ]);
 
   console.log('Seeding bookings...');

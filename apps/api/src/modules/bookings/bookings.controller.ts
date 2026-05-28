@@ -26,6 +26,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { BookingsService } from './bookings.service';
 import { AssignVendorDto, CreateBookingDto, RebookDto } from './dto/create-booking.dto';
+import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 
 @ApiTags('bookings')
@@ -119,5 +120,16 @@ export class BookingsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
     await this.bookings.cancel(id, user.userId);
+  }
+
+  @Post(':id/review')
+  @ApiOperation({ summary: 'Submit a review for a completed booking' })
+  @ApiCreatedResponse({ description: 'Review created successfully' })
+  async createReview(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateReviewDto,
+  ): Promise<any> {
+    return this.bookings.createReview(id, user.userId, dto);
   }
 }
