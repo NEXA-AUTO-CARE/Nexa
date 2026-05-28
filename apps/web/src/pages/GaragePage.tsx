@@ -69,8 +69,6 @@ const GaragePage = () => {
     }
   }, [location.state, location.pathname, navigate]);
 
-  const settings = useSettings();
-  const categories = getVehicleCategories(settings);
   const isCorporate = selectedCategory === "corporate_fleet";
   const allCategories = buildCategories(priceFor, labelFor, descriptionFor);
   const categoryMeta = selectedCategory

@@ -122,7 +122,7 @@ interface VehicleCategorySelectorProps {
 
 const VehicleCategorySelector = ({ selected, onSelect }: VehicleCategorySelectorProps) => {
   const { priceFor, labelFor, descriptionFor } = useSettings();
-  const vehicleCategories = buildCategories(priceFor, labelFor, descriptionFor);
+  const categories = buildCategories(priceFor, labelFor, descriptionFor);
 
   return (
     <div className="space-y-2">
