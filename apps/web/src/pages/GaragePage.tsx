@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Car, Plus, X, Truck, Send, Trash2, Droplets, Gift } from "lucide-react";
 import VehicleCategorySelector, {
   type VehicleCategoryId,
-  vehicleCategories,
+  buildCategories,
 } from "@/components/VehicleCategorySelector";
 import CorporateFleetFields, { type CorporateFleetData } from "@/components/CorporateFleetFields";
 import GiftRecipientFields, { type GiftRecipientData } from "@/components/GiftRecipientFields";
@@ -49,7 +49,7 @@ const GaragePage = () => {
   const location = useLocation();
   const { vehicles, isLoading, refetch } = useVehicles();
   const { toast } = useToast();
-  const { priceFor, labelFor } = useSettings();
+  const { priceFor, labelFor, descriptionFor } = useSettings();
 
   const [showForm, setShowForm] = useState(false);
   const [isGiftMode, setIsGiftMode] = useState(false);
@@ -70,8 +70,9 @@ const GaragePage = () => {
   }, [location.state, location.pathname, navigate]);
 
   const isCorporate = selectedCategory === "corporate_fleet";
+  const allCategories = buildCategories(priceFor, labelFor, descriptionFor);
   const categoryMeta = selectedCategory
-    ? vehicleCategories.find((c) => c.id === selectedCategory)!
+    ? allCategories.find((c) => c.id === selectedCategory)!
     : null;
 
   const resetForm = () => {

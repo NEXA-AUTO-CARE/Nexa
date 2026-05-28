@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 import { Car, Truck, Building2, Check } from "lucide-react";
+import { VehicleType } from "@nexa/shared";
+import { useSettings } from "../contexts/SettingsContext";
 
 export type VehicleCategoryId =
   | "regular_car"
@@ -13,7 +15,9 @@ export type BookingType = "consumer_booking" | "corporate_request";
 
 export interface VehicleCategory {
   id: VehicleCategoryId;
+  vehicleType: VehicleType | null;
   label: string;
+  description: string;
   price: number | null;
   priceLabel: string;
   subtitle?: string;
@@ -22,54 +26,94 @@ export interface VehicleCategory {
   bookingType: BookingType;
 }
 
-export const vehicleCategories: VehicleCategory[] = [
+/**
+ * Maps each consumer-facing category ID to its VehicleType key and icon.
+ * The corporate_fleet entry has no VehicleType — it's handled separately.
+ */
+const CATEGORY_DEFS: {
+  id: VehicleCategoryId;
+  vehicleType: VehicleType | null;
+  icon: React.ReactNode;
+  pricingMode: PricingMode;
+  bookingType: BookingType;
+  subtitle?: string;
+}[] = [
   {
     id: "regular_car",
-    label: "Regular Cars",
-    price: 25,
-    priceLabel: "£25",
+    vehicleType: VehicleType.STANDARD,
     icon: <Car className="h-5 w-5" />,
     pricingMode: "fixed_price",
     bookingType: "consumer_booking",
   },
   {
     id: "suv_7_seat_4x4",
-    label: "7 Seat SUV & 4×4",
-    price: 30,
-    priceLabel: "£30",
+    vehicleType: VehicleType.GRANDE,
     icon: <Truck className="h-5 w-5" />,
     pricingMode: "fixed_price",
     bookingType: "consumer_booking",
   },
   {
     id: "small_van",
-    label: "Small Van",
-    price: 35,
-    priceLabel: "£35",
+    vehicleType: VehicleType.MAXI,
     icon: <Truck className="h-5 w-5" />,
     pricingMode: "fixed_price",
     bookingType: "consumer_booking",
   },
   {
     id: "large_van",
-    label: "Large Van",
-    price: 40,
-    priceLabel: "£40",
+    vehicleType: VehicleType.TRANSIT,
     icon: <Truck className="h-5 w-5" />,
     pricingMode: "fixed_price",
     bookingType: "consumer_booking",
   },
   {
     id: "corporate_fleet",
-    label: "Corporate Fleet",
-    price: null,
-    priceLabel: "Custom pricing",
-    subtitle: "Invoiced by admin",
+    vehicleType: null,
     icon: <Building2 className="h-5 w-5" />,
     pricingMode: "invoice_only",
     bookingType: "corporate_request",
+    subtitle: "Invoiced by admin",
   },
 ];
+
+/**
+ * Build the full VehicleCategory list from the static defs + live settings.
+ */
+function buildCategories(
+  priceFor: (vt: VehicleType | string) => string,
+  labelFor: (vt: VehicleType | string) => string,
+  descriptionFor: (vt: VehicleType | string) => string,
+): VehicleCategory[] {
+  return CATEGORY_DEFS.map((def) => {
+    if (def.vehicleType) {
+      const price = parseFloat(priceFor(def.vehicleType));
+      return {
+        id: def.id,
+        vehicleType: def.vehicleType,
+        label: labelFor(def.vehicleType),
+        description: descriptionFor(def.vehicleType),
+        price,
+        priceLabel: `£${price % 1 === 0 ? price : price.toFixed(2)}`,
+        icon: def.icon,
+        pricingMode: def.pricingMode,
+        bookingType: def.bookingType,
+      };
+    }
+    // Corporate fleet — no VehicleType
+    return {
+      id: def.id,
+      vehicleType: null,
+      label: "Corporate Fleet",
+      description: "",
+      price: null,
+      priceLabel: "Custom pricing",
+      subtitle: def.subtitle,
+      icon: def.icon,
+      pricingMode: def.pricingMode,
+      bookingType: def.bookingType,
+    };
+  });
+}
 
 interface VehicleCategorySelectorProps {
   selected: VehicleCategoryId | null;
@@ -77,6 +121,9 @@ interface VehicleCategorySelectorProps {
 }
 
 const VehicleCategorySelector = ({ selected, onSelect }: VehicleCategorySelectorProps) => {
+  const { priceFor, labelFor, descriptionFor } = useSettings();
+  const vehicleCategories = buildCategories(priceFor, labelFor, descriptionFor);
+
   return (
     <div className="space-y-2">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vehicle Category</p>
@@ -110,7 +157,7 @@ const VehicleCategorySelector = ({ selected, onSelect }: VehicleCategorySelector
                 {cat.icon}
               </div>
 
-              {/* Label + price */}
+              {/* Label + description */}
               <div className="flex-1 min-w-0">
                 <p className="font-heading font-semibold text-sm text-foreground">{cat.label}</p>
                 {isCorporate ? (
@@ -118,7 +165,7 @@ const VehicleCategorySelector = ({ selected, onSelect }: VehicleCategorySelector
                     {cat.priceLabel} · {cat.subtitle}
                   </p>
                 ) : (
-                  <p className="text-xs text-muted-foreground mt-0.5">Mini Valet & Spray Polish</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{cat.description}</p>
                 )}
               </div>
 
@@ -152,3 +199,9 @@ const VehicleCategorySelector = ({ selected, onSelect }: VehicleCategorySelector
 };
 
 export default VehicleCategorySelector;
+
+/**
+ * Re-export a helper so GaragePage and others can still access the full list
+ * outside the component render (e.g. for looking up categoryMeta).
+ */
+export { buildCategories, CATEGORY_DEFS };
