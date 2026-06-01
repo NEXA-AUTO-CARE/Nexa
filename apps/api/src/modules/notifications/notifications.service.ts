@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { User } from '../../database/entities';
 import { EmailChannel } from './channels/email.channel';
 import { SmsChannel } from './channels/sms.channel';
+import { SnsChannel } from './channels/sns.channel';
 
-export type NotificationChannel = 'email' | 'sms';
+export type NotificationChannel = 'email' | 'sms' | 'sns';
 
 @Injectable()
 export class NotificationsService {
@@ -12,6 +14,8 @@ export class NotificationsService {
   constructor(
     private readonly email: EmailChannel,
     private readonly sms: SmsChannel,
+    private readonly sns: SnsChannel,
+    private readonly config: ConfigService,
   ) {}
 
   /**
@@ -30,7 +34,18 @@ export class NotificationsService {
   }
 
   async sendSms(to: string, body: string): Promise<void> {
+    const provider = this.config.get<string>('app.sns.smsProvider') || 'twilio';
+    if (provider === 'sns') {
+      return this.sns.sendSms(to, body);
+    }
     return this.sms.send(to, body);
+  }
+
+  /**
+   * Send a rich notification to an SNS topic
+   */
+  async sendSnsTopic(message: string, subject?: string, topicArn?: string): Promise<void> {
+    return this.sns.publishToTopic(message, subject, topicArn);
   }
 
   /**

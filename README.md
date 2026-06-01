@@ -172,6 +172,83 @@ Authenticated probe: `curl -H "Authorization: Bearer $TOKEN" http://localhost:30
 
 ---
 
+## AWS Deployment (IaC with CDK)
+
+The Nexa application infrastructure is defined as code (IaC) using the **AWS Cloud Development Kit (CDK)** in TypeScript. All CDK resources are defined under the `/infra` directory.
+
+### Production Architecture Diagram
+
+```mermaid
+graph TD
+    subgraph Client
+        Vite[Vite React Frontend]
+    end
+
+    subgraph AWS Cloud
+        CF[CloudFront CDN]
+        WebBucket[(S3 Website Bucket)]
+        ALB[Application Load Balancer]
+        
+        subgraph VPC
+            subgraph Public Subnets
+                ALB
+            end
+            subgraph Private Subnets
+                ECS[ECS Fargate NestJS Task]
+                RDS[(RDS PostgreSQL Instance)]
+                SnsTopic[SNS Notification Topic]
+            end
+        end
+        
+        PhotosBucket[(S3 Photos Bucket)]
+        SecretsManager[Secrets Manager]
+    end
+
+    Vite -->|Static Assets| CF
+    CF -->|Read| WebBucket
+    Vite -->|HTTPS API Requests| ALB
+    ALB -->|Proxy| ECS
+    ECS -->|Read/Write| RDS
+    ECS -->|Upload/Presigned URL| PhotosBucket
+    ECS -->|Publish SMS/Topics| SnsTopic
+    ECS -->|Retrieve Credentials| SecretsManager
+```
+
+### Stack Components
+
+The deployment consists of several highly decoupled and dependent stacks:
+- **`NexaEcrStack`**: Defines the Elastic Container Registry (ECR) for the NestJS API container.
+- **`NexaDatabaseStack`**: Provisions an RDS PostgreSQL database placed in private isolated subnets with credentials stored in Secrets Manager.
+- **`NexaStorageStack`**: Native AWS S3 bucket for photos, fully configured with CORS, SSL, and private access.
+- **`NexaSnsStack`**: Custom SNS Topic for notification alerts with custom KMS Server-Side Encryption keys.
+- **`NexaApiServiceStack`**: Manages the ECS Fargate cluster, task definitions, CloudWatch logging, Secrets Manager integration, and the public Application Load Balancer (ALB).
+- **`NexaFrontendStack`**: Private S3 hosting bucket and CloudFront CDN utilizing Origin Access Control (OAC) and Single-Page Application (SPA) redirects.
+
+### Deployment Instructions
+
+To deploy the infrastructure to your AWS account, configure your local environment and run the following CDK commands:
+
+```sh
+# 1. Navigate to the infra directory
+cd infra
+
+# 2. Build the TypeScript CDK source code
+npm run build
+
+# 3. Bootstrap your AWS Account (required once per account/region)
+npx cdk bootstrap -c vpcId=<your-vpc-id> -c awsAccount=<aws-account> -c awsRegion=<aws-region>
+
+# 4. Synthesize CloudFormation templates
+npx cdk synth -c vpcId=<your-vpc-id>
+
+# 5. Deploy all stacks to AWS
+npx cdk deploy --all -c vpcId=<your-vpc-id>
+```
+
+For a comprehensive variable breakdown and production secrets management strategies, see [.env.production.example](.env.production.example).
+
+---
+
 ## License
 
 UNLICENSED — internal Nexa project.

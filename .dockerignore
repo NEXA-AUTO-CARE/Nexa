@@ -1,8 +1,45 @@
+# =============================================================================
+# Nexa — Docker build context exclusions
+# Applied when building from the monorepo root
+# =============================================================================
+
+# Dependencies (reinstalled inside the container)
 node_modules
+
+# Build artifacts (rebuilt inside the container)
+dist
+build
+coverage
+
+# Version control
 .git
 .gitignore
-*.md
-dist
 
-.claude
+# Environment / secrets (injected at runtime, never baked in)
+.env
+.env.*
+!.env.example
+
+# Documentation (not needed in image)
+*.md
+docs/
+PHASE1_PLAN.md
+
+# IDE / editor / OS
 .vscode
+.idea
+.DS_Store
+*.swp
+*.swo
+
+# AI / vibe coding tools
+.claude
+.vibe
+.vibe-ai
+
+# Docker-in-Docker
+docker-compose.yml
+**/Dockerfile
+
+# Web app (commented out to allow frontend Docker builds; the API Dockerfile won't COPY it anyway)
+# apps/web

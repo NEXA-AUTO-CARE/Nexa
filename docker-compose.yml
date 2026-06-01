@@ -1,3 +1,9 @@
+# =============================================================================
+# NEXA — Local Development Docker Compose Configuration
+# NOTE: This file is purely for local mock services (PostgreSQL, MinIO).
+# For production deployment, AWS native services (RDS, S3) are used
+# and managed via the AWS CDK infrastructure located in the `infra/` folder.
+# =============================================================================
 services:
   postgres:
     image: postgres:18-alpine

@@ -14,6 +14,24 @@ export class UseUuidV71700000000400 implements MigrationInterface {
   name = 'UseUuidV71700000000400';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // Install a portable uuidv7() function if not already provided natively
+    // (native uuidv7() ships with PostgreSQL 17+; RDS may run an earlier version).
+    // Uses clock_timestamp() for ms-precision timestamps + gen_random_bytes() for
+    // the random tail, then stamps the v7 version nibble and the 10xx variant bits.
+    await queryRunner.query(`
+      CREATE OR REPLACE FUNCTION uuidv7() RETURNS uuid
+      LANGUAGE plpgsql AS $$
+      DECLARE
+        ts_ms bigint := (extract(epoch FROM clock_timestamp()) * 1000)::bigint;
+        b     bytea  := decode(lpad(to_hex(ts_ms), 12, '0'), 'hex') || gen_random_bytes(10);
+      BEGIN
+        b := set_byte(b, 6, (get_byte(b, 6) & x'0f'::int) | x'70'::int);
+        b := set_byte(b, 8, (get_byte(b, 8) & x'3f'::int) | x'80'::int);
+        RETURN encode(b, 'hex')::uuid;
+      END;
+      $$;
+    `);
+
     // Wipe all entity tables; CASCADE handles FK ordering automatically.
     // The migrations table is intentionally excluded.
     await queryRunner.query(`

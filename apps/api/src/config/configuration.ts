@@ -28,6 +28,11 @@ export interface AppConfig {
     token?: string;
     from?: string;
   };
+  sns: {
+    region?: string;
+    topicArn?: string;
+    smsProvider?: string;
+  };
   smtp: {
     host?: string;
     port?: number;
@@ -51,7 +56,7 @@ export default (): { app: AppConfig } => {
       nodeEnv: env.NODE_ENV,
       port: Number(env.PORT) || 3000,
       webOrigin: env.WEB_ORIGIN,
-      databaseUrl: env.DATABASE_URL,
+      databaseUrl: env.DATABASE_URL!,
       jwt: {
         accessSecret: env.JWT_ACCESS_SECRET,
         refreshSecret: env.JWT_REFRESH_SECRET,
@@ -74,6 +79,11 @@ export default (): { app: AppConfig } => {
         sid: env.TWILIO_SID,
         token: env.TWILIO_TOKEN,
         from: env.TWILIO_FROM,
+      },
+      sns: {
+        region: env.AWS_SNS_REGION,
+        topicArn: env.AWS_SNS_TOPIC_ARN,
+        smsProvider: env.NOTIFICATION_SMS_PROVIDER,
       },
       smtp: {
         host: env.SMTP_HOST,

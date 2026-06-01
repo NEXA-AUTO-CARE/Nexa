@@ -12,12 +12,20 @@ import * as entities from './entities';
         const rawUrl = config.getOrThrow<string>('app.databaseUrl');
         const requiresSsl =
           /[?&]sslmode=(require|prefer|verify-ca|verify-full|no-verify)/i.test(rawUrl) ||
-          /[?&]ssl=true/i.test(rawUrl);
-        // Strip sslmode/ssl query params so pg uses our explicit `ssl` option instead.
-        const url = rawUrl.replace(/([?&])(sslmode|ssl)=[^&]*&?/gi, '$1').replace(/[?&]$/, '');
+          /[?&]ssl=true/i.test(rawUrl) ||
+          process.env.NODE_ENV === 'production';
+
+        // Parse connection parameters from the URL to pass them individually.
+        // This is 100% reliable and bypasses any url parsing issues in the pg driver when combined with ssl options.
+        const parsed = new URL(rawUrl);
+
         return {
           type: 'postgres' as const,
-          url,
+          host: parsed.hostname,
+          port: parsed.port ? Number(parsed.port) : 5432,
+          username: decodeURIComponent(parsed.username),
+          password: decodeURIComponent(parsed.password),
+          database: parsed.pathname.substring(1),
           ssl: requiresSsl ? { rejectUnauthorized: false } : undefined,
           entities: Object.values(entities),
           namingStrategy: new SnakeNamingStrategy(),
