@@ -1,16 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { MessageTemplateService } from '../notifications/message-template.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { SettingsService } from '../settings/settings.service';
 import {
-  getBookingEmailHtml,
-  getBookingSmsText,
+  BOOKING_GENERIC_FALLBACK,
+  DEFAULT_BOOKING_TEMPLATES,
   NOTIFICATION_TEMPLATES_KEY,
 } from '../notifications/templates/booking.templates';
-import type {
-  BookingNotificationContext,
-  MessageTemplates,
-} from '../notifications/templates/booking.templates';
+import type { BookingNotificationContext } from '../notifications/templates/booking.templates';
 import { BookingCreatedEvent, BookingStatusChangedEvent } from './events/booking.events';
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -25,7 +22,7 @@ export class BookingsListener {
 
   constructor(
     private readonly notifications: NotificationsService,
-    private readonly settingsService: SettingsService,
+    private readonly templateService: MessageTemplateService,
   ) {}
 
   @OnEvent(BookingCreatedEvent.EVENT_NAME)
@@ -37,13 +34,11 @@ export class BookingsListener {
       return;
     }
 
-    const templates = await this.loadTemplates();
     const ctx = this.buildContext(booking);
-    const { subject, html } = getBookingEmailHtml(ctx, templates);
-    const smsText = getBookingSmsText(ctx, templates);
+    const content = await this.processBookingTemplate(ctx);
 
     this.logger.log(`[EVENT] booking.created → notifying ${customer.displayName}`);
-    await this.notifications.notify(customer, { subject, html, smsText });
+    await this.notifications.notify(customer, content);
   }
 
   @OnEvent(BookingStatusChangedEvent.EVENT_NAME)
@@ -55,30 +50,50 @@ export class BookingsListener {
       return;
     }
 
-    const templates = await this.loadTemplates();
     const ctx = this.buildContext(booking);
-    const { subject, html } = getBookingEmailHtml(ctx, templates);
-    const smsText = getBookingSmsText(ctx, templates);
+    const content = await this.processBookingTemplate(ctx);
 
     this.logger.log(
       `[EVENT] booking.status_changed (${previousStatus} → ${booking.status}) → notifying ${customer.displayName}`,
     );
-    await this.notifications.notify(customer, { subject, html, smsText });
+    await this.notifications.notify(customer, content);
   }
 
   /**
-   * Load custom notification templates from the system_settings table.
-   * Returns null when no custom templates exist (fallback to defaults).
+   * Use MessageTemplateService to load overrides, resolve the template,
+   * and build the email + SMS content — with an extra detail card for bookings.
    */
-  private async loadTemplates(): Promise<MessageTemplates | null> {
-    try {
-      const setting = await this.settingsService.findOne(NOTIFICATION_TEMPLATES_KEY);
-      if (!setting?.value) return null;
-      return JSON.parse(setting.value) as MessageTemplates;
-    } catch (err) {
-      this.logger.warn('Failed to parse notification_templates setting, using defaults', (err as Error).message);
-      return null;
-    }
+  private async processBookingTemplate(
+    ctx: BookingNotificationContext,
+  ): Promise<{ subject: string; html: string; smsText: string }> {
+    const overrides = await this.templateService.loadOverrides(NOTIFICATION_TEMPLATES_KEY);
+    const tpl = this.templateService.resolveTemplate(
+      ctx.status,
+      DEFAULT_BOOKING_TEMPLATES,
+      overrides,
+      BOOKING_GENERIC_FALLBACK,
+    );
+
+    const flatCtx: Record<string, string> = {
+      customerName: ctx.customerName,
+      bookingId: ctx.bookingId,
+      vehicleSummary: ctx.vehicleSummary,
+      serviceType: ctx.serviceType,
+      bookingTime: ctx.bookingTime,
+      status: ctx.status,
+    };
+
+    const detailCard = `
+      <div style="margin-top: 24px; padding: 16px; background: #1a2332; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+        <p style="margin: 4px 0; color: #94A3B8;"><strong style="color: #fff;">Vehicle:</strong> ${ctx.vehicleSummary}</p>
+        <p style="margin: 4px 0; color: #94A3B8;"><strong style="color: #fff;">Service:</strong> ${ctx.serviceType}</p>
+        <p style="margin: 4px 0; color: #94A3B8;"><strong style="color: #fff;">Date:</strong> ${ctx.bookingTime}</p>
+      </div>
+    `;
+
+    const { subject, html } = this.templateService.buildEmail(tpl, flatCtx, detailCard);
+    const smsText = this.templateService.buildSms(tpl, flatCtx);
+    return { subject, html, smsText };
   }
 
   private buildContext(booking: import('../../database/entities').Booking): BookingNotificationContext {
