@@ -18,6 +18,10 @@ import { SetPasswordDto } from './dto/set-password.dto';
 import { SetupTokenDto } from './dto/setup-token.dto';
 import { SignupDto } from './dto/signup.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { VerifyResetOtpDto } from './dto/verify-reset-otp.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ResetTokenDto } from './dto/reset-token.dto';
 
 const REFRESH_COOKIE = 'nexa_rt';
 
@@ -73,6 +77,39 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResponseDto> {
     const result = await this.auth.login(dto.identifier, dto.password);
+    this.setRefreshCookie(res, result);
+    return result.response as AuthResponseDto;
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request password reset: dispatch OTP to identifier' })
+  @ApiResponseDoc({ status: 200, schema: { example: { ok: true } } })
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.auth.forgotPassword(dto.identifier);
+  }
+
+  @Public()
+  @Post('verify-reset-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify OTP code and receive a short-lived resetToken' })
+  @ApiResponseDoc({ status: 200, type: ResetTokenDto })
+  @ApiResponseDoc({ status: 401, description: 'Invalid or expired OTP' })
+  verifyResetOtp(@Body() dto: VerifyResetOtpDto): Promise<ResetTokenDto> {
+    return this.auth.verifyResetOtp(dto.identifier, dto.code);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Set new password using resetToken; returns access + refresh' })
+  @ApiResponseDoc({ status: 200, type: AuthResponseDto })
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponseDto> {
+    const result = await this.auth.resetPassword(dto.resetToken, dto.newPassword);
     this.setRefreshCookie(res, result);
     return result.response as AuthResponseDto;
   }

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -15,10 +16,15 @@ import { RefreshToken, User } from '../../database/entities';
 import { RolesService } from '../roles/roles.service';
 import { UsersService, normalizeEmail, normalizePhone } from '../users/users.service';
 import { OtpService } from './otp.service';
+import { MessageTemplateService } from '../notifications/message-template.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { AUTH_NOTIFICATION_TEMPLATES_KEY, DEFAULT_AUTH_TEMPLATES } from '../notifications/templates/auth.templates';
 
 const BCRYPT_ROUNDS = 12;
 const SETUP_TOKEN_TTL_SECONDS = 5 * 60;
 const SETUP_TOKEN_AUDIENCE = 'nexa:set-password';
+const RESET_TOKEN_TTL_SECONDS = 15 * 60;
+const RESET_TOKEN_AUDIENCE = 'nexa:reset-password';
 
 const SELF_SIGNUP_ROLES: ReadonlySet<string> = new Set([UserRole.CUSTOMER, UserRole.VENDOR]);
 
@@ -26,6 +32,12 @@ interface SetupTokenPayload {
   sub: string;
   type: 'setup';
   aud: typeof SETUP_TOKEN_AUDIENCE;
+}
+
+interface ResetTokenPayload {
+  sub: string;
+  type: 'reset';
+  aud: typeof RESET_TOKEN_AUDIENCE;
 }
 
 interface AccessTokenPayload {
@@ -53,12 +65,16 @@ export interface SignupArgs {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly users: UsersService,
     private readonly roles: RolesService,
     private readonly otp: OtpService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly notifications: NotificationsService,
+    private readonly templateService: MessageTemplateService,
     @InjectRepository(RefreshToken)
     private readonly refreshRepo: Repository<RefreshToken>,
   ) {}
@@ -96,7 +112,7 @@ export class AuthService {
       displayName,
     });
 
-    await this.otp.issue(otpTarget);
+    await this.otp.issue(otpTarget, displayName);
     return { ok: true };
   }
 
@@ -133,6 +149,53 @@ export class AuthService {
     const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     await this.users.setPasswordHash(payload.sub, hash);
     const refreshed = await this.users.findById(payload.sub);
+    await this.dispatchAuthEvent(refreshed, 'registration_welcome');
+    return this.issueAuthResult(refreshed);
+  }
+
+  async forgotPassword(identifier: string): Promise<{ ok: true }> {
+    const user = await this.users.findByIdentifier(identifier);
+    if (!user) {
+      // Don't leak whether user exists, just return ok
+      return { ok: true };
+    }
+    await this.otp.issue(identifier, user.displayName);
+    return { ok: true };
+  }
+
+  async verifyResetOtp(identifier: string, code: string): Promise<{ resetToken: string }> {
+    const user = await this.users.findByIdentifier(identifier);
+    if (!user) throw new UnauthorizedException('Unknown identifier');
+    await this.otp.verify(identifier, code);
+    
+    const payload: ResetTokenPayload = {
+      sub: user.userId,
+      type: 'reset',
+      aud: RESET_TOKEN_AUDIENCE,
+    };
+    const resetToken = await this.jwt.signAsync(payload, { expiresIn: RESET_TOKEN_TTL_SECONDS });
+    return { resetToken };
+  }
+
+  async resetPassword(resetToken: string, newPassword: string): Promise<AuthIssueResult> {
+    let payload: ResetTokenPayload;
+    try {
+      payload = await this.jwt.verifyAsync<ResetTokenPayload>(resetToken, {
+        audience: RESET_TOKEN_AUDIENCE,
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid or expired reset token');
+    }
+    if (payload.type !== 'reset') {
+      throw new UnauthorizedException('Invalid reset token');
+    }
+    
+    const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await this.users.setPasswordHash(payload.sub, hash);
+    
+    const refreshed = await this.users.findById(payload.sub);
+    await this.dispatchAuthEvent(refreshed, 'password_changed');
+    
     return this.issueAuthResult(refreshed);
   }
 
@@ -199,5 +262,27 @@ export class AuthService {
 
   private hashToken(raw: string): string {
     return createHash('sha256').update(raw).digest('hex');
+  }
+
+  private async dispatchAuthEvent(user: User, eventName: string, extras: Record<string, string> = {}): Promise<void> {
+    try {
+      const content = await this.templateService.process(
+        eventName,
+        DEFAULT_AUTH_TEMPLATES,
+        AUTH_NOTIFICATION_TEMPLATES_KEY,
+        { userName: user.displayName, ...extras },
+      );
+
+      const target = this.notifications.resolveChannel(user);
+      if (!target) return;
+
+      if (target.channel === 'email') {
+        await this.notifications.sendEmail(target.destination, content.subject, content.html);
+      } else {
+        await this.notifications.sendSms(target.destination, content.smsText);
+      }
+    } catch (err) {
+      this.logger.error(`Failed to dispatch auth event ${eventName}`, (err as Error).stack);
+    }
   }
 }
