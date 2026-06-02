@@ -5,6 +5,7 @@ import { EcrStack } from '../lib/ecr.stack';
 import { DatabaseStack } from '../lib/database.stack';
 import { StorageStack } from '../lib/storage.stack';
 import { SnsStack } from '../lib/sns.stack';
+import { SesStack } from '../lib/ses.stack';
 import { ApiServiceStack } from '../lib/api-service.stack';
 import { FrontendStack } from '../lib/frontend.stack';
 
@@ -45,6 +46,13 @@ const snsStack = new SnsStack(app, `NexaSnsStack-${config.envName}`, {
   env,
   config,
   description: 'SNS Notification Topics for Nexa',
+});
+
+// 5b. Define the SES Stack (SES Domain Identity and SMTP)
+const sesStack = new SesStack(app, `NexaSesStack-${config.envName}`, {
+  env,
+  config,
+  description: 'SES Configuration for Nexa Email Delivery',
 });
 
 // 6. Define the API Service Stack (ECS Fargate + ALB)
