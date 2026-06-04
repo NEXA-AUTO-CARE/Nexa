@@ -154,6 +154,18 @@ export class UsersService {
     });
   }
 
+  /**
+   * Returns all users whose role is 'customer'. Used by promotions
+   * broadcasting to target app users only (not admins/vendors).
+   */
+  async findAllCustomers(): Promise<User[]> {
+    return this.userRepo
+      .createQueryBuilder('user')
+      .innerJoinAndSelect('user.role', 'role')
+      .where('LOWER(role.name) = :roleName', { roleName: 'customer' })
+      .getMany();
+  }
+
   async adminUpdateUser(userId: string, dto: UpdateUserAdminDto): Promise<User> {
     const user = await this.userRepo.findOne({ where: { userId }, relations: ['role'] });
     if (!user) throw new NotFoundException('User not found');

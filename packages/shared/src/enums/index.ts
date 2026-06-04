@@ -5,3 +5,5 @@ export * from './booking-status.enum.js';
 export * from './payment-status.enum.js';
 export * from './photo-type.enum.js';
 export * from './permission.enum.js';
+export * from './promotion-status.enum.js';
+export * from './promotion-type.enum.js';

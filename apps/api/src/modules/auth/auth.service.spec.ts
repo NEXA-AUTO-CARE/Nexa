@@ -63,6 +63,24 @@ function makeRefreshRepo() {
   };
 }
 
+function makeNotifications() {
+  return {
+    sendEmail: jest.fn().mockResolvedValue(undefined),
+    sendSms: jest.fn().mockResolvedValue(undefined),
+    resolveChannel: jest.fn().mockReturnValue(null),
+  };
+}
+
+function makeTemplateService() {
+  return {
+    process: jest.fn().mockResolvedValue({
+      subject: 'Welcome',
+      html: '<p>Welcome</p>',
+      smsText: 'Welcome',
+    }),
+  };
+}
+
 function makeUser(overrides: Partial<User> = {}): User {
   return {
     userId: 'user-1',
@@ -87,6 +105,8 @@ describe('AuthService', () => {
   let jwt: ReturnType<typeof makeJwt>;
   let config: ReturnType<typeof makeConfig>;
   let refreshRepo: ReturnType<typeof makeRefreshRepo>;
+  let notifications: ReturnType<typeof makeNotifications>;
+  let templateService: ReturnType<typeof makeTemplateService>;
   let service: AuthService;
 
   beforeEach(() => {
@@ -96,6 +116,8 @@ describe('AuthService', () => {
     jwt = makeJwt();
     config = makeConfig();
     refreshRepo = makeRefreshRepo();
+    notifications = makeNotifications();
+    templateService = makeTemplateService();
     users.toPublic.mockReturnValue({
       userId: 'user-1',
       role: 'customer',
@@ -107,6 +129,8 @@ describe('AuthService', () => {
       otp as never,
       jwt as never,
       config as never,
+      notifications as never,
+      templateService as never,
       refreshRepo as never,
     );
   });
@@ -184,7 +208,7 @@ describe('AuthService', () => {
           displayName: 'Alice Smith',
         }),
       );
-      expect(otp.issue).toHaveBeenCalledWith('alice@example.com');
+      expect(otp.issue).toHaveBeenCalledWith('alice@example.com', 'Alice Smith');
     });
 
     it('uses the supplied displayName when provided', async () => {
@@ -205,7 +229,7 @@ describe('AuthService', () => {
         phoneNumber: '+447700900123',
         otpChannel: 'phone' as never,
       });
-      expect(otp.issue).toHaveBeenCalledWith('+447700900123');
+      expect(otp.issue).toHaveBeenCalledWith('+447700900123', expect.any(String));
     });
   });
 

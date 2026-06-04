@@ -3,18 +3,21 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BookingStatus, ServiceType } from '@nexa/shared';
-import { Booking, Vehicle, ServiceAddon } from '../../database/entities';
+import { Booking, Vehicle, ServiceAddon, Review } from '../../database/entities';
 import { BookingsService } from './bookings.service';
 import { BookingCancelledEvent, BookingCreatedEvent, BookingStatusChangedEvent } from './events/booking.events';
 import { SettingsService } from '../settings/settings.service';
+import { PromotionsService } from '../promotions/promotions.service';
 
 describe('BookingsService', () => {
   let service: BookingsService;
   let bookingRepo: any;
   let vehicleRepo: any;
   let addonRepo: any;
+  let reviewRepo: any;
   let events: any;
   let settingsService: any;
+  let promotionsService: any;
 
   beforeEach(async () => {
     bookingRepo = {
@@ -29,11 +32,19 @@ describe('BookingsService', () => {
     addonRepo = {
       find: jest.fn(),
     };
+    reviewRepo = {
+      findOne: jest.fn(),
+    };
     events = {
       emit: jest.fn(),
     };
     settingsService = {
       findOne: jest.fn().mockResolvedValue(null),
+    };
+    promotionsService = {
+      findBestActivePromotion: jest.fn().mockResolvedValue(null),
+      calculateDiscount: jest.fn().mockResolvedValue({ discount: 0, isFree: false }),
+      recordRedemption: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -42,8 +53,10 @@ describe('BookingsService', () => {
         { provide: getRepositoryToken(Booking), useValue: bookingRepo },
         { provide: getRepositoryToken(Vehicle), useValue: vehicleRepo },
         { provide: getRepositoryToken(ServiceAddon), useValue: addonRepo },
+        { provide: getRepositoryToken(Review), useValue: reviewRepo },
         { provide: EventEmitter2, useValue: events },
         { provide: SettingsService, useValue: settingsService },
+        { provide: PromotionsService, useValue: promotionsService },
       ],
     }).compile();
 

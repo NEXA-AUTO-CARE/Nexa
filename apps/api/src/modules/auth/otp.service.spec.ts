@@ -15,16 +15,37 @@ function makeConfig(otpDevLog = true) {
   return { get: jest.fn().mockReturnValue(otpDevLog) };
 }
 
+function makeNotifications() {
+  return {
+    sendEmail: jest.fn().mockResolvedValue(undefined),
+    sendSms: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
+function makeTemplateService() {
+  return {
+    process: jest.fn().mockResolvedValue({
+      subject: 'Your OTP Code',
+      html: '<p>123456</p>',
+      smsText: 'Your code is 123456',
+    }),
+  };
+}
+
 describe('OtpService', () => {
   let repo: ReturnType<typeof makeRepo>;
   let config: ReturnType<typeof makeConfig>;
+  let notifications: ReturnType<typeof makeNotifications>;
+  let templateService: ReturnType<typeof makeTemplateService>;
   let service: OtpService;
   let logSpy: jest.SpyInstance;
 
   beforeEach(() => {
     repo = makeRepo();
     config = makeConfig();
-    service = new OtpService(repo as never, config as never);
+    notifications = makeNotifications();
+    templateService = makeTemplateService();
+    service = new OtpService(repo as never, config as never, notifications as never, templateService as never);
     logSpy = jest.spyOn((service as any).logger, 'log').mockImplementation(() => {});
   });
 
@@ -61,6 +82,8 @@ describe('OtpService', () => {
 
     it('does NOT log when OTP_DEV_LOG flag is off', async () => {
       config.get.mockReturnValue(false);
+      service = new OtpService(repo as never, config as never, notifications as never, templateService as never);
+      logSpy = jest.spyOn((service as any).logger, 'log').mockImplementation(() => {});
       repo.save.mockImplementation(async (entity) => entity);
       await service.issue('carol@example.com');
       expect(logSpy).not.toHaveBeenCalled();

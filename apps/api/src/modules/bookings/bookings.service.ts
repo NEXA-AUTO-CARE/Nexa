@@ -14,6 +14,7 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { BookingCancelledEvent, BookingCreatedEvent, BookingStatusChangedEvent } from './events/booking.events';
 import { SettingsService } from '../settings/settings.service';
+import { PromotionsService } from '../promotions/promotions.service';
 
 /** Valid status transitions */
 const TRANSITIONS: Record<string, string[]> = {
@@ -37,6 +38,7 @@ export class BookingsService {
     private readonly reviewRepo: Repository<Review>,
     private readonly events: EventEmitter2,
     private readonly settingsService: SettingsService,
+    private readonly promotionsService: PromotionsService,
   ) { }
 
   async getBasePriceForCategory(vehicleType: string): Promise<number> {
@@ -102,6 +104,20 @@ export class BookingsService {
     const dynamicFee = await this.getBookingFee();
     basePrice += dynamicFee;
 
+    // --- Promotion discount logic ---
+    const promo = await this.promotionsService.findBestActivePromotion();
+    let discountAmount = 0;
+    let isFreeBooking = false;
+    const originalPrice = basePrice;
+
+    if (promo) {
+      const result = await this.promotionsService.calculateDiscount(promo, userId, basePrice);
+      discountAmount = result.discount;
+      isFreeBooking = result.isFree;
+    }
+
+    const finalPrice = Math.max(0, basePrice - discountAmount);
+
     const booking = this.bookingRepo.create({
       userId,
       vehicleId: dto.vehicleId,
@@ -110,14 +126,28 @@ export class BookingsService {
       serviceAddress: dto.serviceAddress.trim(),
       latitude: dto.latitude?.toString() ?? null,
       longitude: dto.longitude?.toString() ?? null,
-      price: basePrice.toFixed(2),
+      price: finalPrice.toFixed(2),
       addons: addonsSnapshot,
       agreedSafeSpace: dto.agreedSafeSpace,
       agreedDetailsCorrect: dto.agreedDetailsCorrect,
       status: BookingStatus.BOOKED,
+      promotionId: promo?.promotionId ?? null,
+      originalPrice: promo ? originalPrice.toFixed(2) : null,
+      discountAmount: promo ? discountAmount.toFixed(2) : null,
     });
 
     const saved = await this.bookingRepo.save(booking);
+
+    // Record promotion redemption (for bonanza counting and audit)
+    if (promo) {
+      await this.promotionsService.recordRedemption(
+        promo.promotionId,
+        userId,
+        saved.bookingId,
+        discountAmount,
+        isFreeBooking,
+      );
+    }
 
     // Load relations for the event
     const full = await this.findByIdWithRelations(saved.bookingId);
@@ -231,6 +261,20 @@ export class BookingsService {
     const dynamicFee = await this.getBookingFee();
     basePrice += dynamicFee;
 
+    // --- Promotion discount logic ---
+    const promo = await this.promotionsService.findBestActivePromotion();
+    let discountAmount = 0;
+    let isFreeBooking = false;
+    const originalPrice = basePrice;
+
+    if (promo) {
+      const result = await this.promotionsService.calculateDiscount(promo, userId, basePrice);
+      discountAmount = result.discount;
+      isFreeBooking = result.isFree;
+    }
+
+    const finalPrice = Math.max(0, basePrice - discountAmount);
+
     const booking = this.bookingRepo.create({
       userId,
       vehicleId: previous.vehicleId,
@@ -239,14 +283,29 @@ export class BookingsService {
       serviceAddress: previous.serviceAddress,
       latitude: previous.latitude,
       longitude: previous.longitude,
-      price: basePrice.toFixed(2),
+      price: finalPrice.toFixed(2),
       addons: previous.addons ?? [],
       agreedSafeSpace: previous.agreedSafeSpace,
       agreedDetailsCorrect: previous.agreedDetailsCorrect,
       status: BookingStatus.BOOKED,
+      promotionId: promo?.promotionId ?? null,
+      originalPrice: promo ? originalPrice.toFixed(2) : null,
+      discountAmount: promo ? discountAmount.toFixed(2) : null,
     });
 
     const saved = await this.bookingRepo.save(booking);
+
+    // Record promotion redemption
+    if (promo) {
+      await this.promotionsService.recordRedemption(
+        promo.promotionId,
+        userId,
+        saved.bookingId,
+        discountAmount,
+        isFreeBooking,
+      );
+    }
+
     const full = await this.findByIdWithRelations(saved.bookingId);
     this.events.emit(BookingCreatedEvent.EVENT_NAME, new BookingCreatedEvent(full));
     return full;
@@ -297,6 +356,9 @@ export class BookingsService {
       status: booking.status,
       createdAt: booking.createdOn.toISOString(),
       addons: booking.addons || [],
+      originalPrice: booking.originalPrice ?? undefined,
+      discountAmount: booking.discountAmount ?? undefined,
+      promotionTitle: booking.promotion?.title ?? undefined,
     };
   }
 
