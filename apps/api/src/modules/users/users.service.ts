@@ -39,7 +39,7 @@ export function normalizePhone(phone: string): string {
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectRepository(User) private readonly userRepo: Repository<User>) {}
+  constructor(@InjectRepository(User) private readonly userRepo: Repository<User>) { }
 
   async findById(userId: string): Promise<User> {
     const user = await this.userRepo.findOne({ where: { userId } });
@@ -83,18 +83,15 @@ export class UsersService {
 
     const existing = await this.findByContact(email, phoneNumber);
     if (existing) {
-      if (existing.passwordHash) {
+      if (existing.passwordHash || existing.otpVerified) {
         throw new ConflictException('Account already exists; please log in instead');
       }
-      const sameRole = existing.roleId === args.role.roleId;
-      const sameFirst = (existing.firstName ?? '') === args.firstName;
-      const sameLast = (existing.lastName ?? '') === args.lastName;
-      if (!sameRole || !sameFirst || !sameLast) {
-        throw new ConflictException(
-          'An unfinished signup exists for this contact with different details',
-        );
-      }
-      return existing;
+      // Update mutable profile fields on the pending row; email & phone stay as-is.
+      existing.firstName = args.firstName;
+      existing.lastName = args.lastName;
+      existing.roleId = args.role.roleId;
+      existing.displayName = args.displayName;
+      return this.userRepo.save(existing);
     }
 
     const user = this.userRepo.create({

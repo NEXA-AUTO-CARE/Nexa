@@ -131,20 +131,81 @@ export class MessageTemplateService {
     const message = this.interpolate(tpl.emailBody, ctx);
 
     const greeting = ctx['customerName']
-      ? `<p style="color: #94A3B8; margin: 0 0 20px;">Hi ${ctx['customerName']},</p>`
+      ? `<p style="color: #94A3B8; margin: 0 0 20px; font-size: 16px;">Hi ${ctx['customerName']},</p>`
       : '';
 
     return {
       subject: `NEXA — ${title}`,
-      html: `
-      <div style="font-family: 'Inter', Arial, sans-serif; max-width: 500px; margin: 0 auto; background: #0f1923; color: #e2e8f0; padding: 32px; border-radius: 12px;">
-        <h1 style="color: #5BE9B0; font-size: 24px; margin: 0 0 8px;">${title}</h1>
-        ${greeting}
-        <p style="line-height: 1.6;">${message}</p>
-        ${extraHtml ?? ''}
-        <p style="margin-top: 24px; font-size: 12px; color: #64748B;">© ${new Date().getFullYear()} NEXA. Aberdeen, Scotland.</p>
-      </div>
-      `,
+      html: `<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="x-apple-disable-message-reformatting"/>
+  <meta name="color-scheme" content="dark"/>
+  <meta name="supported-color-schemes" content="dark"/>
+  <title>${title}</title>
+  <!--[if mso]>
+  <noscript><xml>
+    <o:OfficeDocumentSettings>
+      <o:AllowPNG/>
+      <o:PixelsPerInch>96</o:PixelsPerInch>
+    </o:OfficeDocumentSettings>
+  </xml></noscript>
+  <![endif]-->
+  <style>
+    /* Reset */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
+    /* Dark mode */
+    :root { color-scheme: dark; supported-color-schemes: dark; }
+    @media (prefers-color-scheme: dark) {
+      body, .email-body { background-color: #0a0f14 !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: #0a0f14; -webkit-font-smoothing: antialiased;">
+  <!-- Full-width wrapper table -->
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #0a0f14;">
+    <tr>
+      <td align="center" style="padding: 24px 16px;">
+        <!-- Constrained content table (600px industry standard) -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; background-color: #0f1923; border-radius: 12px; overflow: hidden;">
+          <!-- Header accent bar -->
+          <tr>
+            <td style="height: 4px; background: linear-gradient(90deg, #5BE9B0, #3BC4F2); font-size: 0; line-height: 0;">&nbsp;</td>
+          </tr>
+          <!-- Logo / Brand -->
+          <tr>
+            <td style="padding: 32px 32px 0 32px;">
+              <p style="margin: 0; font-family: 'Inter', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 2px; color: #5BE9B0;">NEXA</p>
+            </td>
+          </tr>
+          <!-- Main content -->
+          <tr>
+            <td style="padding: 24px 32px 32px 32px; font-family: 'Inter', Arial, Helvetica, sans-serif; color: #e2e8f0;">
+              <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; line-height: 1.3; color: #ffffff;">${title}</h1>
+              ${greeting}
+              <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.7; color: #cbd5e1;">${message}</p>
+              ${extraHtml ?? ''}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 32px; border-top: 1px solid rgba(255,255,255,0.06);">
+              <p style="margin: 0; font-family: 'Inter', Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.5; color: #64748B;">© ${new Date().getFullYear()} NEXA Auto Care Ltd. Aberdeen, Scotland.</p>
+              <p style="margin: 8px 0 0 0; font-family: 'Inter', Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.5; color: #475569;">This is an automated message. Please do not reply directly to this email.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
     };
   }
 
