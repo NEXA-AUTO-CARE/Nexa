@@ -23,10 +23,6 @@ export class BookingsListener {
   constructor(
     private readonly notifications: NotificationsService,
     private readonly templateService: MessageTemplateService,
-<<<<<<< HEAD
-    private readonly settingsService: SettingsService,
-=======
->>>>>>> origin/dev
   ) {}
 
   @OnEvent(BookingCreatedEvent.EVENT_NAME)
@@ -38,12 +34,7 @@ export class BookingsListener {
       return;
     }
 
-<<<<<<< HEAD
     const content = await this.processBookingTemplate(this.buildContext(booking));
-=======
-    const ctx = this.buildContext(booking);
-    const content = await this.processBookingTemplate(ctx);
->>>>>>> origin/dev
 
     this.logger.log(`[EVENT] booking.created → notifying ${customer.displayName}`);
     await this.notifications.notify(customer, content);
@@ -58,18 +49,12 @@ export class BookingsListener {
       return;
     }
 
-<<<<<<< HEAD
     const content = await this.processBookingTemplate(this.buildContext(booking));
-=======
-    const ctx = this.buildContext(booking);
-    const content = await this.processBookingTemplate(ctx);
->>>>>>> origin/dev
 
     this.logger.log(
       `[EVENT] booking.status_changed (${previousStatus} → ${booking.status}) → notifying ${customer.displayName}`,
     );
     await this.notifications.notify(customer, content);
-<<<<<<< HEAD
   }
 
   /**
@@ -106,45 +91,6 @@ export class BookingsListener {
           </td>
         </tr>
       </table>
-    `;
-
-    const { subject, html } = this.templateService.buildEmail(tpl, flatCtx, detailCard);
-    const smsText = this.templateService.buildSms(tpl, flatCtx);
-    return { subject, html, smsText };
-=======
->>>>>>> origin/dev
-  }
-
-  /**
-   * Use MessageTemplateService to load overrides, resolve the template,
-   * and build the email + SMS content — with an extra detail card for bookings.
-   */
-  private async processBookingTemplate(
-    ctx: BookingNotificationContext,
-  ): Promise<{ subject: string; html: string; smsText: string }> {
-    const overrides = await this.templateService.loadOverrides(NOTIFICATION_TEMPLATES_KEY);
-    const tpl = this.templateService.resolveTemplate(
-      ctx.status,
-      DEFAULT_BOOKING_TEMPLATES,
-      overrides,
-      BOOKING_GENERIC_FALLBACK,
-    );
-
-    const flatCtx: Record<string, string> = {
-      customerName: ctx.customerName,
-      bookingId: ctx.bookingId,
-      vehicleSummary: ctx.vehicleSummary,
-      serviceType: ctx.serviceType,
-      bookingTime: ctx.bookingTime,
-      status: ctx.status,
-    };
-
-    const detailCard = `
-      <div style="margin-top: 24px; padding: 16px; background: #1a2332; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
-        <p style="margin: 4px 0; color: #94A3B8;"><strong style="color: #fff;">Vehicle:</strong> ${ctx.vehicleSummary}</p>
-        <p style="margin: 4px 0; color: #94A3B8;"><strong style="color: #fff;">Service:</strong> ${ctx.serviceType}</p>
-        <p style="margin: 4px 0; color: #94A3B8;"><strong style="color: #fff;">Date:</strong> ${ctx.bookingTime}</p>
-      </div>
     `;
 
     const { subject, html } = this.templateService.buildEmail(tpl, flatCtx, detailCard);

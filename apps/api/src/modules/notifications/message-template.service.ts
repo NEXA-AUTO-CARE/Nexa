@@ -131,16 +131,11 @@ export class MessageTemplateService {
     const message = this.interpolate(tpl.emailBody, ctx);
 
     const greeting = ctx['customerName']
-<<<<<<< HEAD
       ? `<p style="color: #94A3B8; margin: 0 0 20px; font-size: 16px;">Hi ${ctx['customerName']},</p>`
-=======
-      ? `<p style="color: #94A3B8; margin: 0 0 20px;">Hi ${ctx['customerName']},</p>`
->>>>>>> origin/dev
       : '';
 
     return {
       subject: `NEXA — ${title}`,
-<<<<<<< HEAD
       html: `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
@@ -211,17 +206,6 @@ export class MessageTemplateService {
   </table>
 </body>
 </html>`,
-=======
-      html: `
-      <div style="font-family: 'Inter', Arial, sans-serif; max-width: 500px; margin: 0 auto; background: #0f1923; color: #e2e8f0; padding: 32px; border-radius: 12px;">
-        <h1 style="color: #5BE9B0; font-size: 24px; margin: 0 0 8px;">${title}</h1>
-        ${greeting}
-        <p style="line-height: 1.6;">${message}</p>
-        ${extraHtml ?? ''}
-        <p style="margin-top: 24px; font-size: 12px; color: #64748B;">© ${new Date().getFullYear()} NEXA. Aberdeen, Scotland.</p>
-      </div>
-      `,
->>>>>>> origin/dev
     };
   }
 
