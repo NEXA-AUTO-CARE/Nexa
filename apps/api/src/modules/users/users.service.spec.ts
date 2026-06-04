@@ -84,7 +84,7 @@ describe('UsersService', () => {
   });
 
   describe('createOtpPending', () => {
-    it('returns the existing pending user when details match', async () => {
+    it('updates and saves the existing pending user when details match', async () => {
       const existing = makeUser({
         otpVerified: false,
         firstName: 'Alice',
@@ -93,6 +93,7 @@ describe('UsersService', () => {
         passwordHash: null,
       });
       repo.findOne.mockResolvedValue(existing);
+      repo.save.mockImplementation(async (e) => e);
       const result = await service.createOtpPending({
         firstName: 'Alice',
         lastName: 'Smith',
@@ -102,8 +103,8 @@ describe('UsersService', () => {
         displayName: 'Alice',
       });
       expect(result).toBe(existing);
+      expect(repo.save).toHaveBeenCalledWith(existing);
       expect(repo.create).not.toHaveBeenCalled();
-      expect(repo.save).not.toHaveBeenCalled();
     });
 
     it('throws Conflict when an existing user already has a password', async () => {
@@ -122,46 +123,51 @@ describe('UsersService', () => {
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
-    it('throws Conflict when the existing pending user has a different role', async () => {
-      const { ConflictException } = require('@nestjs/common');
+    it('overwrites profile fields when the existing pending user has a different role', async () => {
       const existing = makeUser({
         firstName: 'Alice',
         lastName: 'Smith',
         roleId: 'role-other',
         passwordHash: null,
+        displayName: 'Old Name',
       });
       repo.findOne.mockResolvedValue(existing);
-      await expect(
-        service.createOtpPending({
-          firstName: 'Alice',
-          lastName: 'Smith',
-          email: 'alice@example.com',
-          phoneNumber: null,
-          role: { roleId: 'role-1' } as Role,
-          displayName: 'Alice',
-        }),
-      ).rejects.toBeInstanceOf(ConflictException);
+      repo.save.mockImplementation(async (e) => e);
+      const result = await service.createOtpPending({
+        firstName: 'Alice',
+        lastName: 'Smith',
+        email: 'alice@example.com',
+        phoneNumber: null,
+        role: { roleId: 'role-1' } as Role,
+        displayName: 'Alice Smith',
+      });
+      expect(result.roleId).toBe('role-1');
+      expect(result.displayName).toBe('Alice Smith');
+      expect(repo.save).toHaveBeenCalledWith(existing);
     });
 
-    it('throws Conflict when the existing pending user has different names', async () => {
-      const { ConflictException } = require('@nestjs/common');
+    it('overwrites profile fields when the existing pending user has different names', async () => {
       const existing = makeUser({
         firstName: 'Bob',
         lastName: 'Jones',
         roleId: 'role-1',
         passwordHash: null,
+        displayName: 'Bob Jones',
       });
       repo.findOne.mockResolvedValue(existing);
-      await expect(
-        service.createOtpPending({
-          firstName: 'Alice',
-          lastName: 'Smith',
-          email: 'alice@example.com',
-          phoneNumber: null,
-          role: { roleId: 'role-1' } as Role,
-          displayName: 'Alice',
-        }),
-      ).rejects.toBeInstanceOf(ConflictException);
+      repo.save.mockImplementation(async (e) => e);
+      const result = await service.createOtpPending({
+        firstName: 'Alice',
+        lastName: 'Smith',
+        email: 'alice@example.com',
+        phoneNumber: null,
+        role: { roleId: 'role-1' } as Role,
+        displayName: 'Alice Smith',
+      });
+      expect(result.firstName).toBe('Alice');
+      expect(result.lastName).toBe('Smith');
+      expect(result.displayName).toBe('Alice Smith');
+      expect(repo.save).toHaveBeenCalledWith(existing);
     });
 
     it('creates a new pending user with the role-id derived from the role argument', async () => {

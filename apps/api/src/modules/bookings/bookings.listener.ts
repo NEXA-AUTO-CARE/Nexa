@@ -34,8 +34,7 @@ export class BookingsListener {
       return;
     }
 
-    const ctx = this.buildContext(booking);
-    const content = await this.processBookingTemplate(ctx);
+    const content = await this.processBookingTemplate(this.buildContext(booking));
 
     this.logger.log(`[EVENT] booking.created → notifying ${customer.displayName}`);
     await this.notifications.notify(customer, content);
@@ -50,8 +49,7 @@ export class BookingsListener {
       return;
     }
 
-    const ctx = this.buildContext(booking);
-    const content = await this.processBookingTemplate(ctx);
+    const content = await this.processBookingTemplate(this.buildContext(booking));
 
     this.logger.log(
       `[EVENT] booking.status_changed (${previousStatus} → ${booking.status}) → notifying ${customer.displayName}`,
@@ -84,11 +82,15 @@ export class BookingsListener {
     };
 
     const detailCard = `
-      <div style="margin-top: 24px; padding: 16px; background: #1a2332; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
-        <p style="margin: 4px 0; color: #94A3B8;"><strong style="color: #fff;">Vehicle:</strong> ${ctx.vehicleSummary}</p>
-        <p style="margin: 4px 0; color: #94A3B8;"><strong style="color: #fff;">Service:</strong> ${ctx.serviceType}</p>
-        <p style="margin: 4px 0; color: #94A3B8;"><strong style="color: #fff;">Date:</strong> ${ctx.bookingTime}</p>
-      </div>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 24px; background-color: #1a2332; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+        <tr>
+          <td style="padding: 16px; font-family: 'Inter', Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.8; color: #94A3B8;">
+            <strong style="color: #ffffff;">Vehicle:</strong> ${ctx.vehicleSummary}<br/>
+            <strong style="color: #ffffff;">Service:</strong> ${ctx.serviceType}<br/>
+            <strong style="color: #ffffff;">Date:</strong> ${ctx.bookingTime}
+          </td>
+        </tr>
+      </table>
     `;
 
     const { subject, html } = this.templateService.buildEmail(tpl, flatCtx, detailCard);
