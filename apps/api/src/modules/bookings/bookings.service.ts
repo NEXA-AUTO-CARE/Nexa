@@ -176,7 +176,7 @@ export class BookingsService {
   async findByIdWithRelations(bookingId: string): Promise<Booking> {
     const booking = await this.bookingRepo.findOne({
       where: { bookingId },
-      relations: ['vehicle', 'customer'],
+      relations: ['vehicle', 'customer', 'promotion'],
     });
     if (!booking) throw new NotFoundException('Booking not found');
     return booking;
