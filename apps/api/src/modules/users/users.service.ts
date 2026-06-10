@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Permission, PublicUser, UpdateUserAdminDto } from '@nexa/shared';
+import { Permission, UpdateUserAdminDto } from '@nexa/shared';
 import { Repository } from 'typeorm';
 import { Role, User } from '../../database/entities';
 import { PublicUserDto } from './dto/public-user.dto';

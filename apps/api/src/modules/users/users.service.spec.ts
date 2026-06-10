@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Role, User } from '../../database/entities';
 import { UsersService } from './users.service';
 
@@ -118,7 +118,6 @@ describe('UsersService', () => {
     });
 
     it('throws Conflict when an existing user already has a password', async () => {
-      const { ConflictException } = require('@nestjs/common');
       const existing = makeUser({ passwordHash: 'pre-existing' });
       repo.findOne.mockResolvedValue(existing);
       await expect(
