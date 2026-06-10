@@ -137,6 +137,7 @@ export class AuthService {
     });
 
     await this.otp.issue(otpTarget, displayName);
+    this.logger.log(`Signup initiated for user role ${args.role} (OTP sent)`);
     return { ok: true };
   }
 
@@ -184,6 +185,7 @@ export class AuthService {
     await this.users.setPasswordHash(payload.sub, hash);
     const refreshed = await this.users.findById(payload.sub);
     await this.dispatchAuthEvent(refreshed, 'registration_welcome');
+    this.logger.log(`Password set and user ${payload.sub} registered successfully`);
     return this.issueAuthResult(refreshed);
   }
 
@@ -238,6 +240,7 @@ export class AuthService {
     const refreshed = await this.users.findById(payload.sub);
     await this.dispatchAuthEvent(refreshed, 'password_changed');
 
+    this.logger.log(`Password reset for user ${payload.sub}`);
     return this.issueAuthResult(refreshed);
   }
 
@@ -250,7 +253,12 @@ export class AuthService {
       throw new UnauthorizedException('OTP not verified');
     }
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) throw new UnauthorizedException('Invalid credentials');
+    if (!ok) {
+      this.logger.warn(`Failed login attempt for user ${user.userId}`);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    
+    this.logger.log(`User ${user.userId} logged in successfully`);
     return this.issueAuthResult(user);
   }
 

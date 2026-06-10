@@ -22,6 +22,10 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
+import { OtelLogger } from './common/logger/otel.logger';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -64,6 +68,9 @@ import { PromotionsModule } from './modules/promotions/promotions.module';
     },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    OtelLogger,
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
   ],
 })
 export class AppModule {}

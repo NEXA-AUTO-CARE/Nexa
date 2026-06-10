@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -44,6 +45,8 @@ const TRANSITIONS: Record<string, string[]> = {
 
 @Injectable()
 export class BookingsService {
+  private readonly logger = new Logger(BookingsService.name);
+
   constructor(
     @InjectRepository(Booking)
     private readonly bookingRepo: Repository<Booking>,
@@ -183,6 +186,9 @@ export class BookingsService {
 
     // Load relations for the event
     const full = await this.findByIdWithRelations(saved.bookingId);
+    
+    this.logger.log(`Booking created: ${saved.bookingId} for user ${userId} with price ${finalPrice}`);
+    
     this.events.emit(
       BookingCreatedEvent.EVENT_NAME,
       new BookingCreatedEvent(full),
@@ -234,6 +240,8 @@ export class BookingsService {
     const previousStatus = booking.status;
     booking.status = newStatus;
     await this.bookingRepo.save(booking);
+    
+    this.logger.log(`Booking ${bookingId} status changed from ${previousStatus} to ${newStatus} by user ${userId}`);
 
     const full = await this.findByIdWithRelations(bookingId);
     this.events.emit(
@@ -255,6 +263,8 @@ export class BookingsService {
 
     // TODO: Implement cancellation logic - potentially with a refund system if the booking was paid for
     await this.updateStatus(bookingId, userId, BookingStatus.CANCELLED);
+    
+    this.logger.log(`Booking ${bookingId} cancelled by user ${userId}`);
 
     // TODO: Emit event for cancellation - potentially with a refund (Admin approval needed) system if the booking was paid for.
     this.events.emit(

@@ -4,8 +4,14 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
+import { startTracing } from './tracing';
+
+import { OtelLogger } from './common/logger/otel.logger';
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  await startTracing();
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(OtelLogger));
   const config = app.get(ConfigService);
 
   app.use(cookieParser());
