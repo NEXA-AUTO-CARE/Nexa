@@ -43,7 +43,7 @@ export class AddonsService {
     const addon = await this.addonRepo.findOne({ where: { addonId: id } });
     if (!addon) throw new NotFoundException('Addon not found');
 
-    // We might want to soft delete instead of hard delete, 
+    // We might want to soft delete instead of hard delete,
     // but setting isActive to false is our "soft delete" equivalent here if we want to keep it.
     await this.addonRepo.remove(addon);
   }

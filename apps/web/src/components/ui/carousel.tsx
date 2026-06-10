@@ -93,9 +93,11 @@ const Carousel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
         return;
       }
 
-      onSelect(api);
       api.on("reInit", onSelect);
       api.on("select", onSelect);
+
+      // Initial read — defer to a microtask to avoid synchronous setState in effect body.
+      Promise.resolve().then(() => onSelect(api));
 
       return () => {
         api?.off("select", onSelect);

@@ -21,6 +21,7 @@ import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { PromotionsModule } from './modules/promotions/promotions.module';
 
 @Module({
   imports: [
@@ -45,8 +46,8 @@ import { AdminModule } from './modules/admin/admin.module';
     CorporateModule,
     SettingsModule,
     AdminModule,
+    PromotionsModule,
   ],
-
 
   controllers: [AppController],
   providers: [

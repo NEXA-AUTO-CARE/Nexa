@@ -50,19 +50,37 @@ export class UseUuidV71700000000400 implements MigrationInterface {
     `);
 
     // Swap every PK default from gen_random_uuid() → uuidv7()
-    await queryRunner.query(`ALTER TABLE "users"            ALTER COLUMN "user_id"            SET DEFAULT uuidv7()`);
-    await queryRunner.query(`ALTER TABLE "vehicles"         ALTER COLUMN "vehicle_id"         SET DEFAULT uuidv7()`);
-    await queryRunner.query(`ALTER TABLE "bookings"         ALTER COLUMN "booking_id"         SET DEFAULT uuidv7()`);
-    await queryRunner.query(`ALTER TABLE "payments"         ALTER COLUMN "payment_id"         SET DEFAULT uuidv7()`);
-    await queryRunner.query(`ALTER TABLE "job_photos"       ALTER COLUMN "photo_id"           SET DEFAULT uuidv7()`);
-    await queryRunner.query(`ALTER TABLE "reviews"          ALTER COLUMN "review_id"          SET DEFAULT uuidv7()`);
-    await queryRunner.query(`ALTER TABLE "roles"            ALTER COLUMN "role_id"            SET DEFAULT uuidv7()`);
-    await queryRunner.query(`ALTER TABLE "role_permissions" ALTER COLUMN "role_permission_id" SET DEFAULT uuidv7()`);
-    await queryRunner.query(`ALTER TABLE "otp_codes"        ALTER COLUMN "id"                 SET DEFAULT uuidv7()`);
-    await queryRunner.query(`ALTER TABLE "refresh_tokens"   ALTER COLUMN "id"                 SET DEFAULT uuidv7()`);
+    await queryRunner.query(
+      `ALTER TABLE "users"            ALTER COLUMN "user_id"            SET DEFAULT uuidv7()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "vehicles"         ALTER COLUMN "vehicle_id"         SET DEFAULT uuidv7()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "bookings"         ALTER COLUMN "booking_id"         SET DEFAULT uuidv7()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "payments"         ALTER COLUMN "payment_id"         SET DEFAULT uuidv7()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "job_photos"       ALTER COLUMN "photo_id"           SET DEFAULT uuidv7()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "reviews"          ALTER COLUMN "review_id"          SET DEFAULT uuidv7()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "roles"            ALTER COLUMN "role_id"            SET DEFAULT uuidv7()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "role_permissions" ALTER COLUMN "role_permission_id" SET DEFAULT uuidv7()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "otp_codes"        ALTER COLUMN "id"                 SET DEFAULT uuidv7()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "refresh_tokens"   ALTER COLUMN "id"                 SET DEFAULT uuidv7()`,
+    );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    
-  }
+  public async down(queryRunner: QueryRunner): Promise<void> {}
 }

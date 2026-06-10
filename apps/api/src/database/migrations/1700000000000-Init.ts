@@ -6,12 +6,24 @@ export class Init1700000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
 
-    await queryRunner.query(`CREATE TYPE "users_role_enum" AS ENUM ('customer', 'vendor', 'admin')`);
-    await queryRunner.query(`CREATE TYPE "vehicles_vehicle_type_enum" AS ENUM ('car', 'van', 'suv', 'other')`);
-    await queryRunner.query(`CREATE TYPE "bookings_service_type_enum" AS ENUM ('basic', 'full', 'premium')`);
-    await queryRunner.query(`CREATE TYPE "bookings_status_enum" AS ENUM ('booked', 'accepted', 'in_progress', 'completed', 'cancelled')`);
-    await queryRunner.query(`CREATE TYPE "payments_status_enum" AS ENUM ('pending', 'captured', 'refunded')`);
-    await queryRunner.query(`CREATE TYPE "job_photos_photo_type_enum" AS ENUM ('before', 'after')`);
+    await queryRunner.query(
+      `CREATE TYPE "users_role_enum" AS ENUM ('customer', 'vendor', 'admin')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "vehicles_vehicle_type_enum" AS ENUM ('car', 'van', 'suv', 'other')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "bookings_service_type_enum" AS ENUM ('basic', 'full', 'premium')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "bookings_status_enum" AS ENUM ('booked', 'accepted', 'in_progress', 'completed', 'cancelled')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "payments_status_enum" AS ENUM ('pending', 'captured', 'refunded')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "job_photos_photo_type_enum" AS ENUM ('before', 'after')`,
+    );
 
     await queryRunner.query(`
       CREATE TABLE "users" (
@@ -26,8 +38,12 @@ export class Init1700000000000 implements MigrationInterface {
         "updated_at" timestamptz NOT NULL DEFAULT now()
       )
     `);
-    await queryRunner.query(`CREATE UNIQUE INDEX "uq_users_email" ON "users" ("email") WHERE "email" IS NOT NULL`);
-    await queryRunner.query(`CREATE UNIQUE INDEX "uq_users_phone_number" ON "users" ("phone_number") WHERE "phone_number" IS NOT NULL`);
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "uq_users_email" ON "users" ("email") WHERE "email" IS NOT NULL`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "uq_users_phone_number" ON "users" ("phone_number") WHERE "phone_number" IS NOT NULL`,
+    );
 
     await queryRunner.query(`
       CREATE TABLE "vehicles" (
@@ -42,7 +58,9 @@ export class Init1700000000000 implements MigrationInterface {
         CONSTRAINT "fk_vehicles_owner" FOREIGN KEY ("owner_id") REFERENCES "users"("user_id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_vehicles_owner" ON "vehicles" ("owner_id")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_vehicles_owner" ON "vehicles" ("owner_id")`,
+    );
 
     await queryRunner.query(`
       CREATE TABLE "bookings" (
@@ -64,10 +82,18 @@ export class Init1700000000000 implements MigrationInterface {
         CONSTRAINT "fk_bookings_vendor" FOREIGN KEY ("vendor_id") REFERENCES "users"("user_id") ON DELETE SET NULL
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_bookings_user" ON "bookings" ("user_id")`);
-    await queryRunner.query(`CREATE INDEX "idx_bookings_vendor" ON "bookings" ("vendor_id")`);
-    await queryRunner.query(`CREATE INDEX "idx_bookings_status" ON "bookings" ("status")`);
-    await queryRunner.query(`CREATE INDEX "idx_bookings_booking_time" ON "bookings" ("booking_time")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_bookings_user" ON "bookings" ("user_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_bookings_vendor" ON "bookings" ("vendor_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_bookings_status" ON "bookings" ("status")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_bookings_booking_time" ON "bookings" ("booking_time")`,
+    );
 
     await queryRunner.query(`
       CREATE TABLE "payments" (
@@ -83,7 +109,9 @@ export class Init1700000000000 implements MigrationInterface {
         CONSTRAINT "fk_payments_booking" FOREIGN KEY ("booking_id") REFERENCES "bookings"("booking_id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`CREATE UNIQUE INDEX "uq_payments_booking" ON "payments" ("booking_id")`);
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "uq_payments_booking" ON "payments" ("booking_id")`,
+    );
 
     await queryRunner.query(`
       CREATE TABLE "job_photos" (
@@ -97,7 +125,9 @@ export class Init1700000000000 implements MigrationInterface {
         CONSTRAINT "fk_job_photos_vendor" FOREIGN KEY ("vendor_id") REFERENCES "users"("user_id") ON DELETE RESTRICT
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_job_photos_booking" ON "job_photos" ("booking_id")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_job_photos_booking" ON "job_photos" ("booking_id")`,
+    );
 
     await queryRunner.query(`
       CREATE TABLE "reviews" (
@@ -114,7 +144,9 @@ export class Init1700000000000 implements MigrationInterface {
         CONSTRAINT "ck_reviews_rating" CHECK ("rating" BETWEEN 1 AND 5)
       )
     `);
-    await queryRunner.query(`CREATE UNIQUE INDEX "uq_reviews_booking" ON "reviews" ("booking_id")`);
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "uq_reviews_booking" ON "reviews" ("booking_id")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

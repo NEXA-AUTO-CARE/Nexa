@@ -63,8 +63,11 @@ const GaragePage = () => {
 
   useEffect(() => {
     if ((location.state as { giftMode?: boolean } | null)?.giftMode) {
-      setIsGiftMode(true);
-      setShowForm(true);
+      // Defer to avoid synchronous setState in effect body
+      Promise.resolve().then(() => {
+        setIsGiftMode(true);
+        setShowForm(true);
+      });
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, location.pathname, navigate]);

@@ -3,7 +3,11 @@ import { AuditEntity } from './audit.entity';
 
 @Entity('corporate_fleet_enquiries')
 export class CorporateFleetEnquiry extends AuditEntity {
-  @PrimaryColumn({ type: 'uuid', name: 'enquiry_id', default: () => 'uuidv7()' })
+  @PrimaryColumn({
+    type: 'uuid',
+    name: 'enquiry_id',
+    default: () => 'uuidv7()',
+  })
   enquiryId: string;
 
   @Column({ type: 'varchar', length: 150 })

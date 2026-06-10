@@ -12,6 +12,8 @@ import {
   X,
   LogOut,
   ShieldCheck,
+  Megaphone,
+  Users,
 } from 'lucide-react'
 
 export default function AdminLayout() {
@@ -44,6 +46,18 @@ export default function AdminLayout() {
       path: '/admin/addons',
       icon: Sparkles,
       desc: 'Manage valeting extras',
+    },
+    {
+      name: 'Promotions',
+      path: '/admin/promotions',
+      icon: Megaphone,
+      desc: 'Campaigns & broadcasts',
+    },
+    {
+      name: 'Users',
+      path: '/admin/users',
+      icon: Users,
+      desc: 'User management',
     },
     {
       name: 'Dynamic Settings',

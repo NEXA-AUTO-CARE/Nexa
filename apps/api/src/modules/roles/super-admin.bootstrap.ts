@@ -29,7 +29,9 @@ export class SuperAdminBootstrap implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    const email = this.config.get<string | null>('app.bootstrap.superAdminEmail');
+    const email = this.config.get<string | null>(
+      'app.bootstrap.superAdminEmail',
+    );
     if (!email) return;
 
     const user = await this.userRepo.findOne({ where: { email } });

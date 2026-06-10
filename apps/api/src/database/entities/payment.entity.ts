@@ -12,7 +12,11 @@ import { Booking } from './booking.entity';
 
 @Entity('payments')
 export class Payment extends AuditEntity {
-  @PrimaryColumn({ type: 'uuid', name: 'payment_id', default: () => 'uuidv7()' })
+  @PrimaryColumn({
+    type: 'uuid',
+    name: 'payment_id',
+    default: () => 'uuidv7()',
+  })
   paymentId: string;
 
   @Index('uq_payments_booking', { unique: true })

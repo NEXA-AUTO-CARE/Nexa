@@ -14,7 +14,9 @@ export class AddOtpAndRefreshTokens1700000000100 implements MigrationInterface {
         "created_at" timestamptz NOT NULL DEFAULT now()
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_otp_codes_identifier" ON "otp_codes" ("identifier")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_otp_codes_identifier" ON "otp_codes" ("identifier")`,
+    );
 
     await queryRunner.query(`
       CREATE TABLE "refresh_tokens" (
@@ -27,8 +29,12 @@ export class AddOtpAndRefreshTokens1700000000100 implements MigrationInterface {
         CONSTRAINT "fk_refresh_tokens_user" FOREIGN KEY ("user_id") REFERENCES "users"("user_id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_refresh_tokens_user" ON "refresh_tokens" ("user_id")`);
-    await queryRunner.query(`CREATE UNIQUE INDEX "uq_refresh_tokens_hash" ON "refresh_tokens" ("token_hash")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_refresh_tokens_user" ON "refresh_tokens" ("user_id")`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "uq_refresh_tokens_hash" ON "refresh_tokens" ("token_hash")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

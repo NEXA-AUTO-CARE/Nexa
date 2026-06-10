@@ -34,16 +34,16 @@ export const DEFAULT_BOOKING_TEMPLATES: TemplateMap = {
   booked: {
     title: 'Booking Confirmed',
     emailBody:
-      'Your booking for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We\'ll notify you when a detailer accepts.',
+      "Your booking for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We'll notify you when a detailer accepts.",
     smsBody:
-      'NEXA: Your booking for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We\'ll notify you when a detailer accepts.',
+      "NEXA: Your booking for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We'll notify you when a detailer accepts.",
   },
   accepted: {
     title: 'Booking Accepted',
     emailBody:
-      'Great news! A detailer has accepted your booking for {{vehicleSummary}}. They\'ll arrive on {{bookingTime}}.',
+      "Great news! A detailer has accepted your booking for {{vehicleSummary}}. They'll arrive on {{bookingTime}}.",
     smsBody:
-      'NEXA: Great news! A detailer has accepted your booking for {{vehicleSummary}}. They\'ll arrive on {{bookingTime}}.',
+      "NEXA: Great news! A detailer has accepted your booking for {{vehicleSummary}}. They'll arrive on {{bookingTime}}.",
   },
   in_progress: {
     title: 'Detailing In Progress',
@@ -55,9 +55,9 @@ export const DEFAULT_BOOKING_TEMPLATES: TemplateMap = {
   completed: {
     title: 'Wash Complete',
     emailBody:
-      'Your {{vehicleSummary}} is looking fresh! Your wash is complete. We\'d love to hear your feedback.',
+      "Your {{vehicleSummary}} is looking fresh! Your wash is complete. We'd love to hear your feedback.",
     smsBody:
-      'NEXA: Your {{vehicleSummary}} is looking fresh! Your wash is complete. We\'d love to hear your feedback.',
+      "NEXA: Your {{vehicleSummary}} is looking fresh! Your wash is complete. We'd love to hear your feedback.",
   },
   cancelled: {
     title: 'Booking Cancelled',

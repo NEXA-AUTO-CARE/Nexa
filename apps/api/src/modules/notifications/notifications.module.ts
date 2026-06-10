@@ -8,7 +8,13 @@ import { NotificationsService } from './notifications.service';
 
 @Module({
   imports: [SettingsModule],
-  providers: [EmailChannel, SmsChannel, SnsChannel, NotificationsService, MessageTemplateService],
+  providers: [
+    EmailChannel,
+    SmsChannel,
+    SnsChannel,
+    NotificationsService,
+    MessageTemplateService,
+  ],
   exports: [NotificationsService, MessageTemplateService],
 })
 export class NotificationsModule {}

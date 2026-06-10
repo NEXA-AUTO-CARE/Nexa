@@ -22,9 +22,12 @@ export class NotificationsService {
    * Determine the best notification channel based on available contact info.
    * Email takes priority (richer content, cheaper).
    */
-  resolveChannel(user: User): { channel: NotificationChannel; destination: string } | null {
+  resolveChannel(
+    user: User,
+  ): { channel: NotificationChannel; destination: string } | null {
     if (user.email) return { channel: 'email', destination: user.email };
-    if (user.phoneNumber) return { channel: 'sms', destination: user.phoneNumber };
+    if (user.phoneNumber)
+      return { channel: 'sms', destination: user.phoneNumber };
     this.logger.warn(`No contact info for user ${user.userId} — cannot notify`);
     return null;
   }
@@ -44,7 +47,11 @@ export class NotificationsService {
   /**
    * Send a rich notification to an SNS topic
    */
-  async sendSnsTopic(message: string, subject?: string, topicArn?: string): Promise<void> {
+  async sendSnsTopic(
+    message: string,
+    subject?: string,
+    topicArn?: string,
+  ): Promise<void> {
     return this.sns.publishToTopic(message, subject, topicArn);
   }
 

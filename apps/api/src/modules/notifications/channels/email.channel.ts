@@ -27,7 +27,8 @@ export class EmailChannel {
   }
 
   async send(to: string, subject: string, html: string): Promise<void> {
-    const from = this.config.get<string>('app.smtp.from') ?? 'NEXA <noreply@nexa.app>';
+    const from =
+      this.config.get<string>('app.smtp.from') ?? 'NEXA <noreply@nexa.app>';
 
     if (!this.transporter) {
       this.logger.log(`[EMAIL-DEV] To: ${to} | Subject: ${subject}`);

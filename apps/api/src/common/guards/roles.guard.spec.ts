@@ -43,6 +43,8 @@ describe('RolesGuard', () => {
 
   it('supports custom (non-system) role names too', () => {
     const guard = new RolesGuard(reflectorReturning(['support_agent']));
-    expect(guard.canActivate(execContextWith({ role: 'support_agent' }))).toBe(true);
+    expect(guard.canActivate(execContextWith({ role: 'support_agent' }))).toBe(
+      true,
+    );
   });
 });

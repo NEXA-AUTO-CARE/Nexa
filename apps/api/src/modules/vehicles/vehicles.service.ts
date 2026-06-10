@@ -20,7 +20,9 @@ export class VehiclesService {
   async create(ownerId: string, dto: CreateVehicleDto): Promise<Vehicle> {
     const vehicle = this.vehicleRepo.create({
       ownerId,
-      registrationNumber: dto.registrationNumber.toUpperCase().replace(/\s/g, ''),
+      registrationNumber: dto.registrationNumber
+        .toUpperCase()
+        .replace(/\s/g, ''),
       make: dto.make.trim(),
       model: dto.model.trim(),
       vehicleType: dto.vehicleType,
@@ -65,7 +67,9 @@ export class VehiclesService {
     const vehicle = await this.findByIdForOwner(vehicleId, ownerId);
 
     if (dto.registrationNumber !== undefined) {
-      vehicle.registrationNumber = dto.registrationNumber.toUpperCase().replace(/\s/g, '');
+      vehicle.registrationNumber = dto.registrationNumber
+        .toUpperCase()
+        .replace(/\s/g, '');
     }
     if (dto.make !== undefined) vehicle.make = dto.make.trim();
     if (dto.model !== undefined) vehicle.model = dto.model.trim();

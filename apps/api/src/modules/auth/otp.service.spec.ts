@@ -15,17 +15,45 @@ function makeConfig(otpDevLog = true) {
   return { get: jest.fn().mockReturnValue(otpDevLog) };
 }
 
+function makeNotifications() {
+  return {
+    sendEmail: jest.fn().mockResolvedValue(undefined),
+    sendSms: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
+function makeTemplateService() {
+  return {
+    process: jest.fn().mockResolvedValue({
+      subject: 'Your OTP Code',
+      html: '<p>123456</p>',
+      smsText: 'Your code is 123456',
+    }),
+  };
+}
+
 describe('OtpService', () => {
   let repo: ReturnType<typeof makeRepo>;
   let config: ReturnType<typeof makeConfig>;
+  let notifications: ReturnType<typeof makeNotifications>;
+  let templateService: ReturnType<typeof makeTemplateService>;
   let service: OtpService;
   let logSpy: jest.SpyInstance;
 
   beforeEach(() => {
     repo = makeRepo();
     config = makeConfig();
-    service = new OtpService(repo as never, config as never);
-    logSpy = jest.spyOn((service as any).logger, 'log').mockImplementation(() => {});
+    notifications = makeNotifications();
+    templateService = makeTemplateService();
+    service = new OtpService(
+      repo as never,
+      config as never,
+      notifications as never,
+      templateService as never,
+    );
+    logSpy = jest
+      .spyOn((service as any).logger, 'log')
+      .mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -50,17 +78,30 @@ describe('OtpService', () => {
       const persisted = repo.save.mock.calls[0][0] as OtpCode;
       const ttlMs = persisted.expiresAt.getTime() - before;
       expect(ttlMs).toBeGreaterThanOrEqual(10 * 60 * 1000 - 1000);
-      expect(persisted.expiresAt.getTime() - after).toBeLessThanOrEqual(10 * 60 * 1000);
+      expect(persisted.expiresAt.getTime() - after).toBeLessThanOrEqual(
+        10 * 60 * 1000,
+      );
     });
 
     it('logs the OTP to stdout when OTP_DEV_LOG flag is on', async () => {
       repo.save.mockImplementation(async (entity) => entity);
       await service.issue('bob@example.com');
-      expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^\[OTP\] bob@example\.com -> \d{6}/));
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/^\[OTP\] bob@example\.com -> \d{6}/),
+      );
     });
 
     it('does NOT log when OTP_DEV_LOG flag is off', async () => {
       config.get.mockReturnValue(false);
+      service = new OtpService(
+        repo as never,
+        config as never,
+        notifications as never,
+        templateService as never,
+      );
+      logSpy = jest
+        .spyOn((service as any).logger, 'log')
+        .mockImplementation(() => {});
       repo.save.mockImplementation(async (entity) => entity);
       await service.issue('carol@example.com');
       expect(logSpy).not.toHaveBeenCalled();

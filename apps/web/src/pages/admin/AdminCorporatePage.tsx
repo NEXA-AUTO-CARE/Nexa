@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../lib/api-client'
 import {
   Building2,
@@ -40,10 +40,10 @@ export default function AdminCorporatePage() {
   const { bookingFee, priceFor } = useSettings()
 
   const standardPrice = Number(priceFor('standard')) || 25
+
+  // Sync category rate when standard price changes
   useEffect(() => {
-    if (standardPrice) {
-      setSelectedCategoryRate(standardPrice)
-    }
+    Promise.resolve().then(() => setSelectedCategoryRate(standardPrice))
   }, [standardPrice])
 
   const loadLeads = async () => {
@@ -60,6 +60,7 @@ export default function AdminCorporatePage() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- setState is deferred behind await
     loadLeads()
   }, [])
 
@@ -87,6 +88,17 @@ export default function AdminCorporatePage() {
   const discountAmount = (rawSubtotal * discountPercent) / 100
   const bookingFees = selectedLead ? parseFloat(bookingFee) * selectedLead.fleetSize : 0
   const totalDue = rawSubtotal - discountAmount + bookingFees
+
+  // Compute dates once when an invoice is opened (avoids impure Date.now in render)
+  const { invoiceDate, dueDate } = useMemo(() => {
+    const now = new Date()
+    const due = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
+    return {
+      invoiceDate: now.toLocaleDateString(),
+      dueDate: due.toLocaleDateString(),
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally recompute only when lead changes
+  }, [selectedLead])
 
   return (
     <div className="space-y-8">
@@ -313,8 +325,8 @@ export default function AdminCorporatePage() {
                       <h1 className="text-3xl font-light text-slate-400 tracking-wider">INVOICE</h1>
                       <p className="text-xs text-slate-500 mt-2 font-mono">
                         Invoice #: NX-{(selectedLead.enquiryId.slice(0, 5)).toUpperCase()}<br />
-                        Date: {new Date().toLocaleDateString()}<br />
-                        Due Date: {new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                        Date: {invoiceDate}<br />
+                        Due Date: {dueDate}
                       </p>
                     </div>
                   </div>

@@ -27,10 +27,14 @@ export class OtpService {
   async issue(identifier: string, userName: string = 'User'): Promise<string> {
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
     const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60_000);
-    await this.otpRepo.save(this.otpRepo.create({ identifier, code, expiresAt }));
+    await this.otpRepo.save(
+      this.otpRepo.create({ identifier, code, expiresAt }),
+    );
 
     if (this.config.get<boolean>('app.flags.otpDevLog', true)) {
-      this.logger.log(`[OTP] ${identifier} -> ${code} (expires ${expiresAt.toISOString()})`);
+      this.logger.log(
+        `[OTP] ${identifier} -> ${code} (expires ${expiresAt.toISOString()})`,
+      );
     }
 
     const content = await this.templateService.process(
@@ -42,7 +46,11 @@ export class OtpService {
 
     const isEmail = identifier.includes('@');
     if (isEmail) {
-      await this.notifications.sendEmail(identifier, content.subject, content.html);
+      await this.notifications.sendEmail(
+        identifier,
+        content.subject,
+        content.html,
+      );
     } else {
       await this.notifications.sendSms(identifier, content.smsText);
     }
@@ -66,7 +74,9 @@ export class OtpService {
   }
 
   async purgeExpired(): Promise<number> {
-    const result = await this.otpRepo.delete({ expiresAt: LessThan(new Date()) });
+    const result = await this.otpRepo.delete({
+      expiresAt: LessThan(new Date()),
+    });
     return result.affected ?? 0;
   }
 }

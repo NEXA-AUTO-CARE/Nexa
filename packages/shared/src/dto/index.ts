@@ -5,4 +5,5 @@ export * from './payments/index.js';
 export * from './addons/index.js';
 export * from './corporate/index.js';
 export * from './admin/index.js';
+export * from './promotions/index.js';
 

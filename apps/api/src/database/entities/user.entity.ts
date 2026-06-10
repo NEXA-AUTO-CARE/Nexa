@@ -27,7 +27,10 @@ export class User extends AuditEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   email: string | null;
 
-  @Index('uq_users_phone_number', { unique: true, where: '"phone_number" IS NOT NULL' })
+  @Index('uq_users_phone_number', {
+    unique: true,
+    where: '"phone_number" IS NOT NULL',
+  })
   @Column({ type: 'varchar', length: 20, nullable: true })
   phoneNumber: string | null;
 
@@ -47,7 +50,12 @@ export class User extends AuditEntity {
   @Column({ type: 'boolean', default: false })
   otpVerified: boolean;
 
-  @Column({ type: 'varchar', length: 255, nullable: true, name: 'stripe_account_id' })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    name: 'stripe_account_id',
+  })
   stripeAccountId: string | null;
 
   @OneToMany(() => Vehicle, (v) => v.owner)

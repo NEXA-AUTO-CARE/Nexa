@@ -4,7 +4,9 @@ export class AddUserStripeAccountIdAndSettings1780000000100 implements Migration
   name = 'AddUserStripeAccountIdAndSettings1780000000100';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "users" ADD "stripe_account_id" character varying(255)`);
+    await queryRunner.query(
+      `ALTER TABLE "users" ADD "stripe_account_id" character varying(255)`,
+    );
     await queryRunner.query(`
       CREATE TABLE "system_settings" (
         "key" character varying(100) NOT NULL,
@@ -20,8 +22,12 @@ export class AddUserStripeAccountIdAndSettings1780000000100 implements Migration
     `);
 
     // Remap enum values to the new classification naming: standard, grande, maxi, transit.
-    await queryRunner.query(`ALTER TYPE "vehicles_vehicle_type_enum" RENAME TO "vehicles_vehicle_type_enum_old"`);
-    await queryRunner.query(`CREATE TYPE "vehicles_vehicle_type_enum" AS ENUM ('standard', 'grande', 'maxi', 'transit')`);
+    await queryRunner.query(
+      `ALTER TYPE "vehicles_vehicle_type_enum" RENAME TO "vehicles_vehicle_type_enum_old"`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "vehicles_vehicle_type_enum" AS ENUM ('standard', 'grande', 'maxi', 'transit')`,
+    );
     await queryRunner.query(`
       ALTER TABLE "vehicles" ALTER COLUMN "vehicle_type" TYPE "vehicles_vehicle_type_enum" USING (
         CASE "vehicle_type"::text
@@ -38,10 +44,16 @@ export class AddUserStripeAccountIdAndSettings1780000000100 implements Migration
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`DROP TABLE "system_settings"`);
-    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "stripe_account_id"`);
+    await queryRunner.query(
+      `ALTER TABLE "users" DROP COLUMN "stripe_account_id"`,
+    );
 
-    await queryRunner.query(`ALTER TYPE "vehicles_vehicle_type_enum" RENAME TO "vehicles_vehicle_type_enum_old"`);
-    await queryRunner.query(`CREATE TYPE "vehicles_vehicle_type_enum" AS ENUM ('regular', 'seven_seater_4x4', 'small_van', 'large_van')`);
+    await queryRunner.query(
+      `ALTER TYPE "vehicles_vehicle_type_enum" RENAME TO "vehicles_vehicle_type_enum_old"`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "vehicles_vehicle_type_enum" AS ENUM ('regular', 'seven_seater_4x4', 'small_van', 'large_van')`,
+    );
     await queryRunner.query(`
       ALTER TABLE "vehicles" ALTER COLUMN "vehicle_type" TYPE "vehicles_vehicle_type_enum" USING (
         CASE "vehicle_type"::text

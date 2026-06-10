@@ -11,13 +11,18 @@ import {
 import { AuditEntity } from './audit.entity';
 import { JobPhoto } from './job-photo.entity';
 import { Payment } from './payment.entity';
+import { Promotion } from './promotion.entity';
 import { Review } from './review.entity';
 import { User } from './user.entity';
 import { Vehicle } from './vehicle.entity';
 
 @Entity('bookings')
 export class Booking extends AuditEntity {
-  @PrimaryColumn({ type: 'uuid', name: 'booking_id', default: () => 'uuidv7()' })
+  @PrimaryColumn({
+    type: 'uuid',
+    name: 'booking_id',
+    default: () => 'uuidv7()',
+  })
   bookingId: string;
 
   @Column({ type: 'uuid' })
@@ -79,4 +84,19 @@ export class Booking extends AuditEntity {
 
   @OneToOne(() => Review, (r) => r.booking)
   review: Review | null;
+
+  /* ---- Promotion tracking ---- */
+
+  @Column({ type: 'uuid', nullable: true })
+  promotionId: string | null;
+
+  @ManyToOne(() => Promotion, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'promotion_id' })
+  promotion: Promotion | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  originalPrice: string | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  discountAmount: string | null;
 }

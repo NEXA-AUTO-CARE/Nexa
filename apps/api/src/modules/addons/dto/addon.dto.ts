@@ -1,5 +1,13 @@
-import { IsBoolean, IsNumberString, IsOptional, IsString } from 'class-validator';
-import type { CreateAddonDto as ICreateAddonDto, UpdateAddonDto as IUpdateAddonDto } from '@nexa/shared';
+import {
+  IsBoolean,
+  IsNumberString,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import type {
+  CreateAddonDto as ICreateAddonDto,
+  UpdateAddonDto as IUpdateAddonDto,
+} from '@nexa/shared';
 
 export class CreateAddonDto implements ICreateAddonDto {
   @IsString()

@@ -34,10 +34,14 @@ async function seed() {
 
   console.log('Fetching system roles...');
   const adminRole = await roleRepo.findOne({ where: { name: 'admin' } });
-  const superAdminRole = await roleRepo.findOne({ where: { name: 'super_admin' } });
+  const superAdminRole = await roleRepo.findOne({
+    where: { name: 'super_admin' },
+  });
 
   if (!adminRole || !superAdminRole) {
-    throw new Error('System roles (admin, super_admin) must exist in the database. Run migrations first.');
+    throw new Error(
+      'System roles (admin, super_admin) must exist in the database. Run migrations first.',
+    );
   }
 
   console.log('Seeding admin users...');
@@ -71,12 +75,42 @@ async function seed() {
 
   console.log('Seeding Service Add-ons...');
   await addonRepo.save([
-    addonRepo.create({ name: 'Seat Shampoo', description: 'Deep extract steam shampoo for all car seats', price: '5.00', isActive: true }),
-    addonRepo.create({ name: 'Floor Shampoo', description: 'Deep carpet shampoo and stain treatment', price: '5.00', isActive: true }),
-    addonRepo.create({ name: 'Tyre dress', description: 'Long-lasting high-gloss tyre shine treatment', price: '2.50', isActive: true }),
-    addonRepo.create({ name: 'Pet hair removal', description: 'Complete intensive vacuum pet fur extraction', price: '15.00', isActive: true }),
-    addonRepo.create({ name: 'Polish', description: 'High-quality gloss paint polish coating', price: '20.00', isActive: true }),
-    addonRepo.create({ name: 'Tar removal', description: 'Safe organic solvent removal of road tar and sap spots', price: '25.00', isActive: true }),
+    addonRepo.create({
+      name: 'Seat Shampoo',
+      description: 'Deep extract steam shampoo for all car seats',
+      price: '5.00',
+      isActive: true,
+    }),
+    addonRepo.create({
+      name: 'Floor Shampoo',
+      description: 'Deep carpet shampoo and stain treatment',
+      price: '5.00',
+      isActive: true,
+    }),
+    addonRepo.create({
+      name: 'Tyre dress',
+      description: 'Long-lasting high-gloss tyre shine treatment',
+      price: '2.50',
+      isActive: true,
+    }),
+    addonRepo.create({
+      name: 'Pet hair removal',
+      description: 'Complete intensive vacuum pet fur extraction',
+      price: '15.00',
+      isActive: true,
+    }),
+    addonRepo.create({
+      name: 'Polish',
+      description: 'High-quality gloss paint polish coating',
+      price: '20.00',
+      isActive: true,
+    }),
+    addonRepo.create({
+      name: 'Tar removal',
+      description: 'Safe organic solvent removal of road tar and sap spots',
+      price: '25.00',
+      isActive: true,
+    }),
   ]);
 
   console.log('Seeding System Settings...');
@@ -97,61 +131,124 @@ async function seed() {
     settingRepo.create({
       key: 'faqs',
       value: JSON.stringify([
-        { question: 'How does NEXA work?', answer: 'Simply register your vehicle, pick a date and time, and one of our professional detailers will come to your location. No need to travel to a car wash — we bring the service to you.' },
-        { question: 'What areas do you cover?', answer: "We currently serve Aberdeen, Scotland and the surrounding area. We're expanding soon — sign up to be notified when we reach your location." },
-        { question: 'How long does a Mini Valet & Spray Polish take?', answer: 'A standard session takes approximately 45–60 minutes depending on the vehicle size and condition.' },
-        { question: 'What payment methods do you accept?', answer: 'We accept all major debit and credit cards through our secure Stripe-powered checkout. Corporate fleet customers are invoiced separately.' },
-        { question: 'Can I book for multiple vehicles?', answer: 'Yes! You can add multiple vehicles to your Garage and book services for each one individually. For businesses with fleets, we offer a dedicated Corporate Fleet option with custom pricing.' },
-        { question: 'What if I need to cancel or reschedule?', answer: 'You can cancel or reschedule your booking up to 24 hours before the appointment at no charge through the app.' },
-        { question: "What is Nexa's vehicle classification?", answer: "Nexa operates four simple, transparent vehicle tiers:\n\n• <strong>Standard</strong> – Hatchbacks, Saloons, Coupes, City Cars\n• <strong>Grande</strong> – Estates, MPVs, Crossovers, Mid-size SUVs\n• <strong>Maxi</strong> – Large SUVs, Full-size 4x4s, Minivans\n• <strong>Transit</strong> – Mid commercial vans and equivalent-sized vehicles." },
-        { question: 'What space do I need to provide for the service?', answer: 'You must provide a safe and suitable off-road space (e.g. a driveway or private parking bay). If the space is deemed unsafe on arrival, the booking will be cancelled and a 70% refund issued.' },
-        { question: 'What is the booking cancellation policy?', answer: 'Bookings cancelled at least 24 hours before the appointment are eligible for a full refund. Cancellations within 24 hours receive a 70% refund.' },
-        { question: 'Is there a booking fee?', answer: 'Yes, a small <strong>£1.49 Booking & Protection Fee</strong> is applied to all bookings during checkout.' },
+        {
+          question: 'How does NEXA work?',
+          answer:
+            'Simply register your vehicle, pick a date and time, and one of our professional detailers will come to your location. No need to travel to a car wash — we bring the service to you.',
+        },
+        {
+          question: 'What areas do you cover?',
+          answer:
+            "We currently serve Aberdeen, Scotland and the surrounding area. We're expanding soon — sign up to be notified when we reach your location.",
+        },
+        {
+          question: 'How long does a Mini Valet & Spray Polish take?',
+          answer:
+            'A standard session takes approximately 45–60 minutes depending on the vehicle size and condition.',
+        },
+        {
+          question: 'What payment methods do you accept?',
+          answer:
+            'We accept all major debit and credit cards through our secure Stripe-powered checkout. Corporate fleet customers are invoiced separately.',
+        },
+        {
+          question: 'Can I book for multiple vehicles?',
+          answer:
+            'Yes! You can add multiple vehicles to your Garage and book services for each one individually. For businesses with fleets, we offer a dedicated Corporate Fleet option with custom pricing.',
+        },
+        {
+          question: 'What if I need to cancel or reschedule?',
+          answer:
+            'You can cancel or reschedule your booking up to 24 hours before the appointment at no charge through the app.',
+        },
+        {
+          question: "What is Nexa's vehicle classification?",
+          answer:
+            'Nexa operates four simple, transparent vehicle tiers:\n\n• <strong>Standard</strong> – Hatchbacks, Saloons, Coupes, City Cars\n• <strong>Grande</strong> – Estates, MPVs, Crossovers, Mid-size SUVs\n• <strong>Maxi</strong> – Large SUVs, Full-size 4x4s, Minivans\n• <strong>Transit</strong> – Mid commercial vans and equivalent-sized vehicles.',
+        },
+        {
+          question: 'What space do I need to provide for the service?',
+          answer:
+            'You must provide a safe and suitable off-road space (e.g. a driveway or private parking bay). If the space is deemed unsafe on arrival, the booking will be cancelled and a 70% refund issued.',
+        },
+        {
+          question: 'What is the booking cancellation policy?',
+          answer:
+            'Bookings cancelled at least 24 hours before the appointment are eligible for a full refund. Cancellations within 24 hours receive a 70% refund.',
+        },
+        {
+          question: 'Is there a booking fee?',
+          answer:
+            'Yes, a small <strong>£1.49 Booking & Protection Fee</strong> is applied to all bookings during checkout.',
+        },
       ]),
     }),
     settingRepo.create({
       key: 'vehicle_category_labels',
-      value: JSON.stringify({ STANDARD: 'Standard', GRANDE: 'Grande', MAXI: 'Maxi', TRANSIT: 'Transit' }),
+      value: JSON.stringify({
+        STANDARD: 'Standard',
+        GRANDE: 'Grande',
+        MAXI: 'Maxi',
+        TRANSIT: 'Transit',
+      }),
     }),
     settingRepo.create({
       key: 'vehicle_category_descriptions',
       value: JSON.stringify({
         STANDARD: 'Hatchbacks, Saloons, Coupes, City Cars',
-        GRANDE: 'Estate cars, MPVs, Crossovers, Mid-size SUVs (e.g. Ford Kuga, VW Tiguan, Toyota RAV4, Volvo V60 Estate)',
+        GRANDE:
+          'Estate cars, MPVs, Crossovers, Mid-size SUVs (e.g. Ford Kuga, VW Tiguan, Toyota RAV4, Volvo V60 Estate)',
         MAXI: 'Large SUVs, Full-size 4x4s, Minivans (e.g. Land Rover Defender, BMW X7, Ford Galaxy, Mercedes V-Class)',
-        TRANSIT: 'Mid commercial vans and equivalent-sized vehicles (e.g., Ford Transit Custom, VW Transporter, Vauxhall Vivaro, Renault Trafic, Mercedes Vito)',
+        TRANSIT:
+          'Mid commercial vans and equivalent-sized vehicles (e.g., Ford Transit Custom, VW Transporter, Vauxhall Vivaro, Renault Trafic, Mercedes Vito)',
       }),
     }),
     settingRepo.create({ key: 'booking_fee', value: '1.49' }),
-    settingRepo.create({ key: 'service_labels', value: JSON.stringify({ base: 'Mini Valet' }) }),
-    settingRepo.create({ key: 'customer_type', value: '["Individual","Corporate"]' }),
+    settingRepo.create({
+      key: 'service_labels',
+      value: JSON.stringify({ base: 'Mini Valet' }),
+    }),
+    settingRepo.create({
+      key: 'customer_type',
+      value: '["Individual","Corporate"]',
+    }),
     settingRepo.create({
       key: 'notification_templates',
       value: JSON.stringify({
         booked: {
           title: 'Booking Confirmed',
-          emailBody: "Your booking for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We'll notify you when a detailer accepts.",
-          smsBody: "NEXA: Your booking for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We'll notify you when a detailer accepts.",
+          emailBody:
+            "Your booking for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We'll notify you when a detailer accepts.",
+          smsBody:
+            "NEXA: Your booking for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We'll notify you when a detailer accepts.",
         },
         accepted: {
           title: 'Booking Accepted',
-          emailBody: "Great news! A detailer has accepted your booking for {{vehicleSummary}}. They'll arrive on {{bookingTime}}.",
-          smsBody: "NEXA: Great news! A detailer has accepted your booking for {{vehicleSummary}}. They'll arrive on {{bookingTime}}.",
+          emailBody:
+            "Great news! A detailer has accepted your booking for {{vehicleSummary}}. They'll arrive on {{bookingTime}}.",
+          smsBody:
+            "NEXA: Great news! A detailer has accepted your booking for {{vehicleSummary}}. They'll arrive on {{bookingTime}}.",
         },
         in_progress: {
           title: 'Detailing In Progress',
-          emailBody: 'Your detailer is now working on {{vehicleSummary}}. Sit back and relax!',
-          smsBody: 'NEXA: Your detailer is now working on {{vehicleSummary}}. Sit back and relax!',
+          emailBody:
+            'Your detailer is now working on {{vehicleSummary}}. Sit back and relax!',
+          smsBody:
+            'NEXA: Your detailer is now working on {{vehicleSummary}}. Sit back and relax!',
         },
         completed: {
           title: 'Wash Complete',
-          emailBody: "Your {{vehicleSummary}} is looking fresh! Your wash is complete. We'd love to hear your feedback.",
-          smsBody: "NEXA: Your {{vehicleSummary}} is looking fresh! Your wash is complete. We'd love to hear your feedback.",
+          emailBody:
+            "Your {{vehicleSummary}} is looking fresh! Your wash is complete. We'd love to hear your feedback.",
+          smsBody:
+            "NEXA: Your {{vehicleSummary}} is looking fresh! Your wash is complete. We'd love to hear your feedback.",
         },
         cancelled: {
           title: 'Booking Cancelled',
-          emailBody: 'Your booking for {{vehicleSummary}} on {{bookingTime}} has been cancelled.',
-          smsBody: 'NEXA: Your booking for {{vehicleSummary}} on {{bookingTime}} has been cancelled.',
+          emailBody:
+            'Your booking for {{vehicleSummary}} on {{bookingTime}} has been cancelled.',
+          smsBody:
+            'NEXA: Your booking for {{vehicleSummary}} on {{bookingTime}} has been cancelled.',
         },
       }),
     }),

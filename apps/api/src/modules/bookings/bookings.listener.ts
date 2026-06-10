@@ -8,7 +8,10 @@ import {
   NOTIFICATION_TEMPLATES_KEY,
 } from '../notifications/templates/booking.templates';
 import type { BookingNotificationContext } from '../notifications/templates/booking.templates';
-import { BookingCreatedEvent, BookingStatusChangedEvent } from './events/booking.events';
+import {
+  BookingCreatedEvent,
+  BookingStatusChangedEvent,
+} from './events/booking.events';
 
 const SERVICE_LABELS: Record<string, string> = {
   basic: 'Basic Wash',
@@ -34,9 +37,13 @@ export class BookingsListener {
       return;
     }
 
-    const content = await this.processBookingTemplate(this.buildContext(booking));
+    const content = await this.processBookingTemplate(
+      this.buildContext(booking),
+    );
 
-    this.logger.log(`[EVENT] booking.created → notifying ${customer.displayName}`);
+    this.logger.log(
+      `[EVENT] booking.created → notifying ${customer.displayName}`,
+    );
     await this.notifications.notify(customer, content);
   }
 
@@ -49,7 +56,9 @@ export class BookingsListener {
       return;
     }
 
-    const content = await this.processBookingTemplate(this.buildContext(booking));
+    const content = await this.processBookingTemplate(
+      this.buildContext(booking),
+    );
 
     this.logger.log(
       `[EVENT] booking.status_changed (${previousStatus} → ${booking.status}) → notifying ${customer.displayName}`,
@@ -64,7 +73,9 @@ export class BookingsListener {
   private async processBookingTemplate(
     ctx: BookingNotificationContext,
   ): Promise<{ subject: string; html: string; smsText: string }> {
-    const overrides = await this.templateService.loadOverrides(NOTIFICATION_TEMPLATES_KEY);
+    const overrides = await this.templateService.loadOverrides(
+      NOTIFICATION_TEMPLATES_KEY,
+    );
     const tpl = this.templateService.resolveTemplate(
       ctx.status,
       DEFAULT_BOOKING_TEMPLATES,
@@ -93,12 +104,18 @@ export class BookingsListener {
       </table>
     `;
 
-    const { subject, html } = this.templateService.buildEmail(tpl, flatCtx, detailCard);
+    const { subject, html } = this.templateService.buildEmail(
+      tpl,
+      flatCtx,
+      detailCard,
+    );
     const smsText = this.templateService.buildSms(tpl, flatCtx);
     return { subject, html, smsText };
   }
 
-  private buildContext(booking: import('../../database/entities').Booking): BookingNotificationContext {
+  private buildContext(
+    booking: import('../../database/entities').Booking,
+  ): BookingNotificationContext {
     const v = booking.vehicle;
     return {
       customerName: booking.customer?.displayName ?? 'Customer',

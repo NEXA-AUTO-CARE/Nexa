@@ -34,7 +34,9 @@ export class RolesAndPermissions1700000000300 implements MigrationInterface {
         ${this.auditColumns}
       )
     `);
-    await queryRunner.query(`CREATE UNIQUE INDEX "uq_roles_name" ON "roles" ("name")`);
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "uq_roles_name" ON "roles" ("name")`,
+    );
 
     // 2. role_permissions table
     await queryRunner.query(`
@@ -51,7 +53,10 @@ export class RolesAndPermissions1700000000300 implements MigrationInterface {
     );
 
     // 3. seed the four system roles
-    const systemRoles: Record<string, { description: string; permissions: string[] }> = {
+    const systemRoles: Record<
+      string,
+      { description: string; permissions: string[] }
+    > = {
       customer: {
         description: 'Vehicle owner who books wash services',
         permissions: [
@@ -80,7 +85,8 @@ export class RolesAndPermissions1700000000300 implements MigrationInterface {
         ],
       },
       admin: {
-        description: 'Operations admin: vendor matching, payouts, dispute handling',
+        description:
+          'Operations admin: vendor matching, payouts, dispute handling',
         permissions: [
           'users:read.self',
           'users:write.self',
@@ -123,7 +129,9 @@ export class RolesAndPermissions1700000000300 implements MigrationInterface {
     await queryRunner.query(
       `UPDATE "users" SET "role_id" = (SELECT "role_id" FROM "roles" WHERE "name" = "users"."role"::text)`,
     );
-    await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "role_id" SET NOT NULL`);
+    await queryRunner.query(
+      `ALTER TABLE "users" ALTER COLUMN "role_id" SET NOT NULL`,
+    );
     await queryRunner.query(
       `ALTER TABLE "users" ADD CONSTRAINT "fk_users_role" FOREIGN KEY ("role_id") REFERENCES "roles"("role_id") ON DELETE RESTRICT`,
     );
@@ -138,14 +146,22 @@ export class RolesAndPermissions1700000000300 implements MigrationInterface {
     await queryRunner.query(
       `CREATE TYPE "users_role_enum" AS ENUM ('customer', 'vendor', 'admin', 'super_admin')`,
     );
-    await queryRunner.query(`ALTER TABLE "users" ADD COLUMN "role" "users_role_enum"`);
+    await queryRunner.query(
+      `ALTER TABLE "users" ADD COLUMN "role" "users_role_enum"`,
+    );
     await queryRunner.query(
       `UPDATE "users" SET "role" = ((SELECT "name" FROM "roles" WHERE "roles"."role_id" = "users"."role_id"))::users_role_enum`,
     );
-    await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "role" SET NOT NULL`);
+    await queryRunner.query(
+      `ALTER TABLE "users" ALTER COLUMN "role" SET NOT NULL`,
+    );
 
-    await queryRunner.query(`ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "fk_users_role"`);
-    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN IF EXISTS "role_id"`);
+    await queryRunner.query(
+      `ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "fk_users_role"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "users" DROP COLUMN IF EXISTS "role_id"`,
+    );
 
     await queryRunner.query(`DROP TABLE IF EXISTS "role_permissions"`);
     await queryRunner.query(`DROP TABLE IF EXISTS "roles"`);

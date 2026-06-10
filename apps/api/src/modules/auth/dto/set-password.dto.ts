@@ -7,7 +7,8 @@ const STRONG_PASSWORD_RX =
 
 export class SetPasswordDto implements Shape {
   @ApiProperty({
-    description: 'Short-lived token returned by /auth/verify-otp (valid 5 minutes)',
+    description:
+      'Short-lived token returned by /auth/verify-otp (valid 5 minutes)',
   })
   @IsString()
   @Length(20, 4096)

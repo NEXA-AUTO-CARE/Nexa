@@ -139,6 +139,7 @@ export default function AdminSettingsPage() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- setState is deferred behind await
     loadSettings()
   }, [])
 

@@ -42,22 +42,20 @@ export const DEFAULT_AUTH_TEMPLATES: TemplateMap = {
     title: 'Password Reset Request',
     emailBody:
       'Hi {{userName}}, click the link below to reset your NEXA password:<br/><br/><a href="{{resetLink}}">Reset Password</a><br/><br/>If you did not request this, please ignore this email.',
-    smsBody:
-      'NEXA: Reset your password here: {{resetLink}}',
+    smsBody: 'NEXA: Reset your password here: {{resetLink}}',
   },
   password_changed: {
     title: 'Password Changed Successfully',
     emailBody:
       'Hi {{userName}}, your NEXA password was successfully changed. If you did not request this, please contact support immediately.',
     smsBody:
-      'NEXA: Your password was just changed. If this wasn\'t you, please contact support.',
+      "NEXA: Your password was just changed. If this wasn't you, please contact support.",
   },
   login_alert: {
     title: 'New Login to Your Account',
     emailBody:
       'Hi {{userName}}, we detected a new login to your NEXA account on {{loginTime}} from {{ipAddress}}.',
-    smsBody:
-      'NEXA: A new login was detected on your account at {{loginTime}}.',
+    smsBody: 'NEXA: A new login was detected on your account at {{loginTime}}.',
   },
 };
 

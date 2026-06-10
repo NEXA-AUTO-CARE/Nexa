@@ -12,7 +12,11 @@ export class ReseedSystemRoles1700000000500 implements MigrationInterface {
   name = 'ReseedSystemRoles1700000000500';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    const roles: Array<{ name: string; description: string; permissions: string[] }> = [
+    const roles: Array<{
+      name: string;
+      description: string;
+      permissions: string[];
+    }> = [
       {
         name: 'customer',
         description: 'Vehicle owner who books wash services',
@@ -44,7 +48,8 @@ export class ReseedSystemRoles1700000000500 implements MigrationInterface {
       },
       {
         name: 'admin',
-        description: 'Operations admin: vendor matching, payouts, dispute handling',
+        description:
+          'Operations admin: vendor matching, payouts, dispute handling',
         permissions: [
           'users:read.self',
           'users:write.self',
