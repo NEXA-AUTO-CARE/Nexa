@@ -147,15 +147,24 @@ export class EnvSchema {
 
 export function validateEnv(config: Record<string, unknown>): EnvSchema {
   // If DATABASE_URL is not set but individual connection fields are, assemble the connection URL
-  if (!config.DATABASE_URL && config.DATABASE_HOST && config.DATABASE_USER && config.DATABASE_PASSWORD) {
+  if (
+    !config.DATABASE_URL &&
+    config.DATABASE_HOST &&
+    config.DATABASE_USER &&
+    config.DATABASE_PASSWORD
+  ) {
     const encodedUser = encodeURIComponent(String(config.DATABASE_USER));
-    const encodedPassword = encodeURIComponent(String(config.DATABASE_PASSWORD));
+    const encodedPassword = encodeURIComponent(
+      String(config.DATABASE_PASSWORD),
+    );
     config.DATABASE_URL = `postgresql://${encodedUser}:${encodedPassword}@${config.DATABASE_HOST}:${config.DATABASE_PORT || '5432'}/${config.DATABASE_NAME || 'nexa'}`;
   }
 
   // Ensure DATABASE_URL is successfully resolved
   if (!config.DATABASE_URL) {
-    throw new Error('Environment validation failed: DATABASE_URL must be provided or assembled from host, user, and password.');
+    throw new Error(
+      'Environment validation failed: DATABASE_URL must be provided or assembled from host, user, and password.',
+    );
   }
 
   const validated = plainToInstance(EnvSchema, config, {
@@ -168,7 +177,10 @@ export function validateEnv(config: Record<string, unknown>): EnvSchema {
   });
   if (errors.length > 0) {
     const message = errors
-      .map((e) => `${e.property}: ${Object.values(e.constraints ?? {}).join(', ')}`)
+      .map(
+        (e) =>
+          `${e.property}: ${Object.values(e.constraints ?? {}).join(', ')}`,
+      )
       .join('\n');
     throw new Error(`Environment validation failed:\n${message}`);
   }

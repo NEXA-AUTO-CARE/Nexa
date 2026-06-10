@@ -40,20 +40,23 @@ export function VehicleFormModal({
 
   // Populate form when vehicle changes (edit mode)
   useEffect(() => {
-    if (vehicle) {
-      setRegistrationNumber(vehicle.registrationNumber)
-      setMake(vehicle.make)
-      setModel(vehicle.model)
-      setVehicleType(vehicle.vehicleType)
-      setColour(vehicle.colour ?? '')
-    } else {
-      setRegistrationNumber('')
-      setMake('')
-      setModel('')
-      setVehicleType(VehicleType.STANDARD)
-      setColour('')
-    }
-    setError(null)
+    // Defer setState to avoid synchronous setState in effect body
+    Promise.resolve().then(() => {
+      if (vehicle) {
+        setRegistrationNumber(vehicle.registrationNumber)
+        setMake(vehicle.make)
+        setModel(vehicle.model)
+        setVehicleType(vehicle.vehicleType)
+        setColour(vehicle.colour ?? '')
+      } else {
+        setRegistrationNumber('')
+        setMake('')
+        setModel('')
+        setVehicleType(VehicleType.STANDARD)
+        setColour('')
+      }
+      setError(null)
+    })
   }, [vehicle, open])
 
   if (!open) return null

@@ -1,11 +1,5 @@
 import { PhotoType } from '@nexa/shared';
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
 import { AuditEntity } from './audit.entity';
 import { Booking } from './booking.entity';
 import { User } from './user.entity';

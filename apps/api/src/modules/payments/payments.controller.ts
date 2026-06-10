@@ -1,6 +1,20 @@
-import { Body, Controller, Headers, Post, Req, UseGuards, Param } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Headers,
+  Post,
+  Req,
+  UseGuards,
+  Param,
+} from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { PaymentResponse } from '@nexa/shared';
 import { Request } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -20,7 +34,9 @@ export class PaymentsController {
   @Post('intent')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create a Stripe PaymentIntent for a booking' })
-  @ApiCreatedResponse({ description: 'PaymentIntent created with clientSecret' })
+  @ApiCreatedResponse({
+    description: 'PaymentIntent created with clientSecret',
+  })
   async createIntent(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreatePaymentIntentDto,
@@ -61,4 +77,3 @@ export class PaymentsController {
     return { received: true };
   }
 }
-

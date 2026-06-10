@@ -69,7 +69,11 @@ describe('PromotionsService', () => {
 
   describe('create', () => {
     it('creates a draft announcement promotion', async () => {
-      const dto = { title: 'Promo', message: 'Hello', type: PromotionType.ANNOUNCEMENT };
+      const dto = {
+        title: 'Promo',
+        message: 'Hello',
+        type: PromotionType.ANNOUNCEMENT,
+      };
       await service.create(dto, 'admin-1');
       expect(promoRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -83,7 +87,12 @@ describe('PromotionsService', () => {
     });
 
     it('creates a percentage_discount with discountPercent', async () => {
-      const dto = { title: 'P', message: 'M', type: PromotionType.PERCENTAGE_DISCOUNT, discountPercent: 15 };
+      const dto = {
+        title: 'P',
+        message: 'M',
+        type: PromotionType.PERCENTAGE_DISCOUNT,
+        discountPercent: 15,
+      };
       await service.create(dto, 'admin-1');
       expect(promoRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ discountPercent: '15.00' }),
@@ -92,17 +101,28 @@ describe('PromotionsService', () => {
 
     it('creates a bonanza with threshold and recurring flag', async () => {
       const dto = {
-        title: 'B', message: 'Free!', type: PromotionType.BONANZA,
-        bonanzaThreshold: 3, bonanzaRecurring: true,
+        title: 'B',
+        message: 'Free!',
+        type: PromotionType.BONANZA,
+        bonanzaThreshold: 3,
+        bonanzaRecurring: true,
       };
       await service.create(dto, 'admin-1');
       expect(promoRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ bonanzaThreshold: 3, bonanzaRecurring: true }),
+        expect.objectContaining({
+          bonanzaThreshold: 3,
+          bonanzaRecurring: true,
+        }),
       );
     });
 
     it('defaults bonanzaRecurring to false when not provided', async () => {
-      const dto = { title: 'B', message: 'M', type: PromotionType.BONANZA, bonanzaThreshold: 2 };
+      const dto = {
+        title: 'B',
+        message: 'M',
+        type: PromotionType.BONANZA,
+        bonanzaThreshold: 2,
+      };
       await service.create(dto, 'admin-1');
       expect(promoRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ bonanzaRecurring: false }),
@@ -110,18 +130,33 @@ describe('PromotionsService', () => {
     });
 
     it('throws when percentage_discount is missing discountPercent', async () => {
-      const dto = { title: 'P', message: 'M', type: PromotionType.PERCENTAGE_DISCOUNT };
-      await expect(service.create(dto, 'admin-1')).rejects.toThrow(BadRequestException);
+      const dto = {
+        title: 'P',
+        message: 'M',
+        type: PromotionType.PERCENTAGE_DISCOUNT,
+      };
+      await expect(service.create(dto, 'admin-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws when bonanza is missing bonanzaThreshold', async () => {
       const dto = { title: 'B', message: 'M', type: PromotionType.BONANZA };
-      await expect(service.create(dto, 'admin-1')).rejects.toThrow(BadRequestException);
+      await expect(service.create(dto, 'admin-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws when discountPercent is out of range', async () => {
-      const dto = { title: 'P', message: 'M', type: PromotionType.PERCENTAGE_DISCOUNT, discountPercent: 101 };
-      await expect(service.create(dto, 'admin-1')).rejects.toThrow(BadRequestException);
+      const dto = {
+        title: 'P',
+        message: 'M',
+        type: PromotionType.PERCENTAGE_DISCOUNT,
+        discountPercent: 101,
+      };
+      await expect(service.create(dto, 'admin-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -134,7 +169,9 @@ describe('PromotionsService', () => {
 
     it('throws NotFoundException when not found', async () => {
       promoRepo.findOne.mockResolvedValue(null);
-      await expect(service.findOne('missing')).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('missing')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -150,7 +187,9 @@ describe('PromotionsService', () => {
     it('throws when trying to edit an active promotion', async () => {
       const promo = makePromotion({ status: PromotionStatus.ACTIVE });
       promoRepo.findOne.mockResolvedValue(promo);
-      await expect(service.update('promo-1', { title: 'X' }, 'admin-1')).rejects.toThrow(BadRequestException);
+      await expect(
+        service.update('promo-1', { title: 'X' }, 'admin-1'),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -165,7 +204,9 @@ describe('PromotionsService', () => {
     it('throws when trying to delete a non-draft promotion', async () => {
       const promo = makePromotion({ status: PromotionStatus.ACTIVE });
       promoRepo.findOne.mockResolvedValue(promo);
-      await expect(service.remove('promo-1')).rejects.toThrow(BadRequestException);
+      await expect(service.remove('promo-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -187,7 +228,9 @@ describe('PromotionsService', () => {
     it('throws when starting a non-draft promotion', async () => {
       const promo = makePromotion({ status: PromotionStatus.ACTIVE });
       promoRepo.findOne.mockResolvedValue(promo);
-      await expect(service.start('promo-1', 'admin-1')).rejects.toThrow(BadRequestException);
+      await expect(service.start('promo-1', 'admin-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -203,7 +246,9 @@ describe('PromotionsService', () => {
     it('throws when ending a non-active promotion', async () => {
       const promo = makePromotion({ status: PromotionStatus.DRAFT });
       promoRepo.findOne.mockResolvedValue(promo);
-      await expect(service.end('promo-1', 'admin-1')).rejects.toThrow(BadRequestException);
+      await expect(service.end('promo-1', 'admin-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -214,7 +259,11 @@ describe('PromotionsService', () => {
   describe('calculateDiscount', () => {
     it('returns 0 discount for announcement type', async () => {
       const promo = makePromotion({ type: PromotionType.ANNOUNCEMENT });
-      const result = await service.calculateDiscount(promo as any, 'user-1', 50);
+      const result = await service.calculateDiscount(
+        promo as any,
+        'user-1',
+        50,
+      );
       expect(result).toEqual({ discount: 0, isFree: false });
     });
 
@@ -223,7 +272,11 @@ describe('PromotionsService', () => {
         type: PromotionType.PERCENTAGE_DISCOUNT,
         discountPercent: '20.00',
       });
-      const result = await service.calculateDiscount(promo as any, 'user-1', 100);
+      const result = await service.calculateDiscount(
+        promo as any,
+        'user-1',
+        100,
+      );
       expect(result).toEqual({ discount: 20, isFree: false });
     });
 
@@ -232,70 +285,100 @@ describe('PromotionsService', () => {
         type: PromotionType.PERCENTAGE_DISCOUNT,
         discountPercent: '33.33',
       });
-      const result = await service.calculateDiscount(promo as any, 'user-1', 10);
+      const result = await service.calculateDiscount(
+        promo as any,
+        'user-1',
+        10,
+      );
       expect(result.discount).toBeCloseTo(3.33, 2);
     });
 
     describe('bonanza — one-off (default)', () => {
-      const bonanzaPromo = () => makePromotion({
-        type: PromotionType.BONANZA,
-        bonanzaThreshold: 2,
-        bonanzaRecurring: false,
-      });
+      const bonanzaPromo = () =>
+        makePromotion({
+          type: PromotionType.BONANZA,
+          bonanzaThreshold: 2,
+          bonanzaRecurring: false,
+        });
 
       it('returns no discount when user has not reached threshold yet', async () => {
         redemptionRepo.count
-          .mockResolvedValueOnce(1)   // paidCount
-          .mockResolvedValueOnce(0);  // freeCount
-        const result = await service.calculateDiscount(bonanzaPromo() as any, 'user-1', 50);
+          .mockResolvedValueOnce(1) // paidCount
+          .mockResolvedValueOnce(0); // freeCount
+        const result = await service.calculateDiscount(
+          bonanzaPromo() as any,
+          'user-1',
+          50,
+        );
         expect(result).toEqual({ discount: 0, isFree: false });
       });
 
       it('returns free booking when user reaches threshold for the first time', async () => {
         redemptionRepo.count
-          .mockResolvedValueOnce(2)   // paidCount — threshold reached
-          .mockResolvedValueOnce(0);  // freeCount — no free yet
-        const result = await service.calculateDiscount(bonanzaPromo() as any, 'user-1', 50);
+          .mockResolvedValueOnce(2) // paidCount — threshold reached
+          .mockResolvedValueOnce(0); // freeCount — no free yet
+        const result = await service.calculateDiscount(
+          bonanzaPromo() as any,
+          'user-1',
+          50,
+        );
         expect(result).toEqual({ discount: 50, isFree: true });
       });
 
       it('does NOT grant a second free booking in one-off mode', async () => {
         redemptionRepo.count
-          .mockResolvedValueOnce(4)   // paidCount
-          .mockResolvedValueOnce(1);  // freeCount — already got 1 free
-        const result = await service.calculateDiscount(bonanzaPromo() as any, 'user-1', 50);
+          .mockResolvedValueOnce(4) // paidCount
+          .mockResolvedValueOnce(1); // freeCount — already got 1 free
+        const result = await service.calculateDiscount(
+          bonanzaPromo() as any,
+          'user-1',
+          50,
+        );
         expect(result).toEqual({ discount: 0, isFree: false });
       });
     });
 
     describe('bonanza — recurring', () => {
-      const recurringPromo = () => makePromotion({
-        type: PromotionType.BONANZA,
-        bonanzaThreshold: 2,
-        bonanzaRecurring: true,
-      });
+      const recurringPromo = () =>
+        makePromotion({
+          type: PromotionType.BONANZA,
+          bonanzaThreshold: 2,
+          bonanzaRecurring: true,
+        });
 
       it('returns free booking on first threshold crossing', async () => {
         redemptionRepo.count
-          .mockResolvedValueOnce(2)   // paidCount
-          .mockResolvedValueOnce(0);  // freeCount
-        const result = await service.calculateDiscount(recurringPromo() as any, 'user-1', 50);
+          .mockResolvedValueOnce(2) // paidCount
+          .mockResolvedValueOnce(0); // freeCount
+        const result = await service.calculateDiscount(
+          recurringPromo() as any,
+          'user-1',
+          50,
+        );
         expect(result).toEqual({ discount: 50, isFree: true });
       });
 
       it('returns free booking on second threshold crossing (recurring)', async () => {
         redemptionRepo.count
-          .mockResolvedValueOnce(4)   // paidCount = 4, 4 % 2 === 0
-          .mockResolvedValueOnce(1);  // freeCount = 1 (already got one, but recurring ignores this)
-        const result = await service.calculateDiscount(recurringPromo() as any, 'user-1', 50);
+          .mockResolvedValueOnce(4) // paidCount = 4, 4 % 2 === 0
+          .mockResolvedValueOnce(1); // freeCount = 1 (already got one, but recurring ignores this)
+        const result = await service.calculateDiscount(
+          recurringPromo() as any,
+          'user-1',
+          50,
+        );
         expect(result).toEqual({ discount: 50, isFree: true });
       });
 
       it('returns no discount between threshold crossings', async () => {
         redemptionRepo.count
-          .mockResolvedValueOnce(3)   // paidCount = 3, 3 % 2 !== 0
-          .mockResolvedValueOnce(1);  // freeCount
-        const result = await service.calculateDiscount(recurringPromo() as any, 'user-1', 50);
+          .mockResolvedValueOnce(3) // paidCount = 3, 3 % 2 !== 0
+          .mockResolvedValueOnce(1); // freeCount
+        const result = await service.calculateDiscount(
+          recurringPromo() as any,
+          'user-1',
+          50,
+        );
         expect(result).toEqual({ discount: 0, isFree: false });
       });
     });
@@ -307,7 +390,13 @@ describe('PromotionsService', () => {
 
   describe('recordRedemption', () => {
     it('persists a redemption record', async () => {
-      await service.recordRedemption('promo-1', 'user-1', 'booking-1', 50, true);
+      await service.recordRedemption(
+        'promo-1',
+        'user-1',
+        'booking-1',
+        50,
+        true,
+      );
       expect(redemptionRepo.create).toHaveBeenCalledWith({
         promotionId: 'promo-1',
         userId: 'user-1',
@@ -351,22 +440,36 @@ describe('PromotionsService', () => {
     });
 
     it('prefers percentage_discount over bonanza', async () => {
-      const bonanza = makePromotion({ type: PromotionType.BONANZA, status: PromotionStatus.ACTIVE });
-      const discount = makePromotion({ type: PromotionType.PERCENTAGE_DISCOUNT, status: PromotionStatus.ACTIVE, discountPercent: '10.00' });
+      const bonanza = makePromotion({
+        type: PromotionType.BONANZA,
+        status: PromotionStatus.ACTIVE,
+      });
+      const discount = makePromotion({
+        type: PromotionType.PERCENTAGE_DISCOUNT,
+        status: PromotionStatus.ACTIVE,
+        discountPercent: '10.00',
+      });
       promoRepo.find.mockResolvedValue([bonanza, discount]);
       const result = await service.findBestActivePromotion();
       expect(result?.type).toBe(PromotionType.PERCENTAGE_DISCOUNT);
     });
 
     it('returns bonanza when no percentage_discount exists', async () => {
-      const bonanza = makePromotion({ type: PromotionType.BONANZA, status: PromotionStatus.ACTIVE, bonanzaThreshold: 2 });
+      const bonanza = makePromotion({
+        type: PromotionType.BONANZA,
+        status: PromotionStatus.ACTIVE,
+        bonanzaThreshold: 2,
+      });
       promoRepo.find.mockResolvedValue([bonanza]);
       const result = await service.findBestActivePromotion();
       expect(result?.type).toBe(PromotionType.BONANZA);
     });
 
     it('returns null when only announcements are active', async () => {
-      const ann = makePromotion({ type: PromotionType.ANNOUNCEMENT, status: PromotionStatus.ACTIVE });
+      const ann = makePromotion({
+        type: PromotionType.ANNOUNCEMENT,
+        status: PromotionStatus.ACTIVE,
+      });
       promoRepo.find.mockResolvedValue([ann]);
       await expect(service.findBestActivePromotion()).resolves.toBeNull();
     });

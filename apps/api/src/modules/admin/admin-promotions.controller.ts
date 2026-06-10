@@ -11,8 +11,19 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { CreatePromotionDto, PromotionResponse, UpdatePromotionDto } from '@nexa/shared';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import type {
+  CreatePromotionDto,
+  PromotionResponse,
+  UpdatePromotionDto,
+} from '@nexa/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -60,7 +71,9 @@ export class AdminPromotionsController {
   }
 
   @Post(':id/start')
-  @ApiOperation({ summary: 'Admin: activate a promotion and broadcast to users' })
+  @ApiOperation({
+    summary: 'Admin: activate a promotion and broadcast to users',
+  })
   @ApiOkResponse({ description: 'Promotion activated' })
   async start(
     @CurrentUser() user: AuthenticatedUser,

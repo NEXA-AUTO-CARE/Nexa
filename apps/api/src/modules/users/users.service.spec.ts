@@ -55,12 +55,16 @@ describe('UsersService', () => {
       const user = makeUser();
       repo.findOne.mockResolvedValue(user);
       await expect(service.findById('user-1')).resolves.toBe(user);
-      expect(repo.findOne).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
+      expect(repo.findOne).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+      });
     });
 
     it('throws NotFoundException when missing', async () => {
       repo.findOne.mockResolvedValue(null);
-      await expect(service.findById('missing')).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.findById('missing')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 
@@ -68,18 +72,24 @@ describe('UsersService', () => {
     it('queries by email when identifier is an email', async () => {
       repo.findOne.mockResolvedValue(null);
       await service.findByIdentifier('Alice@Example.com');
-      expect(repo.findOne).toHaveBeenCalledWith({ where: { email: 'alice@example.com' } });
+      expect(repo.findOne).toHaveBeenCalledWith({
+        where: { email: 'alice@example.com' },
+      });
     });
 
     it('queries by phone when identifier is a phone number', async () => {
       repo.findOne.mockResolvedValue(null);
       await service.findByIdentifier('+447700900123');
-      expect(repo.findOne).toHaveBeenCalledWith({ where: { phoneNumber: '+447700900123' } });
+      expect(repo.findOne).toHaveBeenCalledWith({
+        where: { phoneNumber: '+447700900123' },
+      });
     });
 
     it('returns null when no match', async () => {
       repo.findOne.mockResolvedValue(null);
-      await expect(service.findByIdentifier('nobody@example.com')).resolves.toBeNull();
+      await expect(
+        service.findByIdentifier('nobody@example.com'),
+      ).resolves.toBeNull();
     });
   });
 
@@ -271,7 +281,10 @@ describe('UsersService', () => {
         createdOn: new Date('2026-05-09T12:00:00.000Z'),
       });
 
-      const result = service.toPublic(user, ['users:read.self', 'bookings:create'] as never);
+      const result = service.toPublic(user, [
+        'users:read.self',
+        'bookings:create',
+      ] as never);
 
       expect(result).toEqual({
         userId: 'u-1',

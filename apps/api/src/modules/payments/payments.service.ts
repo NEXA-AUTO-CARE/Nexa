@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BookingStatus, PaymentStatus } from '@nexa/shared';
@@ -15,11 +20,17 @@ import { CreatePaymentIntentDto } from './dto/create-payment.dto';
  */
 const PLATFORM_FEE_RATE = 0.15;
 
-function splitPayout(amount: string): { platformFee: string; vendorPayout: string } {
+function splitPayout(amount: string): {
+  platformFee: string;
+  vendorPayout: string;
+} {
   const total = parseFloat(amount);
   const platformFee = Math.round(total * PLATFORM_FEE_RATE * 100) / 100;
   const vendorPayout = Math.round((total - platformFee) * 100) / 100;
-  return { platformFee: platformFee.toFixed(2), vendorPayout: vendorPayout.toFixed(2) };
+  return {
+    platformFee: platformFee.toFixed(2),
+    vendorPayout: vendorPayout.toFixed(2),
+  };
 }
 
 @Injectable()
@@ -33,16 +44,28 @@ export class PaymentsService {
     private readonly bookingsService: BookingsService,
     private readonly config: ConfigService,
   ) {
-    const stripeKey = this.config.get<string>('app.stripe.secret') || 'sk_test_replace_me';
+    const stripeKey =
+      this.config.get<string>('app.stripe.secret') || 'sk_test_replace_me';
     this.stripe = new Stripe(stripeKey);
   }
 
-  async createPaymentIntent(userId: string, dto: CreatePaymentIntentDto): Promise<PaymentResponse> {
+  async createPaymentIntent(
+    userId: string,
+    dto: CreatePaymentIntentDto,
+  ): Promise<PaymentResponse> {
     // 1. Verify booking exists and belongs to user
-    const booking = await this.bookingsService.verifyMyBooking(dto.bookingId, userId);
+    const booking = await this.bookingsService.verifyMyBooking(
+      dto.bookingId,
+      userId,
+    );
 
-    if (booking.status === BookingStatus.COMPLETED || booking.status === BookingStatus.CANCELLED) {
-      throw new BadRequestException('Booking cannot be paid for in its current status');
+    if (
+      booking.status === BookingStatus.COMPLETED ||
+      booking.status === BookingStatus.CANCELLED
+    ) {
+      throw new BadRequestException(
+        'Booking cannot be paid for in its current status',
+      );
     }
 
     // 2. Check if a pending payment already exists for this booking
@@ -60,9 +83,11 @@ export class PaymentsService {
 
     if (payment && payment.stripePaymentIntentId) {
       // Update existing payment intent if amount changed (unlikely but good practice)
-      const intent = await this.stripe.paymentIntents.retrieve(payment.stripePaymentIntentId);
+      const intent = await this.stripe.paymentIntents.retrieve(
+        payment.stripePaymentIntentId,
+      );
       clientSecret = intent.client_secret;
-      
+
       if (intent.amount !== amountInCents) {
         await this.stripe.paymentIntents.update(payment.stripePaymentIntentId, {
           amount: amountInCents,
@@ -100,7 +125,11 @@ export class PaymentsService {
       } catch (err) {
         this.logger.error('Failed to create Stripe PaymentIntent', err);
         // Fallback for dev mode if stripe isn't configured properly
-        if (err.message?.includes('Invalid API Key') || !this.config.get('app.stripe.secret') || this.config.get('app.stripe.secret') === 'sk_test_replace_me') {
+        if (
+          err.message?.includes('Invalid API Key') ||
+          !this.config.get('app.stripe.secret') ||
+          this.config.get('app.stripe.secret') === 'sk_test_replace_me'
+        ) {
           this.logger.warn('Mocking payment intent for development');
           const split = splitPayout(booking.price);
           payment = this.paymentRepo.create({
@@ -125,22 +154,28 @@ export class PaymentsService {
   async handleStripeWebhook(signature: string, payload: Buffer): Promise<void> {
     const webhookSecret = this.config.get<string>('app.stripe.webhookSecret');
     if (!webhookSecret) {
-      this.logger.warn('Stripe webhook secret not configured. Skipping webhook verification.');
+      this.logger.warn(
+        'Stripe webhook secret not configured. Skipping webhook verification.',
+      );
       return;
     }
 
     let event: any;
 
     try {
-      event = this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+      event = this.stripe.webhooks.constructEvent(
+        payload,
+        signature,
+        webhookSecret,
+      );
     } catch (err: any) {
       this.logger.error(`Webhook Error: ${err.message}`);
       throw new BadRequestException(`Webhook Error: ${err.message}`);
     }
 
     if (event.type === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object as any;
-      
+      const paymentIntent = event.data.object;
+
       const payment = await this.paymentRepo.findOne({
         where: { stripePaymentIntentId: paymentIntent.id },
       });
@@ -148,7 +183,7 @@ export class PaymentsService {
       if (payment && payment.status !== PaymentStatus.CAPTURED) {
         payment.status = PaymentStatus.CAPTURED;
         await this.paymentRepo.save(payment);
-        
+
         // Let BookingsService know payment is complete
         this.logger.log(`Payment captured for booking ${payment.bookingId}`);
         // Can optionally update booking status or emit an event
@@ -180,10 +215,17 @@ export class PaymentsService {
     try {
       const booking = await this.bookingsService.findById(bookingId);
       if (booking) {
-        await this.bookingsService.updateStatus(bookingId, booking.userId, BookingStatus.CANCELLED);
+        await this.bookingsService.updateStatus(
+          bookingId,
+          booking.userId,
+          BookingStatus.CANCELLED,
+        );
       }
     } catch (e) {
-      this.logger.error('Failed to automatically transition booking to CANCELLED on refund', e);
+      this.logger.error(
+        'Failed to automatically transition booking to CANCELLED on refund',
+        e,
+      );
     }
 
     return payment;
@@ -193,7 +235,9 @@ export class PaymentsService {
     const payment = await this.paymentRepo.findOne({ where: { bookingId } });
     if (!payment) throw new NotFoundException('Payment record not found');
     if (payment.status !== PaymentStatus.CAPTURED) {
-      throw new BadRequestException('Payment must be captured before paying out');
+      throw new BadRequestException(
+        'Payment must be captured before paying out',
+      );
     }
 
     const booking = await this.bookingsService.findByIdWithRelations(bookingId);
@@ -203,12 +247,16 @@ export class PaymentsService {
 
     const vendor = booking.vendor;
     if (!vendor || !vendor.stripeAccountId) {
-      throw new BadRequestException('Vendor does not have a Stripe Connect account connected');
+      throw new BadRequestException(
+        'Vendor does not have a Stripe Connect account connected',
+      );
     }
 
     try {
       if (!payment.stripePaymentIntentId.startsWith('pi_mock_')) {
-        const amountInCents = Math.round(parseFloat(payment.vendorPayout) * 100);
+        const amountInCents = Math.round(
+          parseFloat(payment.vendorPayout) * 100,
+        );
         await this.stripe.transfers.create({
           amount: amountInCents,
           currency: 'gbp',

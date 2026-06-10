@@ -122,7 +122,7 @@ describe('AuthService', () => {
       userId: 'user-1',
       role: 'customer',
       permissions: [],
-    } as never);
+    });
     service = new AuthService(
       users as never,
       roles as never,
@@ -147,10 +147,10 @@ describe('AuthService', () => {
 
     it('rejects admin or super_admin self-signup', async () => {
       await expect(
-        service.signup({ ...baseSignup, role: 'admin' as never }),
+        service.signup({ ...baseSignup, role: 'admin' }),
       ).rejects.toBeInstanceOf(BadRequestException);
       await expect(
-        service.signup({ ...baseSignup, role: 'super_admin' as never }),
+        service.signup({ ...baseSignup, role: 'super_admin' }),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
@@ -166,7 +166,7 @@ describe('AuthService', () => {
           ...baseSignup,
           email: null,
           phoneNumber: '+447700900123',
-          otpChannel: 'email' as never,
+          otpChannel: 'email',
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
@@ -177,23 +177,27 @@ describe('AuthService', () => {
           ...baseSignup,
           email: 'a@b.com',
           phoneNumber: null,
-          otpChannel: 'phone' as never,
+          otpChannel: 'phone',
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('propagates Conflict from createOtpPending when the contact is already taken', async () => {
-      roles.findByNameOrFail.mockResolvedValue({ roleId: 'r-c' } as Role);
+      roles.findByNameOrFail.mockResolvedValue({ roleId: 'r-c' });
       users.createOtpPending.mockRejectedValue(
         new ConflictException('Account already exists; please log in instead'),
       );
-      await expect(service.signup(baseSignup)).rejects.toBeInstanceOf(ConflictException);
+      await expect(service.signup(baseSignup)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
       expect(otp.issue).not.toHaveBeenCalled();
     });
 
     it('creates the pending user, defaults displayName, and dispatches OTP via email', async () => {
-      roles.findByNameOrFail.mockResolvedValue({ roleId: 'r-c' } as Role);
-      users.createOtpPending.mockResolvedValue(makeUser({ passwordHash: null }));
+      roles.findByNameOrFail.mockResolvedValue({ roleId: 'r-c' });
+      users.createOtpPending.mockResolvedValue(
+        makeUser({ passwordHash: null }),
+      );
       otp.issue.mockResolvedValue('123456');
 
       await expect(service.signup(baseSignup)).resolves.toEqual({ ok: true });
@@ -208,12 +212,17 @@ describe('AuthService', () => {
           displayName: 'Alice Smith',
         }),
       );
-      expect(otp.issue).toHaveBeenCalledWith('alice@example.com', 'Alice Smith');
+      expect(otp.issue).toHaveBeenCalledWith(
+        'alice@example.com',
+        'Alice Smith',
+      );
     });
 
     it('uses the supplied displayName when provided', async () => {
-      roles.findByNameOrFail.mockResolvedValue({ roleId: 'r-c' } as Role);
-      users.createOtpPending.mockResolvedValue(makeUser({ passwordHash: null }));
+      roles.findByNameOrFail.mockResolvedValue({ roleId: 'r-c' });
+      users.createOtpPending.mockResolvedValue(
+        makeUser({ passwordHash: null }),
+      );
       await service.signup({ ...baseSignup, displayName: 'Ali' });
       expect(users.createOtpPending).toHaveBeenCalledWith(
         expect.objectContaining({ displayName: 'Ali' }),
@@ -221,24 +230,29 @@ describe('AuthService', () => {
     });
 
     it('routes the OTP to phone when otpChannel is "phone"', async () => {
-      roles.findByNameOrFail.mockResolvedValue({ roleId: 'r-c' } as Role);
-      users.createOtpPending.mockResolvedValue(makeUser({ passwordHash: null }));
+      roles.findByNameOrFail.mockResolvedValue({ roleId: 'r-c' });
+      users.createOtpPending.mockResolvedValue(
+        makeUser({ passwordHash: null }),
+      );
       await service.signup({
         ...baseSignup,
         email: null,
         phoneNumber: '+447700900123',
-        otpChannel: 'phone' as never,
+        otpChannel: 'phone',
       });
-      expect(otp.issue).toHaveBeenCalledWith('+447700900123', expect.any(String));
+      expect(otp.issue).toHaveBeenCalledWith(
+        '+447700900123',
+        expect.any(String),
+      );
     });
   });
 
   describe('verifyOtp', () => {
     it('throws Unauthorized when the identifier is unknown', async () => {
       users.findByIdentifier.mockResolvedValue(null);
-      await expect(service.verifyOtp('a@b.com', '123456')).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      );
+      await expect(
+        service.verifyOtp('a@b.com', '123456'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
     it('marks the user OTP-verified and returns a setupToken on success', async () => {
@@ -261,16 +275,16 @@ describe('AuthService', () => {
   describe('setPassword', () => {
     it('throws Unauthorized on an invalid setupToken', async () => {
       jwt.verifyAsync.mockRejectedValue(new Error('bad token'));
-      await expect(service.setPassword('garbage', 'Password123!')).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      );
+      await expect(
+        service.setPassword('garbage', 'Password123!'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
     it('throws Unauthorized when the token has the wrong type', async () => {
       jwt.verifyAsync.mockResolvedValue({ sub: 'user-1', type: 'access' });
-      await expect(service.setPassword('jwt', 'Password123!')).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      );
+      await expect(
+        service.setPassword('jwt', 'Password123!'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
     it('hashes the password and issues new tokens', async () => {
@@ -281,7 +295,10 @@ describe('AuthService', () => {
       const result = await service.setPassword('valid', 'Password123!');
 
       expect(bcryptMock.hash).toHaveBeenCalledWith('Password123!', 12);
-      expect(users.setPasswordHash).toHaveBeenCalledWith('user-1', 'bcrypt-hash');
+      expect(users.setPasswordHash).toHaveBeenCalledWith(
+        'user-1',
+        'bcrypt-hash',
+      );
       expect(refreshRepo.save).toHaveBeenCalled();
       expect(result.response.accessToken).toBe('signed-jwt');
       expect(typeof result.refreshToken).toBe('string');
@@ -298,7 +315,9 @@ describe('AuthService', () => {
     });
 
     it('throws when the user has no password set yet', async () => {
-      users.findByIdentifier.mockResolvedValue(makeUser({ passwordHash: null }));
+      users.findByIdentifier.mockResolvedValue(
+        makeUser({ passwordHash: null }),
+      );
       await expect(service.login('a@b.com', 'pw')).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
@@ -343,7 +362,9 @@ describe('AuthService', () => {
 
   describe('refresh', () => {
     it('throws when no cookie is present', async () => {
-      await expect(service.refresh('')).rejects.toBeInstanceOf(UnauthorizedException);
+      await expect(service.refresh('')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
     });
 
     it('throws when the token row is missing or already revoked', async () => {

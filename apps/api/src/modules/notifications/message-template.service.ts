@@ -103,7 +103,10 @@ export class MessageTemplateService {
    * values from a flat context object. Un-matched placeholders are
    * left in place so they surface visibly in logs / emails.
    */
-  interpolate(template: string, ctx: Record<string, string | undefined>): string {
+  interpolate(
+    template: string,
+    ctx: Record<string, string | undefined>,
+  ): string {
     return template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => {
       const val = ctx[key];
       return val !== undefined ? val : `{{${key}}}`;
@@ -212,7 +215,10 @@ export class MessageTemplateService {
   /**
    * Build the SMS body from a resolved template.
    */
-  buildSms(tpl: MessageTemplate, ctx: Record<string, string | undefined>): string {
+  buildSms(
+    tpl: MessageTemplate,
+    ctx: Record<string, string | undefined>,
+  ): string {
     return this.interpolate(tpl.smsBody, ctx);
   }
 

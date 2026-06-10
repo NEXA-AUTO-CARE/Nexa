@@ -8,7 +8,11 @@ import {
   Res,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiOperation, ApiResponse as ApiResponseDoc, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiResponse as ApiResponseDoc,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { AuthIssueResult, AuthService } from './auth.service';
@@ -36,8 +40,14 @@ export class AuthController {
   @Public()
   @Post('signup')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Start signup: create pending user and dispatch OTP' })
-  @ApiResponseDoc({ status: 200, description: 'OTP issued (logged to API stdout in dev)', schema: { example: { ok: true } } })
+  @ApiOperation({
+    summary: 'Start signup: create pending user and dispatch OTP',
+  })
+  @ApiResponseDoc({
+    status: 200,
+    description: 'OTP issued (logged to API stdout in dev)',
+    schema: { example: { ok: true } },
+  })
   signup(@Body() dto: SignupDto) {
     return this.auth.signup(dto);
   }
@@ -45,7 +55,9 @@ export class AuthController {
   @Public()
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify OTP code and receive a short-lived setupToken' })
+  @ApiOperation({
+    summary: 'Verify OTP code and receive a short-lived setupToken',
+  })
   @ApiResponseDoc({ status: 200, type: SetupTokenDto })
   @ApiResponseDoc({ status: 401, description: 'Invalid or expired OTP' })
   verifyOtp(@Body() dto: VerifyOtpDto): Promise<SetupTokenDto> {
@@ -55,7 +67,9 @@ export class AuthController {
   @Public()
   @Post('set-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Set initial password using setupToken; returns access + refresh' })
+  @ApiOperation({
+    summary: 'Set initial password using setupToken; returns access + refresh',
+  })
   @ApiResponseDoc({ status: 200, type: AuthResponseDto })
   async setPassword(
     @Body() dto: SetPasswordDto,
@@ -63,28 +77,35 @@ export class AuthController {
   ): Promise<AuthResponseDto> {
     const result = await this.auth.setPassword(dto.setupToken, dto.password);
     this.setRefreshCookie(res, result);
-    return result.response as AuthResponseDto;
+    return result.response;
   }
 
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Log in with identifier (email or phone) + password' })
+  @ApiOperation({
+    summary: 'Log in with identifier (email or phone) + password',
+  })
   @ApiResponseDoc({ status: 200, type: AuthResponseDto })
-  @ApiResponseDoc({ status: 401, description: 'Invalid credentials or unverified OTP' })
+  @ApiResponseDoc({
+    status: 401,
+    description: 'Invalid credentials or unverified OTP',
+  })
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResponseDto> {
     const result = await this.auth.login(dto.identifier, dto.password);
     this.setRefreshCookie(res, result);
-    return result.response as AuthResponseDto;
+    return result.response;
   }
 
   @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Request password reset: dispatch OTP to identifier' })
+  @ApiOperation({
+    summary: 'Request password reset: dispatch OTP to identifier',
+  })
   @ApiResponseDoc({ status: 200, schema: { example: { ok: true } } })
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.auth.forgotPassword(dto.identifier);
@@ -93,7 +114,9 @@ export class AuthController {
   @Public()
   @Post('verify-reset-otp')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify OTP code and receive a short-lived resetToken' })
+  @ApiOperation({
+    summary: 'Verify OTP code and receive a short-lived resetToken',
+  })
   @ApiResponseDoc({ status: 200, type: ResetTokenDto })
   @ApiResponseDoc({ status: 401, description: 'Invalid or expired OTP' })
   verifyResetOtp(@Body() dto: VerifyResetOtpDto): Promise<ResetTokenDto> {
@@ -103,21 +126,28 @@ export class AuthController {
   @Public()
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Set new password using resetToken; returns access + refresh' })
+  @ApiOperation({
+    summary: 'Set new password using resetToken; returns access + refresh',
+  })
   @ApiResponseDoc({ status: 200, type: AuthResponseDto })
   async resetPassword(
     @Body() dto: ResetPasswordDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResponseDto> {
-    const result = await this.auth.resetPassword(dto.resetToken, dto.newPassword);
+    const result = await this.auth.resetPassword(
+      dto.resetToken,
+      dto.newPassword,
+    );
     this.setRefreshCookie(res, result);
-    return result.response as AuthResponseDto;
+    return result.response;
   }
 
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Rotate refresh token cookie and issue a new access token' })
+  @ApiOperation({
+    summary: 'Rotate refresh token cookie and issue a new access token',
+  })
   @ApiResponseDoc({ status: 200, type: AuthResponseDto })
   async refresh(
     @Req() req: Request,
@@ -126,7 +156,7 @@ export class AuthController {
     const cookieToken = req.cookies?.[REFRESH_COOKIE] as string | undefined;
     const result = await this.auth.refresh(cookieToken ?? '');
     this.setRefreshCookie(res, result);
-    return result.response as AuthResponseDto;
+    return result.response;
   }
 
   @Public()
@@ -142,7 +172,8 @@ export class AuthController {
   }
 
   private setRefreshCookie(res: Response, result: AuthIssueResult): void {
-    const isProd = this.config.getOrThrow<string>('app.nodeEnv') === 'production';
+    const isProd =
+      this.config.getOrThrow<string>('app.nodeEnv') === 'production';
     res.cookie(REFRESH_COOKIE, result.refreshToken, {
       httpOnly: true,
       secure: isProd,

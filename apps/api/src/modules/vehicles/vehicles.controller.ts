@@ -48,7 +48,9 @@ export class VehiclesController {
   @Get()
   @ApiOperation({ summary: "List the current user's vehicles" })
   @ApiOkResponse({ description: 'Array of vehicles' })
-  async findAll(@CurrentUser() user: AuthenticatedUser): Promise<VehicleResponse[]> {
+  async findAll(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<VehicleResponse[]> {
     const list = await this.vehicles.findAllByOwner(user.userId);
     return list.map((v) => this.vehicles.toResponse(v));
   }

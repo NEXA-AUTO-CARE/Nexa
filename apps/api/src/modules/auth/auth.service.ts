@@ -8,17 +8,30 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { AuthResponse, OtpChannel, Permission, PublicUser, UserRole } from '@nexa/shared';
+import {
+  AuthResponse,
+  OtpChannel,
+  Permission,
+  PublicUser,
+  UserRole,
+} from '@nexa/shared';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'node:crypto';
 import { IsNull, MoreThan, Repository } from 'typeorm';
 import { RefreshToken, User } from '../../database/entities';
 import { RolesService } from '../roles/roles.service';
-import { UsersService, normalizeEmail, normalizePhone } from '../users/users.service';
+import {
+  UsersService,
+  normalizeEmail,
+  normalizePhone,
+} from '../users/users.service';
 import { OtpService } from './otp.service';
 import { MessageTemplateService } from '../notifications/message-template.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { AUTH_NOTIFICATION_TEMPLATES_KEY, DEFAULT_AUTH_TEMPLATES } from '../notifications/templates/auth.templates';
+import {
+  AUTH_NOTIFICATION_TEMPLATES_KEY,
+  DEFAULT_AUTH_TEMPLATES,
+} from '../notifications/templates/auth.templates';
 
 const BCRYPT_ROUNDS = 12;
 const SETUP_TOKEN_TTL_SECONDS = 5 * 60;
@@ -26,7 +39,10 @@ const SETUP_TOKEN_AUDIENCE = 'nexa:set-password';
 const RESET_TOKEN_TTL_SECONDS = 15 * 60;
 const RESET_TOKEN_AUDIENCE = 'nexa:reset-password';
 
-const SELF_SIGNUP_ROLES: ReadonlySet<string> = new Set([UserRole.CUSTOMER, UserRole.VENDOR]);
+const SELF_SIGNUP_ROLES: ReadonlySet<string> = new Set([
+  UserRole.CUSTOMER,
+  UserRole.VENDOR,
+]);
 
 interface SetupTokenPayload {
   sub: string;
@@ -81,20 +97,28 @@ export class AuthService {
 
   async signup(args: SignupArgs): Promise<{ ok: true }> {
     if (!SELF_SIGNUP_ROLES.has(args.role)) {
-      throw new BadRequestException('Only customer or vendor accounts can self-register');
+      throw new BadRequestException(
+        'Only customer or vendor accounts can self-register',
+      );
     }
 
     const email = args.email ? normalizeEmail(args.email) : null;
-    const phoneNumber = args.phoneNumber ? normalizePhone(args.phoneNumber) : null;
+    const phoneNumber = args.phoneNumber
+      ? normalizePhone(args.phoneNumber)
+      : null;
 
     if (!email && !phoneNumber) {
       throw new BadRequestException('Provide an email or a phone number');
     }
     if (args.otpChannel === 'email' && !email) {
-      throw new BadRequestException('OTP channel "email" requires an email address');
+      throw new BadRequestException(
+        'OTP channel "email" requires an email address',
+      );
     }
     if (args.otpChannel === 'phone' && !phoneNumber) {
-      throw new BadRequestException('OTP channel "phone" requires a phone number');
+      throw new BadRequestException(
+        'OTP channel "phone" requires a phone number',
+      );
     }
 
     const otpTarget = args.otpChannel === 'email' ? email! : phoneNumber!;
@@ -116,7 +140,10 @@ export class AuthService {
     return { ok: true };
   }
 
-  async verifyOtp(identifier: string, code: string): Promise<{ setupToken: string }> {
+  async verifyOtp(
+    identifier: string,
+    code: string,
+  ): Promise<{ setupToken: string }> {
     const user = await this.users.findByIdentifier(identifier);
     if (!user) throw new UnauthorizedException('Unknown identifier');
     await this.otp.verify(identifier, code);
@@ -126,11 +153,16 @@ export class AuthService {
       type: 'setup',
       aud: SETUP_TOKEN_AUDIENCE,
     };
-    const setupToken = await this.jwt.signAsync(payload, { expiresIn: SETUP_TOKEN_TTL_SECONDS });
+    const setupToken = await this.jwt.signAsync(payload, {
+      expiresIn: SETUP_TOKEN_TTL_SECONDS,
+    });
     return { setupToken };
   }
 
-  async setPassword(setupToken: string, password: string): Promise<AuthIssueResult> {
+  async setPassword(
+    setupToken: string,
+    password: string,
+  ): Promise<AuthIssueResult> {
     let payload: SetupTokenPayload;
     try {
       payload = await this.jwt.verifyAsync<SetupTokenPayload>(setupToken, {
@@ -144,7 +176,9 @@ export class AuthService {
     }
     const user = await this.users.findById(payload.sub);
     if (user.passwordHash) {
-      throw new ConflictException('Password already set; use the password reset flow');
+      throw new ConflictException(
+        'Password already set; use the password reset flow',
+      );
     }
     const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     await this.users.setPasswordHash(payload.sub, hash);
@@ -163,21 +197,29 @@ export class AuthService {
     return { ok: true };
   }
 
-  async verifyResetOtp(identifier: string, code: string): Promise<{ resetToken: string }> {
+  async verifyResetOtp(
+    identifier: string,
+    code: string,
+  ): Promise<{ resetToken: string }> {
     const user = await this.users.findByIdentifier(identifier);
     if (!user) throw new UnauthorizedException('Unknown identifier');
     await this.otp.verify(identifier, code);
-    
+
     const payload: ResetTokenPayload = {
       sub: user.userId,
       type: 'reset',
       aud: RESET_TOKEN_AUDIENCE,
     };
-    const resetToken = await this.jwt.signAsync(payload, { expiresIn: RESET_TOKEN_TTL_SECONDS });
+    const resetToken = await this.jwt.signAsync(payload, {
+      expiresIn: RESET_TOKEN_TTL_SECONDS,
+    });
     return { resetToken };
   }
 
-  async resetPassword(resetToken: string, newPassword: string): Promise<AuthIssueResult> {
+  async resetPassword(
+    resetToken: string,
+    newPassword: string,
+  ): Promise<AuthIssueResult> {
     let payload: ResetTokenPayload;
     try {
       payload = await this.jwt.verifyAsync<ResetTokenPayload>(resetToken, {
@@ -189,13 +231,13 @@ export class AuthService {
     if (payload.type !== 'reset') {
       throw new UnauthorizedException('Invalid reset token');
     }
-    
+
     const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await this.users.setPasswordHash(payload.sub, hash);
-    
+
     const refreshed = await this.users.findById(payload.sub);
     await this.dispatchAuthEvent(refreshed, 'password_changed');
-    
+
     return this.issueAuthResult(refreshed);
   }
 
@@ -213,12 +255,18 @@ export class AuthService {
   }
 
   async refresh(rawCookieToken: string): Promise<AuthIssueResult> {
-    if (!rawCookieToken) throw new UnauthorizedException('Missing refresh token');
+    if (!rawCookieToken)
+      throw new UnauthorizedException('Missing refresh token');
     const tokenHash = this.hashToken(rawCookieToken);
     const row = await this.refreshRepo.findOne({
-      where: { tokenHash, revokedAt: IsNull(), expiresAt: MoreThan(new Date()) },
+      where: {
+        tokenHash,
+        revokedAt: IsNull(),
+        expiresAt: MoreThan(new Date()),
+      },
     });
-    if (!row) throw new UnauthorizedException('Invalid or expired refresh token');
+    if (!row)
+      throw new UnauthorizedException('Invalid or expired refresh token');
     row.revokedAt = new Date();
     await this.refreshRepo.save(row);
     const user = await this.users.findById(row.userId);
@@ -228,7 +276,10 @@ export class AuthService {
   async logout(rawCookieToken: string | undefined): Promise<{ ok: true }> {
     if (!rawCookieToken) return { ok: true };
     const tokenHash = this.hashToken(rawCookieToken);
-    await this.refreshRepo.update({ tokenHash, revokedAt: IsNull() }, { revokedAt: new Date() });
+    await this.refreshRepo.update(
+      { tokenHash, revokedAt: IsNull() },
+      { revokedAt: new Date() },
+    );
     return { ok: true };
   }
 
@@ -242,7 +293,9 @@ export class AuthService {
     };
     const accessTtl = this.config.getOrThrow<number>('app.jwt.accessTtl');
     const refreshTtl = this.config.getOrThrow<number>('app.jwt.refreshTtl');
-    const accessToken = await this.jwt.signAsync(accessPayload, { expiresIn: accessTtl });
+    const accessToken = await this.jwt.signAsync(accessPayload, {
+      expiresIn: accessTtl,
+    });
     const rawRefresh = randomBytes(32).toString('hex');
     const refreshExpiresAt = new Date(Date.now() + refreshTtl * 1000);
     await this.refreshRepo.save(
@@ -264,7 +317,11 @@ export class AuthService {
     return createHash('sha256').update(raw).digest('hex');
   }
 
-  private async dispatchAuthEvent(user: User, eventName: string, extras: Record<string, string> = {}): Promise<void> {
+  private async dispatchAuthEvent(
+    user: User,
+    eventName: string,
+    extras: Record<string, string> = {},
+  ): Promise<void> {
     try {
       const content = await this.templateService.process(
         eventName,
@@ -277,12 +334,19 @@ export class AuthService {
       if (!target) return;
 
       if (target.channel === 'email') {
-        await this.notifications.sendEmail(target.destination, content.subject, content.html);
+        await this.notifications.sendEmail(
+          target.destination,
+          content.subject,
+          content.html,
+        );
       } else {
         await this.notifications.sendSms(target.destination, content.smsText);
       }
     } catch (err) {
-      this.logger.error(`Failed to dispatch auth event ${eventName}`, (err as Error).stack);
+      this.logger.error(
+        `Failed to dispatch auth event ${eventName}`,
+        (err as Error).stack,
+      );
     }
   }
 }

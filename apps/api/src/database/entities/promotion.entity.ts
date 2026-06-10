@@ -13,7 +13,11 @@ import { User } from './user.entity';
 
 @Entity('promotions')
 export class Promotion extends AuditEntity {
-  @PrimaryColumn({ type: 'uuid', name: 'promotion_id', default: () => 'uuidv7()' })
+  @PrimaryColumn({
+    type: 'uuid',
+    name: 'promotion_id',
+    default: () => 'uuidv7()',
+  })
   promotionId: string;
 
   @Column({ type: 'varchar', length: 255 })
@@ -22,10 +26,18 @@ export class Promotion extends AuditEntity {
   @Column({ type: 'text' })
   message: string;
 
-  @Column({ type: 'enum', enum: PromotionType, default: PromotionType.ANNOUNCEMENT })
+  @Column({
+    type: 'enum',
+    enum: PromotionType,
+    default: PromotionType.ANNOUNCEMENT,
+  })
   type: PromotionType;
 
-  @Column({ type: 'enum', enum: PromotionStatus, default: PromotionStatus.DRAFT })
+  @Column({
+    type: 'enum',
+    enum: PromotionStatus,
+    default: PromotionStatus.DRAFT,
+  })
   status: PromotionStatus;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })

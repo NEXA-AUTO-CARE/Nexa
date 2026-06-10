@@ -19,7 +19,9 @@ const useIndividual = !!(
 
 const requiresSsl =
   useIndividual ||
-  /[?&]sslmode=(require|prefer|verify-ca|verify-full|no-verify)/i.test(rawUrl) ||
+  /[?&]sslmode=(require|prefer|verify-ca|verify-full|no-verify)/i.test(
+    rawUrl,
+  ) ||
   /[?&]ssl=true/i.test(rawUrl);
 export const AppDataSource = new DataSource(
   useIndividual
@@ -41,7 +43,9 @@ export const AppDataSource = new DataSource(
     : {
         type: 'postgres',
         // Strip sslmode/ssl params — pg parses them and overrides the explicit ssl option
-        url: rawUrl.replace(/([?&])(sslmode|ssl)=[^&]*&?/gi, '$1').replace(/[?&]$/, ''),
+        url: rawUrl
+          .replace(/([?&])(sslmode|ssl)=[^&]*&?/gi, '$1')
+          .replace(/[?&]$/, ''),
         ssl: requiresSsl ? { rejectUnauthorized: false } : undefined,
         entities: Object.values(entities),
         migrations: [resolve(__dirname, 'database/migrations/*.{ts,js}')],

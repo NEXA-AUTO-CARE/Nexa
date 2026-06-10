@@ -49,7 +49,6 @@ import { PromotionsModule } from './modules/promotions/promotions.module';
     PromotionsModule,
   ],
 
-
   controllers: [AppController],
   providers: [
     AppService,

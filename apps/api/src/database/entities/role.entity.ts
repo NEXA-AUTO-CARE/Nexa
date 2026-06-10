@@ -1,10 +1,4 @@
-import {
-  Column,
-  Entity,
-  Index,
-  OneToMany,
-  PrimaryColumn,
-} from 'typeorm';
+import { Column, Entity, Index, OneToMany, PrimaryColumn } from 'typeorm';
 import { AuditEntity } from './audit.entity';
 import { RolePermission } from './role-permission.entity';
 import { User } from './user.entity';
@@ -26,7 +20,9 @@ export class Role extends AuditEntity {
   @Column({ type: 'boolean', default: false, name: 'is_system' })
   isSystem: boolean;
 
-  @OneToMany(() => RolePermission, (rp) => rp.role, { cascade: ['insert', 'remove'] })
+  @OneToMany(() => RolePermission, (rp) => rp.role, {
+    cascade: ['insert', 'remove'],
+  })
   rolePermissions: RolePermission[];
 
   @OneToMany(() => User, (u) => u.role)

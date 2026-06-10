@@ -54,6 +54,7 @@ export default function AdminAddonsPage() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- setState is deferred behind await
     loadAddons()
   }, [])
 
@@ -100,9 +101,10 @@ export default function AdminAddonsPage() {
 
       setShowModal(false)
       await loadAddons()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      setActionError(err.response?.data?.message || 'Failed to save add-on details.')
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setActionError(message || 'Failed to save add-on details.')
     } finally {
       setSaving(false)
     }

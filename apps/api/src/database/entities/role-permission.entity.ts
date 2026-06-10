@@ -16,7 +16,11 @@ import { Role } from './role.entity';
 @Entity('role_permissions')
 @Index('uq_role_permissions', ['roleId', 'permission'], { unique: true })
 export class RolePermission extends AuditEntity {
-  @PrimaryColumn({ type: 'uuid', name: 'role_permission_id', default: () => 'uuidv7()' })
+  @PrimaryColumn({
+    type: 'uuid',
+    name: 'role_permission_id',
+    default: () => 'uuidv7()',
+  })
   rolePermissionId: string;
 
   @Column({ type: 'uuid' })

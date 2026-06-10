@@ -39,7 +39,11 @@ export class PromotionsService {
   /* ---------------------------------------------------------------- */
 
   async create(dto: CreatePromotionDto, userId: string): Promise<Promotion> {
-    this.validateTypeFields(dto.type, dto.discountPercent, dto.bonanzaThreshold);
+    this.validateTypeFields(
+      dto.type,
+      dto.discountPercent,
+      dto.bonanzaThreshold,
+    );
 
     const promo = this.promoRepo.create({
       title: dto.title,
@@ -73,7 +77,11 @@ export class PromotionsService {
     return promo;
   }
 
-  async update(id: string, dto: UpdatePromotionDto, userId: string): Promise<Promotion> {
+  async update(
+    id: string,
+    dto: UpdatePromotionDto,
+    userId: string,
+  ): Promise<Promotion> {
     const promo = await this.findOne(id);
     if (promo.status !== PromotionStatus.DRAFT) {
       throw new BadRequestException('Only draft promotions can be edited');
@@ -82,7 +90,10 @@ export class PromotionsService {
     if (dto.type) {
       this.validateTypeFields(
         dto.type,
-        dto.discountPercent ?? (promo.discountPercent ? parseFloat(promo.discountPercent) : undefined),
+        dto.discountPercent ??
+          (promo.discountPercent
+            ? parseFloat(promo.discountPercent)
+            : undefined),
         dto.bonanzaThreshold ?? promo.bonanzaThreshold ?? undefined,
       );
     }
@@ -90,11 +101,16 @@ export class PromotionsService {
     if (dto.title !== undefined) promo.title = dto.title;
     if (dto.message !== undefined) promo.message = dto.message;
     if (dto.type !== undefined) promo.type = dto.type;
-    if (dto.discountPercent !== undefined) promo.discountPercent = dto.discountPercent.toFixed(2);
-    if (dto.bonanzaThreshold !== undefined) promo.bonanzaThreshold = dto.bonanzaThreshold;
-    if (dto.bonanzaRecurring !== undefined) promo.bonanzaRecurring = dto.bonanzaRecurring;
-    if (dto.startDate !== undefined) promo.startDate = dto.startDate ? new Date(dto.startDate) : null;
-    if (dto.endDate !== undefined) promo.endDate = dto.endDate ? new Date(dto.endDate) : null;
+    if (dto.discountPercent !== undefined)
+      promo.discountPercent = dto.discountPercent.toFixed(2);
+    if (dto.bonanzaThreshold !== undefined)
+      promo.bonanzaThreshold = dto.bonanzaThreshold;
+    if (dto.bonanzaRecurring !== undefined)
+      promo.bonanzaRecurring = dto.bonanzaRecurring;
+    if (dto.startDate !== undefined)
+      promo.startDate = dto.startDate ? new Date(dto.startDate) : null;
+    if (dto.endDate !== undefined)
+      promo.endDate = dto.endDate ? new Date(dto.endDate) : null;
     promo.updatedBy = userId;
 
     return this.promoRepo.save(promo);
@@ -124,8 +140,13 @@ export class PromotionsService {
     promo.updatedBy = userId;
     const saved = await this.promoRepo.save(promo);
 
-    this.logger.log(`[LIFECYCLE] Promotion "${promo.title}" activated by ${userId}`);
-    this.events.emit(PromotionStartedEvent.EVENT_NAME, new PromotionStartedEvent(saved));
+    this.logger.log(
+      `[LIFECYCLE] Promotion "${promo.title}" activated by ${userId}`,
+    );
+    this.events.emit(
+      PromotionStartedEvent.EVENT_NAME,
+      new PromotionStartedEvent(saved),
+    );
 
     return saved;
   }
@@ -141,7 +162,9 @@ export class PromotionsService {
     promo.endedById = userId;
     promo.updatedBy = userId;
 
-    this.logger.log(`[LIFECYCLE] Promotion "${promo.title}" ended by ${userId}`);
+    this.logger.log(
+      `[LIFECYCLE] Promotion "${promo.title}" ended by ${userId}`,
+    );
     return this.promoRepo.save(promo);
   }
 
@@ -172,7 +195,9 @@ export class PromotionsService {
     if (valid.length === 0) return null;
 
     // Prefer discount > bonanza > announcement
-    const discount = valid.find((p) => p.type === PromotionType.PERCENTAGE_DISCOUNT);
+    const discount = valid.find(
+      (p) => p.type === PromotionType.PERCENTAGE_DISCOUNT,
+    );
     if (discount) return discount;
 
     const bonanza = valid.find((p) => p.type === PromotionType.BONANZA);
@@ -270,7 +295,9 @@ export class PromotionsService {
       message: promo.message,
       type: promo.type,
       status: promo.status,
-      discountPercent: promo.discountPercent ? parseFloat(promo.discountPercent) : null,
+      discountPercent: promo.discountPercent
+        ? parseFloat(promo.discountPercent)
+        : null,
       bonanzaThreshold: promo.bonanzaThreshold,
       bonanzaRecurring: promo.bonanzaRecurring ?? false,
       startDate: promo.startDate?.toISOString() ?? null,
@@ -293,16 +320,22 @@ export class PromotionsService {
   ): void {
     if (type === PromotionType.PERCENTAGE_DISCOUNT) {
       if (discountPercent === undefined || discountPercent === null) {
-        throw new BadRequestException('discountPercent is required for percentage_discount promotions');
+        throw new BadRequestException(
+          'discountPercent is required for percentage_discount promotions',
+        );
       }
       if (discountPercent < 1 || discountPercent > 100) {
-        throw new BadRequestException('discountPercent must be between 1 and 100');
+        throw new BadRequestException(
+          'discountPercent must be between 1 and 100',
+        );
       }
     }
 
     if (type === PromotionType.BONANZA) {
       if (bonanzaThreshold === undefined || bonanzaThreshold === null) {
-        throw new BadRequestException('bonanzaThreshold is required for bonanza promotions');
+        throw new BadRequestException(
+          'bonanzaThreshold is required for bonanza promotions',
+        );
       }
       if (bonanzaThreshold < 1) {
         throw new BadRequestException('bonanzaThreshold must be at least 1');

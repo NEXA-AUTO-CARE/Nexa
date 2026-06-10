@@ -1,4 +1,8 @@
-import { type SignupDto as Shape, UserRole, type OtpChannel } from '@nexa/shared';
+import {
+  type SignupDto as Shape,
+  UserRole,
+  type OtpChannel,
+} from '@nexa/shared';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {

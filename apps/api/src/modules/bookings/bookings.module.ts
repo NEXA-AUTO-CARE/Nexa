@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Booking, Vehicle, ServiceAddon, Review } from '../../database/entities';
+import {
+  Booking,
+  Vehicle,
+  ServiceAddon,
+  Review,
+} from '../../database/entities';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PromotionsModule } from '../promotions/promotions.module';
 import { SettingsModule } from '../settings/settings.module';

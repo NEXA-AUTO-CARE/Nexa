@@ -27,7 +27,11 @@ async function bootstrap() {
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
       'jwt',
     )
-    .addCookieAuth('nexa_rt', { type: 'apiKey', in: 'cookie' }, 'refresh-cookie')
+    .addCookieAuth(
+      'nexa_rt',
+      { type: 'apiKey', in: 'cookie' },
+      'refresh-cookie',
+    )
     .addTag('auth', 'Signup, OTP verification, login, refresh, logout')
     .addTag('users', 'Current user profile')
     .addTag('admin/roles', 'Role and permission management (super_admin only)')
@@ -40,9 +44,9 @@ async function bootstrap() {
 
   const port = config.getOrThrow<number>('app.port');
   await app.listen(port);
-  // eslint-disable-next-line no-console
+
   console.log(`[nexa-api] listening on http://localhost:${port}`);
-  // eslint-disable-next-line no-console
+
   console.log(`[nexa-api] OpenAPI docs at http://localhost:${port}/api/docs`);
 }
 bootstrap();

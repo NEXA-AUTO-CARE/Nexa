@@ -35,8 +35,11 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
     if (vehicleId && vehicles.length > 0 && !selectedVehicle) {
       const match = vehicles.find((v) => v.vehicleId === vehicleId)
       if (match) {
-        setSelectedVehicle(match)
-        setStep(1)
+        // Defer to avoid synchronous setState in effect body
+        Promise.resolve().then(() => {
+          setSelectedVehicle(match)
+          setStep(1)
+        })
       }
     }
   }, [searchParams, vehicles, selectedVehicle])

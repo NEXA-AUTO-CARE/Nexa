@@ -54,13 +54,15 @@ export default function AdminUsersPage() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load() setState is deferred behind await
+    load()
+  }, [])
 
   useEffect(() => {
-    if (success || error) {
-      const t = setTimeout(() => { setSuccess(null); setError(null) }, 5000)
-      return () => clearTimeout(t)
-    }
+    if (!success && !error) return
+    const t = setTimeout(() => { setSuccess(null); setError(null) }, 5000)
+    return () => clearTimeout(t)
   }, [success, error])
 
   const handleRoleChange = async (user: AdminUser, newRole: string) => {
@@ -71,8 +73,9 @@ export default function AdminUsersPage() {
         u.userId === user.userId ? { ...u, role: newRole } : u
       ))
       setSuccess(`${user.displayName}'s role updated to ${newRole}.`)
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update role.')
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(message || 'Failed to update role.')
     }
   }
 

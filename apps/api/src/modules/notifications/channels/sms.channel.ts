@@ -4,7 +4,15 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class SmsChannel {
   private readonly logger = new Logger(SmsChannel.name);
-  private client: { messages: { create: (opts: { to: string; from: string; body: string }) => Promise<unknown> } } | null = null;
+  private client: {
+    messages: {
+      create: (opts: {
+        to: string;
+        from: string;
+        body: string;
+      }) => Promise<unknown>;
+    };
+  } | null = null;
   private from: string | undefined;
 
   constructor(private readonly config: ConfigService) {

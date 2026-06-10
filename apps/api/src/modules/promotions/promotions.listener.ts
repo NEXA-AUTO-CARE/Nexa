@@ -24,7 +24,9 @@ export class PromotionsListener {
   @OnEvent(PromotionStartedEvent.EVENT_NAME)
   async handlePromotionStarted(event: PromotionStartedEvent): Promise<void> {
     const { promotion } = event;
-    this.logger.log(`[EVENT] promotion.started → broadcasting "${promotion.title}" to all customers`);
+    this.logger.log(
+      `[EVENT] promotion.started → broadcasting "${promotion.title}" to all customers`,
+    );
 
     const customers = await this.usersService.findAllCustomers();
     if (customers.length === 0) {
@@ -33,7 +35,9 @@ export class PromotionsListener {
     }
 
     // Build the notification content
-    const overrides = await this.templateService.loadOverrides(PROMOTION_TEMPLATES_KEY);
+    const overrides = await this.templateService.loadOverrides(
+      PROMOTION_TEMPLATES_KEY,
+    );
     const tpl = this.templateService.resolveTemplate(
       promotion.type,
       DEFAULT_PROMOTION_TEMPLATES,
@@ -51,11 +55,19 @@ export class PromotionsListener {
           promotionMessage: promotion.message,
         };
 
-        if (promotion.type === PromotionType.PERCENTAGE_DISCOUNT && promotion.discountPercent) {
-          ctx['discountPercent'] = parseFloat(promotion.discountPercent).toString();
+        if (
+          promotion.type === PromotionType.PERCENTAGE_DISCOUNT &&
+          promotion.discountPercent
+        ) {
+          ctx['discountPercent'] = parseFloat(
+            promotion.discountPercent,
+          ).toString();
         }
 
-        if (promotion.type === PromotionType.BONANZA && promotion.bonanzaThreshold) {
+        if (
+          promotion.type === PromotionType.BONANZA &&
+          promotion.bonanzaThreshold
+        ) {
           ctx['bonanzaThreshold'] = promotion.bonanzaThreshold.toString();
         }
 
@@ -72,6 +84,8 @@ export class PromotionsListener {
       }
     }
 
-    this.logger.log(`[EVENT] promotion.started → sent ${sent}/${customers.length} notifications`);
+    this.logger.log(
+      `[EVENT] promotion.started → sent ${sent}/${customers.length} notifications`,
+    );
   }
 }

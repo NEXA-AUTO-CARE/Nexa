@@ -94,7 +94,10 @@ export default function AdminPromotionsPage() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- setState is deferred behind await
+    load()
+  }, [])
 
   useEffect(() => {
     if (success || error) {
@@ -162,8 +165,9 @@ export default function AdminPromotionsPage() {
       }
       setShowModal(false)
       await load()
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save promotion.')
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(message || 'Failed to save promotion.')
     } finally {
       setSaving(false)
     }
@@ -176,8 +180,9 @@ export default function AdminPromotionsPage() {
       await api.post(`/admin/promotions/${p.promotionId}/start`)
       setSuccess(`"${p.title}" is now live! Notifications are being sent.`)
       await load()
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to start promotion.')
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(message || 'Failed to start promotion.')
     }
   }
 
@@ -188,8 +193,9 @@ export default function AdminPromotionsPage() {
       await api.post(`/admin/promotions/${p.promotionId}/end`)
       setSuccess(`"${p.title}" has been ended.`)
       await load()
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to end promotion.')
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(message || 'Failed to end promotion.')
     }
   }
 
@@ -200,8 +206,9 @@ export default function AdminPromotionsPage() {
       await api.delete(`/admin/promotions/${p.promotionId}`)
       setSuccess(`"${p.title}" deleted.`)
       await load()
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete promotion.')
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(message || 'Failed to delete promotion.')
     }
   }
 

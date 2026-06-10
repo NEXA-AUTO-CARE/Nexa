@@ -32,7 +32,8 @@ describe('SnsChannel', () => {
           useValue: {
             get: jest.fn((key: string) => {
               if (key === 'app.sns.region') return 'us-east-1';
-              if (key === 'app.sns.topicArn') return 'arn:aws:sns:us-east-1:123456789012:test-topic';
+              if (key === 'app.sns.topicArn')
+                return 'arn:aws:sns:us-east-1:123456789012:test-topic';
               if (key === 'app.sns.smsProvider') return 'sns';
               return null;
             }),
@@ -43,7 +44,7 @@ describe('SnsChannel', () => {
 
     channel = module.get<SnsChannel>(SnsChannel);
     configService = module.get<ConfigService>(ConfigService);
-    
+
     // Get the mocked SNSClient constructor and instance
     const mockedSNSClient = SNSClient as jest.Mock;
     mockSnsClientInstance = mockedSNSClient.mock.results[0]?.value;
@@ -57,9 +58,9 @@ describe('SnsChannel', () => {
     it('should initialize the SNSClient with region from configuration', () => {
       const originalNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'development';
-      
+
       const testChannel = new SnsChannel(configService);
-      
+
       expect(SNSClient).toHaveBeenCalledWith({ region: 'us-east-1' });
       process.env.NODE_ENV = originalNodeEnv;
     });
@@ -86,7 +87,9 @@ describe('SnsChannel', () => {
       await channel.sendSms('+1234567890', 'Hello World');
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[SNS-SMS-DEV] To: +1234567890 | Message: Hello World')
+        expect.stringContaining(
+          '[SNS-SMS-DEV] To: +1234567890 | Message: Hello World',
+        ),
       );
     });
   });
@@ -96,7 +99,11 @@ describe('SnsChannel', () => {
       const mockSend = jest.fn().mockResolvedValue({});
       channel['snsClient'] = { send: mockSend } as any;
 
-      await channel.publishToTopic('Hello Topic', 'Test Subject', 'arn:aws:sns:us-east-1:123456789012:custom-topic');
+      await channel.publishToTopic(
+        'Hello Topic',
+        'Test Subject',
+        'arn:aws:sns:us-east-1:123456789012:custom-topic',
+      );
 
       expect(mockSend).toHaveBeenCalledTimes(1);
       expect(PublishCommand).toHaveBeenCalledWith({
@@ -110,7 +117,10 @@ describe('SnsChannel', () => {
       const mockSend = jest.fn().mockResolvedValue({});
       channel['snsClient'] = { send: mockSend } as any;
 
-      await channel.publishToTopic('Hello Default Topic', 'Test Default Subject');
+      await channel.publishToTopic(
+        'Hello Default Topic',
+        'Test Default Subject',
+      );
 
       expect(mockSend).toHaveBeenCalledTimes(1);
       expect(PublishCommand).toHaveBeenCalledWith({
@@ -127,7 +137,9 @@ describe('SnsChannel', () => {
       await channel.publishToTopic('Hello Default Topic');
 
       expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Cannot publish to SNS Topic — no topic ARN configured or provided')
+        expect.stringContaining(
+          'Cannot publish to SNS Topic — no topic ARN configured or provided',
+        ),
       );
     });
   });

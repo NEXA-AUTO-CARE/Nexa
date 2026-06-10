@@ -47,18 +47,33 @@ describe('PaymentsService', () => {
 
   describe('createPaymentIntent', () => {
     it('should throw if booking is completed', async () => {
-      bookingsService.verifyMyBooking.mockResolvedValue({ bookingId: 'b1', status: BookingStatus.COMPLETED });
-      await expect(service.createPaymentIntent('u1', { bookingId: 'b1' })).rejects.toThrow(BadRequestException);
+      bookingsService.verifyMyBooking.mockResolvedValue({
+        bookingId: 'b1',
+        status: BookingStatus.COMPLETED,
+      });
+      await expect(
+        service.createPaymentIntent('u1', { bookingId: 'b1' }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw if booking is already paid', async () => {
-      bookingsService.verifyMyBooking.mockResolvedValue({ bookingId: 'b1', status: BookingStatus.ACCEPTED, price: '29.99' });
+      bookingsService.verifyMyBooking.mockResolvedValue({
+        bookingId: 'b1',
+        status: BookingStatus.ACCEPTED,
+        price: '29.99',
+      });
       paymentRepo.findOne.mockResolvedValue({ status: PaymentStatus.CAPTURED });
-      await expect(service.createPaymentIntent('u1', { bookingId: 'b1' })).rejects.toThrow(BadRequestException);
+      await expect(
+        service.createPaymentIntent('u1', { bookingId: 'b1' }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should mock payment intent when stripe fails (development)', async () => {
-      bookingsService.verifyMyBooking.mockResolvedValue({ bookingId: 'b1', status: BookingStatus.ACCEPTED, price: '29.99' });
+      bookingsService.verifyMyBooking.mockResolvedValue({
+        bookingId: 'b1',
+        status: BookingStatus.ACCEPTED,
+        price: '29.99',
+      });
       paymentRepo.findOne.mockResolvedValue(null);
       paymentRepo.create.mockReturnValue({
         paymentId: 'p1',
@@ -66,8 +81,10 @@ describe('PaymentsService', () => {
         status: PaymentStatus.PENDING,
         amount: '29.99',
       });
-      
-      const result = await service.createPaymentIntent('u1', { bookingId: 'b1' });
+
+      const result = await service.createPaymentIntent('u1', {
+        bookingId: 'b1',
+      });
       expect(result.clientSecret).toBe('pi_mock_secret');
       expect(paymentRepo.save).toHaveBeenCalled();
     });

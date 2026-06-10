@@ -26,7 +26,7 @@ describe('JwtAuthGuard', () => {
     const guard = new JwtAuthGuard(reflector);
     const baseSpy = jest
       .spyOn(Object.getPrototypeOf(Object.getPrototypeOf(guard)), 'canActivate')
-      .mockReturnValue('delegated' as never);
+      .mockReturnValue('delegated');
 
     const result = guard.canActivate(makeContext());
 

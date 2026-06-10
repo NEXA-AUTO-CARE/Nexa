@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Permission, PublicUser, UpdateUserAdminDto } from '@nexa/shared';
 import { Repository } from 'typeorm';
@@ -26,7 +30,9 @@ export function parseIdentifier(identifier: string): IdentifierParts {
   if (PHONE_RX.test(phoneCandidate)) {
     return { kind: 'phone', email: null, phoneNumber: phoneCandidate };
   }
-  throw new Error('Identifier must be a valid email or E.164-style phone number');
+  throw new Error(
+    'Identifier must be a valid email or E.164-style phone number',
+  );
 }
 
 export function normalizeEmail(email: string): string {
@@ -39,7 +45,9 @@ export function normalizePhone(phone: string): string {
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectRepository(User) private readonly userRepo: Repository<User>) { }
+  constructor(
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
+  ) {}
 
   async findById(userId: string): Promise<User> {
     const user = await this.userRepo.findOne({ where: { userId } });
@@ -50,7 +58,9 @@ export class UsersService {
   async findByIdentifier(identifier: string): Promise<User | null> {
     const parts = parseIdentifier(identifier);
     return this.userRepo.findOne({
-      where: parts.email ? { email: parts.email } : { phoneNumber: parts.phoneNumber! },
+      where: parts.email
+        ? { email: parts.email }
+        : { phoneNumber: parts.phoneNumber! },
     });
   }
 
@@ -59,7 +69,9 @@ export class UsersService {
   }
 
   async findByPhone(phoneNumber: string): Promise<User | null> {
-    return this.userRepo.findOne({ where: { phoneNumber: normalizePhone(phoneNumber) } });
+    return this.userRepo.findOne({
+      where: { phoneNumber: normalizePhone(phoneNumber) },
+    });
   }
 
   /**
@@ -79,12 +91,16 @@ export class UsersService {
     displayName: string;
   }): Promise<User> {
     const email = args.email ? normalizeEmail(args.email) : null;
-    const phoneNumber = args.phoneNumber ? normalizePhone(args.phoneNumber) : null;
+    const phoneNumber = args.phoneNumber
+      ? normalizePhone(args.phoneNumber)
+      : null;
 
     const existing = await this.findByContact(email, phoneNumber);
     if (existing) {
       if (existing.passwordHash || existing.otpVerified) {
-        throw new ConflictException('Account already exists; please log in instead');
+        throw new ConflictException(
+          'Account already exists; please log in instead',
+        );
       }
       // Update mutable profile fields on the pending row; email & phone stay as-is.
       existing.firstName = args.firstName;
@@ -166,8 +182,14 @@ export class UsersService {
       .getMany();
   }
 
-  async adminUpdateUser(userId: string, dto: UpdateUserAdminDto): Promise<User> {
-    const user = await this.userRepo.findOne({ where: { userId }, relations: ['role'] });
+  async adminUpdateUser(
+    userId: string,
+    dto: UpdateUserAdminDto,
+  ): Promise<User> {
+    const user = await this.userRepo.findOne({
+      where: { userId },
+      relations: ['role'],
+    });
     if (!user) throw new NotFoundException('User not found');
 
     if (dto.displayName !== undefined) {

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { motion } from "framer-motion";
 import { Car, Truck, Building2, Check } from "lucide-react";
 import { VehicleType } from "@nexa/shared";

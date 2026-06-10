@@ -39,9 +39,7 @@ export class CorporateService {
     return this.toResponse(enquiry);
   }
 
-  private toResponse(
-    e: CorporateFleetEnquiry,
-  ): CorporateFleetEnquiryResponse {
+  private toResponse(e: CorporateFleetEnquiry): CorporateFleetEnquiryResponse {
     return {
       enquiryId: e.enquiryId,
       companyName: e.companyName,

@@ -49,12 +49,18 @@ export class CreateBookingDto {
   @IsOptional()
   addonIds?: string[];
 
-  @ApiProperty({ example: true, description: 'Customer confirms a safe space to wash' })
+  @ApiProperty({
+    example: true,
+    description: 'Customer confirms a safe space to wash',
+  })
   @IsBoolean()
   @Equals(true, { message: 'You must confirm you have a safe space to wash' })
   agreedSafeSpace: boolean;
 
-  @ApiProperty({ example: true, description: 'Customer confirms vehicle details are correct' })
+  @ApiProperty({
+    example: true,
+    description: 'Customer confirms vehicle details are correct',
+  })
   @IsBoolean()
   @Equals(true, { message: 'You must confirm all vehicle details are correct' })
   agreedDetailsCorrect: boolean;

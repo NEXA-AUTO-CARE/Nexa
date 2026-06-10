@@ -5,8 +5,12 @@ export class AddPromotions1780000000200 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Enums
-    await queryRunner.query(`CREATE TYPE "promotions_type_enum" AS ENUM ('announcement', 'percentage_discount', 'bonanza')`);
-    await queryRunner.query(`CREATE TYPE "promotions_status_enum" AS ENUM ('draft', 'active', 'ended')`);
+    await queryRunner.query(
+      `CREATE TYPE "promotions_type_enum" AS ENUM ('announcement', 'percentage_discount', 'bonanza')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "promotions_status_enum" AS ENUM ('draft', 'active', 'ended')`,
+    );
 
     // Promotions table
     await queryRunner.query(`
@@ -50,19 +54,33 @@ export class AddPromotions1780000000200 implements MigrationInterface {
       )
     `);
 
-    await queryRunner.query(`CREATE INDEX "IDX_redemption_promo_user" ON "promotion_redemptions" ("promotion_id", "user_id")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_redemption_promo_user" ON "promotion_redemptions" ("promotion_id", "user_id")`,
+    );
 
     // Add promotion tracking columns to bookings
-    await queryRunner.query(`ALTER TABLE "bookings" ADD "promotion_id" UUID REFERENCES "promotions"("promotion_id") ON DELETE SET NULL`);
-    await queryRunner.query(`ALTER TABLE "bookings" ADD "original_price" DECIMAL(10,2)`);
-    await queryRunner.query(`ALTER TABLE "bookings" ADD "discount_amount" DECIMAL(10,2)`);
+    await queryRunner.query(
+      `ALTER TABLE "bookings" ADD "promotion_id" UUID REFERENCES "promotions"("promotion_id") ON DELETE SET NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "bookings" ADD "original_price" DECIMAL(10,2)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "bookings" ADD "discount_amount" DECIMAL(10,2)`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Remove booking columns
-    await queryRunner.query(`ALTER TABLE "bookings" DROP COLUMN "discount_amount"`);
-    await queryRunner.query(`ALTER TABLE "bookings" DROP COLUMN "original_price"`);
-    await queryRunner.query(`ALTER TABLE "bookings" DROP COLUMN "promotion_id"`);
+    await queryRunner.query(
+      `ALTER TABLE "bookings" DROP COLUMN "discount_amount"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "bookings" DROP COLUMN "original_price"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "bookings" DROP COLUMN "promotion_id"`,
+    );
 
     // Drop tables
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_redemption_promo_user"`);

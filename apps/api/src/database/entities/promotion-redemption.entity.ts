@@ -14,7 +14,11 @@ import { User } from './user.entity';
 @Entity('promotion_redemptions')
 @Index('IDX_redemption_promo_user', ['promotionId', 'userId'])
 export class PromotionRedemption {
-  @PrimaryColumn({ type: 'uuid', name: 'redemption_id', default: () => 'uuidv7()' })
+  @PrimaryColumn({
+    type: 'uuid',
+    name: 'redemption_id',
+    default: () => 'uuidv7()',
+  })
   redemptionId: string;
 
   @Column({ type: 'uuid' })

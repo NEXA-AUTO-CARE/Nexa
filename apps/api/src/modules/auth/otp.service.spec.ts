@@ -45,8 +45,15 @@ describe('OtpService', () => {
     config = makeConfig();
     notifications = makeNotifications();
     templateService = makeTemplateService();
-    service = new OtpService(repo as never, config as never, notifications as never, templateService as never);
-    logSpy = jest.spyOn((service as any).logger, 'log').mockImplementation(() => {});
+    service = new OtpService(
+      repo as never,
+      config as never,
+      notifications as never,
+      templateService as never,
+    );
+    logSpy = jest
+      .spyOn((service as any).logger, 'log')
+      .mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -71,19 +78,30 @@ describe('OtpService', () => {
       const persisted = repo.save.mock.calls[0][0] as OtpCode;
       const ttlMs = persisted.expiresAt.getTime() - before;
       expect(ttlMs).toBeGreaterThanOrEqual(10 * 60 * 1000 - 1000);
-      expect(persisted.expiresAt.getTime() - after).toBeLessThanOrEqual(10 * 60 * 1000);
+      expect(persisted.expiresAt.getTime() - after).toBeLessThanOrEqual(
+        10 * 60 * 1000,
+      );
     });
 
     it('logs the OTP to stdout when OTP_DEV_LOG flag is on', async () => {
       repo.save.mockImplementation(async (entity) => entity);
       await service.issue('bob@example.com');
-      expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^\[OTP\] bob@example\.com -> \d{6}/));
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/^\[OTP\] bob@example\.com -> \d{6}/),
+      );
     });
 
     it('does NOT log when OTP_DEV_LOG flag is off', async () => {
       config.get.mockReturnValue(false);
-      service = new OtpService(repo as never, config as never, notifications as never, templateService as never);
-      logSpy = jest.spyOn((service as any).logger, 'log').mockImplementation(() => {});
+      service = new OtpService(
+        repo as never,
+        config as never,
+        notifications as never,
+        templateService as never,
+      );
+      logSpy = jest
+        .spyOn((service as any).logger, 'log')
+        .mockImplementation(() => {});
       repo.save.mockImplementation(async (entity) => entity);
       await service.issue('carol@example.com');
       expect(logSpy).not.toHaveBeenCalled();

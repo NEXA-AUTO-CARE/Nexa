@@ -18,7 +18,11 @@ import { Vehicle } from './vehicle.entity';
 
 @Entity('bookings')
 export class Booking extends AuditEntity {
-  @PrimaryColumn({ type: 'uuid', name: 'booking_id', default: () => 'uuidv7()' })
+  @PrimaryColumn({
+    type: 'uuid',
+    name: 'booking_id',
+    default: () => 'uuidv7()',
+  })
   bookingId: string;
 
   @Column({ type: 'uuid' })

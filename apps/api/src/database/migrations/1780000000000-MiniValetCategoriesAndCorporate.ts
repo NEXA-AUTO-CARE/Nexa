@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class MiniValetCategoriesAndCorporate1780000000000
-  implements MigrationInterface
-{
+export class MiniValetCategoriesAndCorporate1780000000000 implements MigrationInterface {
   name = 'MiniValetCategoriesAndCorporate1780000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

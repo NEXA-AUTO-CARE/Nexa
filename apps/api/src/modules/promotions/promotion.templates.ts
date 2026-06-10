@@ -1,4 +1,7 @@
-import type { MessageTemplate, TemplateMap } from '../notifications/message-template.service';
+import type {
+  MessageTemplate,
+  TemplateMap,
+} from '../notifications/message-template.service';
 
 /* ------------------------------------------------------------------ */
 /*  Template context                                                   */

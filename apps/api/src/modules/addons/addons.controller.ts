@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { AddonResponse } from '@nexa/shared';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -39,7 +49,10 @@ export class AddonsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Update an add-on' })
-  async update(@Param('id') id: string, @Body() dto: UpdateAddonDto): Promise<AddonResponse> {
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateAddonDto,
+  ): Promise<AddonResponse> {
     return this.addonsService.update(id, dto);
   }
 

@@ -14,4 +14,3 @@ export { CorporateFleetEnquiry } from './corporate-fleet-enquiry.entity';
 export { SystemSetting } from './system-setting.entity';
 export { Promotion } from './promotion.entity';
 export { PromotionRedemption } from './promotion-redemption.entity';
-

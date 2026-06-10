@@ -62,16 +62,22 @@ export default function AdminBookingsPage() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
 
+  type RawBooking = {
+    customer?: { firstName?: string; lastName?: string; displayName?: string; email?: string; phoneNumber?: string }
+    vendor?: { firstName?: string; lastName?: string; displayName?: string }
+    [key: string]: unknown
+  }
+
   const loadData = async () => {
     try {
       setLoading(true)
       const [bookingsRes, usersRes] = await Promise.all([
-        api.get<any[]>('/admin/bookings'),
+        api.get<RawBooking[]>('/admin/bookings'),
         api.get<SystemUser[]>('/admin/users'),
       ])
 
       // Map raw backend responses
-      const bookingsData = bookingsRes.data.map((b: any) => {
+      const bookingsData = bookingsRes.data.map((b: RawBooking) => {
         const custName = b.customer
           ? `${b.customer.firstName} ${b.customer.lastName}`.trim() || b.customer.displayName
           : 'Unknown'
@@ -99,7 +105,9 @@ export default function AdminBookingsPage() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- setState is deferred behind await
     loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadData is stable
   }, [])
 
   const handleAssignVendor = async (bookingId: string) => {
@@ -117,9 +125,10 @@ export default function AdminBookingsPage() {
       setAssigningId(null)
       setSelectedVendorId('')
       await loadData()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      setActionError(err.response?.data?.message || 'Failed to assign detailer.')
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setActionError(message || 'Failed to assign detailer.')
     } finally {
       setProcessingId(null)
     }
@@ -137,9 +146,10 @@ export default function AdminBookingsPage() {
       await api.post(`/payments/bookings/${bookingId}/payout`)
       setActionSuccess('Vendor payout successfully initiated.')
       await loadData()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      setActionError(err.response?.data?.message || 'Failed to trigger payout.')
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setActionError(message || 'Failed to trigger payout.')
     } finally {
       setProcessingId(null)
     }
@@ -157,9 +167,10 @@ export default function AdminBookingsPage() {
       await api.post(`/payments/bookings/${bookingId}/refund`)
       setActionSuccess('Customer refund successfully processed.')
       await loadData()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      setActionError(err.response?.data?.message || 'Failed to process refund.')
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setActionError(message || 'Failed to process refund.')
     } finally {
       setProcessingId(null)
     }

@@ -11,7 +11,9 @@ import * as entities from './entities';
       useFactory: (config: ConfigService) => {
         const rawUrl = config.getOrThrow<string>('app.databaseUrl');
         const requiresSsl =
-          /[?&]sslmode=(require|prefer|verify-ca|verify-full|no-verify)/i.test(rawUrl) ||
+          /[?&]sslmode=(require|prefer|verify-ca|verify-full|no-verify)/i.test(
+            rawUrl,
+          ) ||
           /[?&]ssl=true/i.test(rawUrl) ||
           process.env.NODE_ENV === 'production';
 

@@ -33,7 +33,7 @@ function customRole(overrides: Partial<Role> = {}): Role {
     approvedOn: null,
     approvedBy: null,
     ...overrides,
-  } as Role;
+  };
 }
 
 function systemRole(name = 'admin'): Role {
@@ -50,7 +50,11 @@ describe('RolesService', () => {
     roleRepo = makeRepo();
     rpRepo = makeRepo();
     userRepo = makeRepo();
-    service = new RolesService(roleRepo as never, rpRepo as never, userRepo as never);
+    service = new RolesService(
+      roleRepo as never,
+      rpRepo as never,
+      userRepo as never,
+    );
   });
 
   describe('lookups', () => {
@@ -68,7 +72,9 @@ describe('RolesService', () => {
 
     it('findById throws when role not found', async () => {
       roleRepo.findOne.mockResolvedValue(null);
-      await expect(service.findById('r-x')).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.findById('r-x')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
 
     it('listPermissions maps RolePermission rows to permission strings', async () => {
@@ -87,9 +93,16 @@ describe('RolesService', () => {
     it('normalises the role name to lowercase + underscores', async () => {
       roleRepo.findOne.mockResolvedValue(null);
       roleRepo.save.mockImplementation(async (e) => e);
-      const result = await service.create({ name: 'Support Agent', description: 't1' });
+      const result = await service.create({
+        name: 'Support Agent',
+        description: 't1',
+      });
       expect(roleRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'support_agent', description: 't1', isSystem: false }),
+        expect.objectContaining({
+          name: 'support_agent',
+          description: 't1',
+          isSystem: false,
+        }),
       );
       expect(result.name).toBe('support_agent');
     });
@@ -105,9 +118,9 @@ describe('RolesService', () => {
 
     it('throws Conflict if a role with that name already exists', async () => {
       roleRepo.findOne.mockResolvedValue(customRole({ name: 'support_agent' }));
-      await expect(service.create({ name: 'support_agent' })).rejects.toBeInstanceOf(
-        ConflictException,
-      );
+      await expect(
+        service.create({ name: 'support_agent' }),
+      ).rejects.toBeInstanceOf(ConflictException);
     });
   });
 
@@ -122,8 +135,8 @@ describe('RolesService', () => {
     it('renames a custom role and writes the new description', async () => {
       const role = customRole({ name: 'support_agent', description: 'old' });
       roleRepo.findOne
-        .mockResolvedValueOnce(role)         // findById
-        .mockResolvedValueOnce(null);        // findByName for clash check
+        .mockResolvedValueOnce(role) // findById
+        .mockResolvedValueOnce(null); // findByName for clash check
       roleRepo.save.mockImplementation(async (r) => r);
       const updated = await service.rename(role.roleId, 'support_lead', 'new');
       expect(updated.name).toBe('support_lead');
@@ -134,7 +147,9 @@ describe('RolesService', () => {
       const role = customRole({ roleId: 'r-1', name: 'support_agent' });
       roleRepo.findOne
         .mockResolvedValueOnce(role)
-        .mockResolvedValueOnce(customRole({ roleId: 'r-other', name: 'support_lead' }));
+        .mockResolvedValueOnce(
+          customRole({ roleId: 'r-other', name: 'support_lead' }),
+        );
       await expect(
         service.rename(role.roleId, 'support_lead'),
       ).rejects.toBeInstanceOf(ConflictException);
@@ -144,13 +159,17 @@ describe('RolesService', () => {
   describe('delete', () => {
     it('refuses to delete system roles', async () => {
       roleRepo.findOne.mockResolvedValue(systemRole('admin'));
-      await expect(service.delete('r-admin')).rejects.toBeInstanceOf(BadRequestException);
+      await expect(service.delete('r-admin')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
     });
 
     it('refuses to delete a role with users still assigned', async () => {
       roleRepo.findOne.mockResolvedValue(customRole());
       userRepo.count.mockResolvedValue(3);
-      await expect(service.delete('r-custom')).rejects.toBeInstanceOf(ConflictException);
+      await expect(service.delete('r-custom')).rejects.toBeInstanceOf(
+        ConflictException,
+      );
     });
 
     it('deletes a custom unused role', async () => {
@@ -174,8 +193,16 @@ describe('RolesService', () => {
       roleRepo.findOne.mockResolvedValue(customRole());
       rpRepo.find
         .mockResolvedValueOnce([
-          { rolePermissionId: 'rp-1', roleId: 'r-custom', permission: 'users:read.self' },
-          { rolePermissionId: 'rp-2', roleId: 'r-custom', permission: 'bookings:create' },
+          {
+            rolePermissionId: 'rp-1',
+            roleId: 'r-custom',
+            permission: 'users:read.self',
+          },
+          {
+            rolePermissionId: 'rp-2',
+            roleId: 'r-custom',
+            permission: 'bookings:create',
+          },
         ] as RolePermission[])
         .mockResolvedValueOnce([
           { permission: 'users:read.self' },
@@ -190,7 +217,10 @@ describe('RolesService', () => {
       ] as never);
 
       expect(rpRepo.save).toHaveBeenCalledWith([
-        expect.objectContaining({ roleId: 'r-custom', permission: 'reviews:read' }),
+        expect.objectContaining({
+          roleId: 'r-custom',
+          permission: 'reviews:read',
+        }),
       ]);
       expect(rpRepo.delete).toHaveBeenCalledWith(
         expect.objectContaining({ rolePermissionId: expect.anything() }),
@@ -202,9 +232,15 @@ describe('RolesService', () => {
       roleRepo.findOne.mockResolvedValue(customRole());
       rpRepo.find
         .mockResolvedValueOnce([
-          { rolePermissionId: 'rp-1', roleId: 'r-custom', permission: 'users:read.self' },
+          {
+            rolePermissionId: 'rp-1',
+            roleId: 'r-custom',
+            permission: 'users:read.self',
+          },
         ] as RolePermission[])
-        .mockResolvedValueOnce([{ permission: 'users:read.self' }] as RolePermission[]);
+        .mockResolvedValueOnce([
+          { permission: 'users:read.self' },
+        ] as RolePermission[]);
       await service.setPermissions('r-custom', ['users:read.self'] as never);
       expect(rpRepo.save).not.toHaveBeenCalled();
       expect(rpRepo.delete).not.toHaveBeenCalled();
@@ -214,17 +250,17 @@ describe('RolesService', () => {
   describe('assignRoleToUser', () => {
     it('throws NotFound when the user does not exist', async () => {
       userRepo.findOne.mockResolvedValue(null);
-      await expect(service.assignRoleToUser('u-x', 'r-1')).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        service.assignRoleToUser('u-x', 'r-1'),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('throws NotFound when the role does not exist', async () => {
       userRepo.findOne.mockResolvedValue({ userId: 'u-1' });
       roleRepo.findOne.mockResolvedValue(null);
-      await expect(service.assignRoleToUser('u-1', 'r-x')).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        service.assignRoleToUser('u-1', 'r-x'),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('reassigns the user to the given role and saves', async () => {

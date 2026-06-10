@@ -50,7 +50,10 @@ export class RolesService {
 
   // ---------- super_admin CRUD ----------
 
-  async create(args: { name: string; description?: string | null }): Promise<Role> {
+  async create(args: {
+    name: string;
+    description?: string | null;
+  }): Promise<Role> {
     const trimmed = args.name.trim().toLowerCase().replace(/\s+/g, '_');
     if (!/^[a-z][a-z0-9_]{1,62}$/.test(trimmed)) {
       throw new BadRequestException(
@@ -58,7 +61,8 @@ export class RolesService {
       );
     }
     const existing = await this.findByName(trimmed);
-    if (existing) throw new ConflictException(`Role '${trimmed}' already exists`);
+    if (existing)
+      throw new ConflictException(`Role '${trimmed}' already exists`);
     const role = this.roleRepo.create({
       name: trimmed,
       description: args.description ?? null,
@@ -67,7 +71,11 @@ export class RolesService {
     return this.roleRepo.save(role);
   }
 
-  async rename(roleId: string, name: string, description?: string | null): Promise<Role> {
+  async rename(
+    roleId: string,
+    name: string,
+    description?: string | null,
+  ): Promise<Role> {
     const role = await this.findById(roleId);
     if (role.isSystem) {
       throw new BadRequestException('System roles cannot be renamed');
@@ -76,7 +84,8 @@ export class RolesService {
     if (name && name !== role.name) {
       const trimmed = name.trim().toLowerCase().replace(/\s+/g, '_');
       const clash = await this.findByName(trimmed);
-      if (clash) throw new ConflictException(`Role '${trimmed}' already exists`);
+      if (clash)
+        throw new ConflictException(`Role '${trimmed}' already exists`);
       role.name = trimmed;
     }
     return this.roleRepo.save(role);
@@ -100,11 +109,16 @@ export class RolesService {
    * Replace the permission set on a role. Validates every permission against the
    * code-defined catalog so the DB never stores a typo'd permission.
    */
-  async setPermissions(roleId: string, permissions: Permission[]): Promise<Permission[]> {
+  async setPermissions(
+    roleId: string,
+    permissions: Permission[],
+  ): Promise<Permission[]> {
     const role = await this.findById(roleId);
     const unknown = permissions.filter((p) => !VALID_PERMISSIONS.has(p));
     if (unknown.length > 0) {
-      throw new BadRequestException(`Unknown permission(s): ${unknown.join(', ')}`);
+      throw new BadRequestException(
+        `Unknown permission(s): ${unknown.join(', ')}`,
+      );
     }
     const desired = new Set(permissions);
     const existing = await this.rpRepo.find({ where: { roleId } });
@@ -113,7 +127,9 @@ export class RolesService {
     const toAdd: RolePermission[] = [];
     for (const perm of desired) {
       if (!existingByPerm.has(perm)) {
-        toAdd.push(this.rpRepo.create({ roleId: role.roleId, permission: perm }));
+        toAdd.push(
+          this.rpRepo.create({ roleId: role.roleId, permission: perm }),
+        );
       }
     }
     const toRemoveIds = existing
