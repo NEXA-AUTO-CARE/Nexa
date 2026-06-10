@@ -69,4 +69,7 @@ railway.toml
 .vibe-ai
 .claude
 .claude-project
-.bruin.yml
+.bruin.ymltask-def*.json
+new-task.json
+clean-task-def.json
+task-definition.json
