@@ -67,10 +67,39 @@ jobs:
           container-name: ApiContainer
           image: ${{ steps.build-image.outputs.image }}
 
+      - name: Register and Run Database Migrations
+        run: |
+          jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' ${{ steps.render-task-def.outputs.task-definition }} > clean-task-def.json
+          NEW_TASK_DEF=$(aws ecs register-task-definition --cli-input-json file://clean-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
+          
+          NETWORK_CONFIG=$(aws ecs describe-services --cluster nexa-cluster-production --services nexa-api-production --query 'services[0].networkConfiguration' --output json)
+          
+          echo "Starting migration task using definition $NEW_TASK_DEF"
+          TASK_ARN=$(aws ecs run-task \
+            --cluster nexa-cluster-production \
+            --task-definition $NEW_TASK_DEF \
+            --launch-type FARGATE \
+            --network-configuration "$NETWORK_CONFIG" \
+            --overrides '{"containerOverrides":[{"name":"ApiContainer","command":["node", "./node_modules/typeorm/cli.js", "migration:run", "-d", "dist/data-source.js"]}]}' \
+            --started-by "github-actions-migration" \
+            --query 'tasks[0].taskArn' \
+            --output text)
+            
+          echo "Waiting for migration task ($TASK_ARN) to complete..."
+          aws ecs wait tasks-stopped --cluster nexa-cluster-production --tasks $TASK_ARN
+          
+          EXIT_CODE=$(aws ecs describe-tasks --cluster nexa-cluster-production --tasks $TASK_ARN --query 'tasks[0].containers[0].exitCode' --output text)
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Migration task failed with exit code $EXIT_CODE."
+            aws logs get-log-events --log-group-name /ecs/nexa-api-production --log-stream-name nexa-api/ApiContainer/${TASK_ARN##*/} --query 'events[*].message' --output text
+            exit 1
+          fi
+          echo "Database migrations completed successfully."
+
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
+          task-definition: clean-task-def.json
           service: nexa-api-production
           cluster: nexa-cluster-production
           wait-for-service-stability: true
