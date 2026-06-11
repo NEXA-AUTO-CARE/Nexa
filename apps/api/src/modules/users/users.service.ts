@@ -102,12 +102,14 @@ export class UsersService {
           'Account already exists; please log in instead',
         );
       }
-      // Update mutable profile fields on the pending row; email & phone stay as-is.
-      existing.firstName = args.firstName;
-      existing.lastName = args.lastName;
-      existing.roleId = args.role.roleId;
-      existing.displayName = args.displayName;
-      return this.userRepo.save(existing);
+
+      if (existing.email !== email || existing.phoneNumber !== phoneNumber) {
+        throw new ConflictException(
+          'An account is already associated with this identifier. Please log in with the correct info.',
+        );
+      }
+
+      return existing;
     }
 
     const user = this.userRepo.create({
