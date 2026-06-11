@@ -2,14 +2,14 @@ name: Deploy Nexa API to AWS ECS
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - 'apps/api/**'
-      - 'packages/shared/**'
-      - 'infra/**'
-      - '.github/workflows/deploy-api.yml'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
+      - "apps/api/**"
+      - "packages/shared/**"
+      - "infra/**"
+      - ".github/workflows/deploy-api.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
 
 permissions:
   id-token: write # Required for requesting JWT OIDC tokens from AWS
@@ -41,7 +41,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Build, tag, and push API image to Amazon ECR
         id: build-image
@@ -71,9 +71,9 @@ jobs:
         run: |
           jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' ${{ steps.render-task-def.outputs.task-definition }} > clean-task-def.json
           NEW_TASK_DEF=$(aws ecs register-task-definition --cli-input-json file://clean-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
-          
+
           NETWORK_CONFIG=$(aws ecs describe-services --cluster nexa-cluster-production --services nexa-api-production --query 'services[0].networkConfiguration' --output json)
-          
+
           echo "Starting migration task using definition $NEW_TASK_DEF"
           TASK_ARN=$(aws ecs run-task \
             --cluster nexa-cluster-production \
@@ -87,7 +87,7 @@ jobs:
             
           echo "Waiting for migration task ($TASK_ARN) to complete..."
           aws ecs wait tasks-stopped --cluster nexa-cluster-production --tasks $TASK_ARN
-          
+
           EXIT_CODE=$(aws ecs describe-tasks --cluster nexa-cluster-production --tasks $TASK_ARN --query 'tasks[0].containers[0].exitCode' --output text)
           if [ "$EXIT_CODE" != "0" ]; then
             echo "Migration task failed with exit code $EXIT_CODE."
@@ -99,7 +99,7 @@ jobs:
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: clean-task-def.json
+          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
           service: nexa-api-production
           cluster: nexa-cluster-production
           wait-for-service-stability: true
