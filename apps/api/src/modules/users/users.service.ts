@@ -47,7 +47,7 @@ export function normalizePhone(phone: string): string {
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly userRepo: Repository<User>,
-  ) {}
+  ) { }
 
   async findById(userId: string): Promise<User> {
     const user = await this.userRepo.findOne({ where: { userId } });
@@ -105,7 +105,7 @@ export class UsersService {
 
       if (existing.email !== email || existing.phoneNumber !== phoneNumber) {
         throw new ConflictException(
-          'An account is already associated with this identifier. Please log in with the correct info.',
+          `An account is already associated with this username ${existing.email ?? existing.phoneNumber}. Please log in with the correct info.`,
         );
       }
 
