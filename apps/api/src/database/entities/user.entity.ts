@@ -5,12 +5,14 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryColumn,
 } from 'typeorm';
 import { AuditEntity } from './audit.entity';
 import { Booking } from './booking.entity';
 import { Role } from './role.entity';
 import { Vehicle } from './vehicle.entity';
+import { VendorProfile } from './vendor-profile.entity';
 
 @Entity('users')
 export class User extends AuditEntity {
@@ -63,4 +65,7 @@ export class User extends AuditEntity {
 
   @OneToMany(() => Booking, (b) => b.customer)
   bookings: Booking[];
+
+  @OneToOne(() => VendorProfile, (vp) => vp.user, { eager: true })
+  vendorProfile: VendorProfile;
 }

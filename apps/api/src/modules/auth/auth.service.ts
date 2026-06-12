@@ -15,10 +15,12 @@ import {
   PublicUser,
   UserRole,
 } from '@nexa/shared';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'node:crypto';
 import { IsNull, MoreThan, Repository } from 'typeorm';
 import { RefreshToken, User } from '../../database/entities';
+import { VendorApprovalStatus } from '../../database/entities/vendor-profile.entity';
 import { RolesService } from '../roles/roles.service';
 import {
   UsersService,
@@ -41,7 +43,6 @@ const RESET_TOKEN_AUDIENCE = 'nexa:reset-password';
 
 const SELF_SIGNUP_ROLES: ReadonlySet<string> = new Set([
   UserRole.CUSTOMER,
-  UserRole.VENDOR,
 ]);
 
 interface SetupTokenPayload {
@@ -93,13 +94,12 @@ export class AuthService {
     private readonly templateService: MessageTemplateService,
     @InjectRepository(RefreshToken)
     private readonly refreshRepo: Repository<RefreshToken>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async signup(args: SignupArgs): Promise<{ ok: true }> {
     if (!SELF_SIGNUP_ROLES.has(args.role)) {
-      throw new BadRequestException(
-        'Only customer or vendor accounts can self-register',
-      );
+      throw new BadRequestException('Only customer accounts can self-register');
     }
 
     const email = args.email ? normalizeEmail(args.email) : null;
@@ -244,6 +244,18 @@ export class AuthService {
     return this.issueAuthResult(refreshed);
   }
 
+  async changePassword(userId: string, newPassword: string): Promise<{ ok: true }> {
+    const user = await this.users.findById(userId);
+    const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await this.users.setPasswordHash(userId, hash);
+    
+    // Emit event so other modules (like Vendors) can react
+    this.eventEmitter.emit('user.password.changed', { userId, role: user.role.name });
+
+    this.logger.log(`Password changed for user ${userId}`);
+    return { ok: true };
+  }
+
   async login(identifier: string, password: string): Promise<AuthIssueResult> {
     const user = await this.users.findByIdentifier(identifier);
     if (!user || !user.passwordHash) {
@@ -314,8 +326,14 @@ export class AuthService {
       }),
     );
     const publicUser: PublicUser = this.users.toPublic(user, permissions);
+    
+    let requiresPasswordChange = false;
+    if (user.role.name === UserRole.VENDOR && user.vendorProfile?.approvalStatus === 'PENDING') {
+      requiresPasswordChange = true;
+    }
+
     return {
-      response: { accessToken, user: publicUser },
+      response: { accessToken, user: publicUser, requiresPasswordChange },
       refreshToken: rawRefresh,
       refreshExpiresAt,
     };

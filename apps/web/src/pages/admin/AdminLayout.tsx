@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Megaphone,
   Users,
+  Store,
 } from 'lucide-react'
 
 export default function AdminLayout() {
@@ -60,6 +61,12 @@ export default function AdminLayout() {
       desc: 'User management',
     },
     {
+      name: 'Vendors',
+      path: '/admin/vendors',
+      icon: Store,
+      desc: 'Partner valeting vendors',
+    },
+    {
       name: 'Dynamic Settings',
       path: '/admin/settings',
       icon: Settings,
@@ -75,7 +82,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-nexa-bg-deep text-nexa-text flex font-body relative overflow-hidden">
+    <div className="h-screen bg-nexa-bg-deep text-nexa-text flex font-body relative overflow-hidden">
       {/* Background radial elements for premium dark mode */}
       <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-nexa-mint/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
