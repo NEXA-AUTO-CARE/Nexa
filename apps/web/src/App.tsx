@@ -26,6 +26,7 @@ import AdminAddonsPage from './pages/admin/AdminAddonsPage'
 import AdminSettingsPage from './pages/admin/AdminSettingsPage'
 import AdminPromotionsPage from './pages/admin/AdminPromotionsPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
+import AdminVendorsPage from './pages/admin/AdminVendorsPage'
 
 function RootRedirect() {
   const { user, loading } = useAuth()
@@ -76,6 +77,7 @@ function App() {
         <Route path="/admin/addons" element={<AdminAddonsPage />} />
         <Route path="/admin/promotions" element={<AdminPromotionsPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
+        <Route path="/admin/vendors" element={<AdminVendorsPage />} />
         <Route path="/admin/settings" element={<AdminSettingsPage />} />
       </Route>
 

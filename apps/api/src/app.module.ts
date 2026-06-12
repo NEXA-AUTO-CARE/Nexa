@@ -22,6 +22,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
+import { VendorsModule } from './modules/vendors/vendors.module';
 import { OtelLogger } from './common/logger/otel.logger';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -51,6 +52,7 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
     SettingsModule,
     AdminModule,
     PromotionsModule,
+    VendorsModule,
   ],
 
   controllers: [AppController],

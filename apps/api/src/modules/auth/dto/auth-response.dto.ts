@@ -8,4 +8,7 @@ export class AuthResponseDto implements AuthResponse {
 
   @ApiProperty({ type: PublicUserDto })
   user: PublicUserDto;
+
+  @ApiProperty({ required: false })
+  requiresPasswordChange?: boolean;
 }
