@@ -45,10 +45,18 @@ export function createApiClient(): AxiosInstance {
   client.interceptors.response.use(
     (r) => r,
     async (error: AxiosError) => {
+      if (error.code === 'ERR_NETWORK' || !error.response) {
+        window.dispatchEvent(
+          new CustomEvent('nexa-network-error', {
+            detail: error.message || 'Network connection error. Please check your internet.',
+          })
+        )
+      }
+
       const original = error.config as RetriableConfig | undefined
       const status = error.response?.status
       const isRefreshCall = original?.url?.endsWith('/auth/refresh')
-      if (status !== 401 || !original || original._retry || isRefreshCall) {
+      if (status !== 401 || !original || original._retry || isRefreshCall || !accessTokenStore.get()) {
         return Promise.reject(error)
       }
       original._retry = true

@@ -280,6 +280,20 @@ describe('PromotionsService', () => {
       expect(result).toEqual({ discount: 20, isFree: false });
     });
 
+    it('calculates percentage discount based on servicePriceOnly, not the totalPrice', async () => {
+      const promo = makePromotion({
+        type: PromotionType.PERCENTAGE_DISCOUNT,
+        discountPercent: '10.00',
+      });
+      const result = await service.calculateDiscount(
+        promo as any,
+        'user-1',
+        150, // totalPrice includes addons/fees
+        100, // servicePriceOnly
+      );
+      expect(result).toEqual({ discount: 10, isFree: false });
+    });
+
     it('rounds percentage discount to 2 decimal places', async () => {
       const promo = makePromotion({
         type: PromotionType.PERCENTAGE_DISCOUNT,

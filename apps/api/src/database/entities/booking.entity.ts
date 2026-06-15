@@ -99,4 +99,8 @@ export class Booking extends AuditEntity {
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   discountAmount: string | null;
+
+  /* ---- Service Phone ---- */
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  servicePhone: string | null;
 }

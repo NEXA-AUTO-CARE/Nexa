@@ -6,6 +6,7 @@ import { useVehicles } from '../../hooks/useVehicles'
 import { useAddons } from '../../hooks/useAddons'
 import { api } from '../../lib/api-client'
 import { describeError } from '../../lib/errors'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface BookingStepsProps {
   onSuccess: () => void
@@ -17,6 +18,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
   const { vehicles, isLoading: loadingVehicles } = useVehicles()
   const { addons, isLoading: loadingAddons } = useAddons()
   const { priceFor, labelFor, serviceLabelFor } = useSettings()
+  const { user } = useAuth()
 
   const serviceLabel = serviceLabelFor()
 
@@ -26,6 +28,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
   const [bookingDate, setBookingDate] = useState('')
   const [bookingTime, setBookingTime] = useState('10:00')
   const [address, setAddress] = useState('')
+  const [phone, setPhone] = useState(user?.phoneNumber ?? '')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -59,7 +62,8 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
       return (
         !!bookingDate &&
         !!bookingTime &&
-        !!address.trim()
+        !!address.trim() &&
+        !!phone.trim()
       )
     return false
   }
@@ -73,6 +77,7 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
       vehicleId: selectedVehicle.vehicleId,
       bookingTime: new Date(`${bookingDate}T${bookingTime}:00`).toISOString(),
       serviceAddress: address.trim(),
+      servicePhone: phone.trim(),
       addonIds: selectedAddonId ? [selectedAddonId] : [],
       agreedSafeSpace: true,
       agreedDetailsCorrect: true,
@@ -231,6 +236,15 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="123 King Street, Aberdeen, AB24 5AA"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-nexa-text-secondary">Service Phone Number</span>
+            <input
+              className="nexa-input"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Enter contact phone number (e.g. +447700900077)"
             />
           </label>
 

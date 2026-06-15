@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
+import { Eye, EyeOff } from 'lucide-react'
 import { AuthLayout } from '../components/AuthLayout'
 import { useAuth } from '../contexts/AuthContext'
 import { describeError } from '../lib/errors'
@@ -19,6 +20,7 @@ export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [serverError, setServerError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   const {
     register,
@@ -64,12 +66,21 @@ export function LoginPage() {
           />
         </Field>
         <Field label="Password" error={errors.password?.message}>
-          <input
-            className={inputCls}
-            type="password"
-            autoComplete="current-password"
-            {...register('password')}
-          />
+          <div className="relative">
+            <input
+              className={`${inputCls} pr-10`}
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              {...register('password')}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-nexa-text-secondary hover:text-nexa-text focus:outline-none cursor-pointer"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
         </Field>
         {serverError && <p className="text-sm text-nexa-error">{serverError}</p>}
         <button className={btnPrimaryCls} type="submit" disabled={isSubmitting}>

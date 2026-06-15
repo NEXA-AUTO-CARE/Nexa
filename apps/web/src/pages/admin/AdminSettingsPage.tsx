@@ -12,12 +12,19 @@ import {
   Eye,
   Mail,
   RotateCcw,
+  Clock,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface Faq {
   question: string
   answer: string
+}
+
+interface TimeSlot {
+  key: string
+  label: string
+  hour: number
 }
 
 interface CategoryPricing {
@@ -97,6 +104,7 @@ export default function AdminSettingsPage() {
   const [showPreview, setShowPreview] = useState(false)
   const [templates, setTemplates] = useState<MessageTemplates>(() => structuredClone(DEFAULT_TEMPLATES))
   const [activeTemplateTab, setActiveTemplateTab] = useState<string>('booked')
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
 
   const loadSettings = async () => {
     try {
@@ -108,6 +116,7 @@ export default function AdminSettingsPage() {
       const faqsSetting = data.find((s) => s.key === 'faqs')
       const termsSetting = data.find((s) => s.key === 'terms_and_conditions')
       const templatesSetting = data.find((s) => s.key === 'notification_templates')
+      const timeSlotsSetting = data.find((s) => s.key === 'booking_time_slots')
 
       if (pricingSetting) {
         setPricing(JSON.parse(pricingSetting.value))
@@ -129,6 +138,22 @@ export default function AdminSettingsPage() {
         } catch {
           // corrupt value — keep defaults
         }
+      }
+      if (timeSlotsSetting) {
+        try {
+          setTimeSlots(JSON.parse(timeSlotsSetting.value))
+        } catch {
+          // fallback if corrupt
+        }
+      } else {
+        setTimeSlots([
+          { key: 'early_morning', label: 'Early Morning (7:00 AM)', hour: 7 },
+          { key: 'morning', label: 'Morning (9:00 AM)', hour: 9 },
+          { key: 'late_morning', label: 'Late Morning (11:00 AM)', hour: 11 },
+          { key: 'afternoon', label: 'Afternoon (1:00 PM)', hour: 13 },
+          { key: 'evening', label: 'Evening (4:00 PM)', hour: 16 },
+          { key: 'late_evening', label: 'Late Evening (6:00 PM)', hour: 18 }
+        ])
       }
     } catch (err) {
       console.error(err)
@@ -172,6 +197,28 @@ export default function AdminSettingsPage() {
 
   const handleDeleteFaq = (index: number) => {
     setFaqs(faqs.filter((_, i) => i !== index))
+  }
+
+  // Time Slot Mutations
+  const handleAddTimeSlot = () => {
+    setTimeSlots([...timeSlots, { key: `slot_${Date.now()}`, label: 'New Slot (12:00 PM)', hour: 12 }])
+  }
+
+  const handleTimeSlotChange = (index: number, field: keyof TimeSlot, val: string | number) => {
+    const updated = timeSlots.map((ts, i) => {
+      if (i === index) {
+        if (field === 'hour') {
+          return { ...ts, [field]: Number(val) }
+        }
+        return { ...ts, [field]: val }
+      }
+      return ts
+    })
+    setTimeSlots(updated)
+  }
+
+  const handleDeleteTimeSlot = (index: number) => {
+    setTimeSlots(timeSlots.filter((_, i) => i !== index))
   }
 
   // Pricing Change
@@ -349,6 +396,97 @@ export default function AdminSettingsPage() {
                 className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg/40 focus:border-nexa-mint/40 focus:ring-0 text-sm text-nexa-text transition-all duration-300"
               />
             </div>
+          </div>
+        </div>
+
+        {/* CARD 1.6: BOOKING TIME SLOTS */}
+        <div className="glass-card p-6 space-y-6">
+          <div className="flex items-center gap-3 border-b border-nexa-border-subtle/50 pb-4 justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-nexa-mint/15 flex items-center justify-center text-nexa-mint">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-lg text-nexa-text">Booking Time Slots</h3>
+                <p className="text-xs text-nexa-text-secondary">Configure available wash timeslots for customers (seasonal scheduling)</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleAddTimeSlot}
+                className="flex items-center gap-1.5 py-2 px-3 rounded-xl border border-nexa-border-subtle bg-nexa-bg hover:bg-nexa-bg-elevated text-xs font-semibold text-nexa-text transition-all duration-300"
+              >
+                <Plus className="w-4 h-4 text-nexa-mint" />
+                <span>Add Time Slot</span>
+              </button>
+              <button
+                onClick={() => handleSaveSetting('booking_time_slots', JSON.stringify(timeSlots))}
+                disabled={saveLoading === 'booking_time_slots'}
+                className="flex items-center gap-2 py-2 px-4 rounded-xl bg-nexa-mint text-nexa-bg text-xs font-bold hover:bg-nexa-mint/90 transition-all duration-300 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                <span>{saveLoading === 'booking_time_slots' ? 'Saving...' : 'Save Time Slots'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 divide-y divide-nexa-border-subtle/50">
+            {timeSlots.map((slot, idx) => (
+              <div key={idx} className="pt-6 first:pt-0 flex gap-4 items-start group">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-nexa-text-secondary">
+                      Internal Key (lowercase, no spaces)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. morning"
+                      value={slot.key}
+                      onChange={(e) => handleTimeSlotChange(idx, 'key', e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+                      className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg/40 focus:border-nexa-mint/40 focus:ring-0 text-sm text-nexa-text transition-all duration-300"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-nexa-text-secondary">
+                      Display Label
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Morning (9:00 AM)"
+                      value={slot.label}
+                      onChange={(e) => handleTimeSlotChange(idx, 'label', e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg/40 focus:border-nexa-mint/40 focus:ring-0 text-sm text-nexa-text transition-all duration-300"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-nexa-text-secondary">
+                      Start Hour (24h format: 0-23)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="23"
+                      placeholder="e.g. 9"
+                      value={slot.hour}
+                      onChange={(e) => handleTimeSlotChange(idx, 'hour', e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg/40 focus:border-nexa-mint/40 focus:ring-0 text-sm text-nexa-text transition-all duration-300"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteTimeSlot(idx)}
+                  className="mt-6 p-2.5 text-nexa-text-secondary hover:text-nexa-error rounded-xl hover:bg-nexa-error/10 border border-transparent transition-all duration-300"
+                  title="Remove time slot"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+            {timeSlots.length === 0 && (
+              <div className="text-center py-8 text-nexa-text-secondary text-xs">
+                No time slots currently. Click "Add Time Slot" to define one.
+              </div>
+            )}
           </div>
         </div>
 

@@ -17,6 +17,7 @@ import ProfilePage from './pages/ProfilePage'
 import ReviewPage from './pages/ReviewPage'
 import { SetPasswordPage } from './pages/SetPasswordPage'
 import { SignupPage } from './pages/SignupPage'
+import CancellationPolicyPage from './pages/CancellationPolicyPage'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -42,6 +43,7 @@ function App() {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/verify-otp" element={<OtpPage />} />
       <Route path="/set-password" element={<SetPasswordPage />} />
+      <Route path="/cancellation-policy" element={<CancellationPolicyPage />} />
 
       <Route
         element={

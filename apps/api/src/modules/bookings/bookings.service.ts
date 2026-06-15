@@ -104,7 +104,8 @@ export class BookingsService {
     }
 
     // Mini Valet is the single base service; price is driven by vehicle category.
-    let basePrice = await this.getBasePriceForCategory(vehicle.vehicleType);
+    const servicePriceOnly = await this.getBasePriceForCategory(vehicle.vehicleType);
+    let basePrice = servicePriceOnly;
     let addonsSnapshot: { addonId: string; name: string; price: string }[] = [];
 
     if (dto.addonIds && dto.addonIds.length > 0) {
@@ -146,6 +147,7 @@ export class BookingsService {
         promo,
         userId,
         basePrice,
+        servicePriceOnly,
       );
       discountAmount = result.discount;
       isFreeBooking = result.isFree;
@@ -159,6 +161,7 @@ export class BookingsService {
       serviceType: dto.serviceType ?? ServiceType.BASIC,
       bookingTime: new Date(dto.bookingTime),
       serviceAddress: dto.serviceAddress.trim(),
+      servicePhone: dto.servicePhone ? dto.servicePhone.trim() : null,
       latitude: dto.latitude?.toString() ?? null,
       longitude: dto.longitude?.toString() ?? null,
       price: finalPrice.toFixed(2),
@@ -303,8 +306,8 @@ export class BookingsService {
       (sum, a) => sum + parseFloat(a.price),
       0,
     );
-    let basePrice = await this.getBasePriceForCategory(vehicle.vehicleType);
-    basePrice += addonsTotal;
+    const servicePriceOnly = await this.getBasePriceForCategory(vehicle.vehicleType);
+    let basePrice = servicePriceOnly + addonsTotal;
 
     // Add the dynamic booking & protection fee
     const dynamicFee = await this.getBookingFee();
@@ -321,6 +324,7 @@ export class BookingsService {
         promo,
         userId,
         basePrice,
+        servicePriceOnly,
       );
       discountAmount = result.discount;
       isFreeBooking = result.isFree;
@@ -334,6 +338,7 @@ export class BookingsService {
       serviceType: previous.serviceType,
       bookingTime: when,
       serviceAddress: previous.serviceAddress,
+      servicePhone: previous.servicePhone,
       latitude: previous.latitude,
       longitude: previous.longitude,
       price: finalPrice.toFixed(2),
@@ -415,6 +420,7 @@ export class BookingsService {
       price: booking.price,
       status: booking.status,
       createdAt: booking.createdOn.toISOString(),
+      servicePhone: booking.servicePhone ?? undefined,
       addons: booking.addons || [],
       originalPrice: booking.originalPrice ?? undefined,
       discountAmount: booking.discountAmount ?? undefined,

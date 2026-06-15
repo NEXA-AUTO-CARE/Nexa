@@ -13,6 +13,7 @@ export interface BookingResponse {
   price: string;
   status: BookingStatus;
   createdAt: string;
+  servicePhone?: string;
   addons?: { addonId: string; name: string; price: string }[];
   /** Pre-discount price; present only when a promotion was applied. */
   originalPrice?: string;

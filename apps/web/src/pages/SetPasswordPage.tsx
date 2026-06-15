@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
+import { Eye, EyeOff } from 'lucide-react'
 import { AuthLayout } from '../components/AuthLayout'
 import { useAuth } from '../contexts/AuthContext'
 import { describeError } from '../lib/errors'
@@ -26,6 +27,8 @@ export function SetPasswordPage() {
   const location = useLocation() as { state?: { setupToken?: string } }
   const setupToken = location.state?.setupToken
   const [serverError, setServerError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const {
     register,
@@ -58,20 +61,38 @@ export function SetPasswordPage() {
     <AuthLayout title="Set your password" subtitle="At least 8 characters.">
       <form className="space-y-4" onSubmit={onSubmit}>
         <Field label="Password" error={errors.password?.message}>
-          <input
-            className={inputCls}
-            type="password"
-            autoComplete="new-password"
-            {...register('password')}
-          />
+          <div className="relative">
+            <input
+              className={`${inputCls} pr-10`}
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              {...register('password')}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-nexa-text-secondary hover:text-nexa-text focus:outline-none cursor-pointer"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
         </Field>
         <Field label="Confirm password" error={errors.confirm?.message}>
-          <input
-            className={inputCls}
-            type="password"
-            autoComplete="new-password"
-            {...register('confirm')}
-          />
+          <div className="relative">
+            <input
+              className={`${inputCls} pr-10`}
+              type={showConfirm ? 'text' : 'password'}
+              autoComplete="new-password"
+              {...register('confirm')}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm(!showConfirm)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-nexa-text-secondary hover:text-nexa-text focus:outline-none cursor-pointer"
+            >
+              {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
         </Field>
         {serverError && <p className="text-sm text-nexa-error">{serverError}</p>}
         <button className={btnPrimaryCls} type="submit" disabled={isSubmitting}>
