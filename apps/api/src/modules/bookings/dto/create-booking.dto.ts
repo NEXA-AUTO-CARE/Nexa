@@ -33,6 +33,11 @@ export class CreateBookingDto {
   @IsNotEmpty()
   serviceAddress: string;
 
+  @ApiProperty({ example: '+447700900077' })
+  @IsString()
+  @IsNotEmpty()
+  servicePhone: string;
+
   @ApiPropertyOptional({ example: 57.1497 })
   @IsOptional()
   @IsNumber()

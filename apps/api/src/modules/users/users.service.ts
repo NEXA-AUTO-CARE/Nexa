@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Permission, PublicUser, UpdateUserAdminDto } from '@nexa/shared';
+import { Permission, UpdateUserAdminDto } from '@nexa/shared';
 import { Repository } from 'typeorm';
 import { Role, User } from '../../database/entities';
 import { PublicUserDto } from './dto/public-user.dto';
@@ -103,13 +103,12 @@ export class UsersService {
         );
       }
 
-      if (existing.email !== email || existing.phoneNumber !== phoneNumber) {
-        throw new ConflictException(
-          `An account is already associated with this username ${existing.email ?? existing.phoneNumber}. Please log in with the correct info.`,
-        );
-      }
-
-      return existing;
+      // Update mutable profile fields on the pending row; email & phone stay as-is.
+      existing.firstName = args.firstName;
+      existing.lastName = args.lastName;
+      existing.roleId = args.role.roleId;
+      existing.displayName = args.displayName;
+      return this.userRepo.save(existing);
     }
 
     const user = this.userRepo.create({

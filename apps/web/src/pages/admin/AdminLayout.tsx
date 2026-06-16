@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { useIdleTimeout } from '../../hooks/useIdleTimeout'
+import { useToast } from '@/hooks/use-toast'
 import {
   LayoutDashboard,
   CalendarDays,
@@ -22,6 +24,28 @@ export default function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { toast } = useToast()
+
+  useIdleTimeout({
+    timeoutMs: 30 * 60 * 1000, // 30 minutes
+    warningMs: 60 * 1000, // 60 seconds warning
+    onWarning: () => {
+      toast({
+        title: 'Inactivity Warning ⚠️',
+        description: 'Your admin session will expire in 60 seconds due to inactivity. Move your mouse or touch the screen to stay logged in.',
+        duration: 10000,
+      })
+    },
+    onTimeout: async () => {
+      await logout()
+      toast({
+        title: 'Session Expired 🕒',
+        description: 'You have been logged out due to inactivity.',
+        variant: 'destructive',
+      })
+      navigate('/login')
+    },
+  })
 
   const navItems = [
     {

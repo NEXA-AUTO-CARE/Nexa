@@ -6,12 +6,14 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryColumn,
+  Unique,
 } from 'typeorm';
 import { AuditEntity } from './audit.entity';
 import { Booking } from './booking.entity';
 import { User } from './user.entity';
 
 @Entity('vehicles')
+@Unique(['ownerId', 'registrationNumber'])
 export class Vehicle extends AuditEntity {
   @PrimaryColumn({
     type: 'uuid',

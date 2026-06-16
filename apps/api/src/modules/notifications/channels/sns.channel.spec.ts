@@ -18,7 +18,6 @@ jest.mock('@aws-sdk/client-sns', () => {
 describe('SnsChannel', () => {
   let channel: SnsChannel;
   let configService: ConfigService;
-  let mockSnsClientInstance: any;
 
   beforeEach(async () => {
     // Reset all mocks
