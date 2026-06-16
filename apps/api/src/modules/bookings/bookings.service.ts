@@ -70,7 +70,7 @@ export class BookingsService {
       if (setting && setting.value) {
         categoryPricing = JSON.parse(setting.value);
       }
-    } catch (e) {
+    } catch {
       // Fallback gracefully
     }
     const priceString =
@@ -87,7 +87,7 @@ export class BookingsService {
       if (setting && setting.value) {
         fee = setting.value;
       }
-    } catch (e) {
+    } catch {
       // Fallback gracefully
     }
     const parsed = parseFloat(fee);
