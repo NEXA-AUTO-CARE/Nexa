@@ -18,7 +18,7 @@ export class AddUniqueVehicleConstraint1781529526811 implements MigrationInterfa
                 SELECT 
                     owner_id, 
                     registration_number, 
-                    MIN(vehicle_id) as canonical_id
+                    MIN(vehicle_id::text)::uuid as canonical_id
                 FROM vehicles
                 GROUP BY owner_id, registration_number
             )
@@ -34,7 +34,7 @@ export class AddUniqueVehicleConstraint1781529526811 implements MigrationInterfa
         await queryRunner.query(`
             DELETE FROM vehicles v
             WHERE v.vehicle_id NOT IN (
-                SELECT MIN(v2.vehicle_id)
+                SELECT MIN(v2.vehicle_id::text)::uuid
                 FROM vehicles v2
                 GROUP BY v2.owner_id, v2.registration_number
             )
