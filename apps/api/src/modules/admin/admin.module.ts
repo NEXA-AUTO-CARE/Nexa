@@ -7,14 +7,17 @@ import { AdminBookingsController } from './admin-bookings.controller';
 import { AdminPromotionsController } from './admin-promotions.controller';
 import { AdminUsersController } from './admin-users.controller';
 import { AdminVehiclesController } from './admin-vehicles.controller';
+import { AdminVendorsController } from './admin-vendors.controller';
+import { VendorsModule } from '../vendors/vendors.module';
 
 @Module({
-  imports: [BookingsModule, UsersModule, VehiclesModule, PromotionsModule],
+  imports: [BookingsModule, UsersModule, VehiclesModule, PromotionsModule, VendorsModule],
   controllers: [
     AdminBookingsController,
     AdminUsersController,
     AdminVehiclesController,
     AdminPromotionsController,
+    AdminVendorsController,
   ],
 })
 export class AdminModule {}

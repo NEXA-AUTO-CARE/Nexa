@@ -47,7 +47,7 @@ export function normalizePhone(phone: string): string {
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly userRepo: Repository<User>,
-  ) {}
+  ) { }
 
   async findById(userId: string): Promise<User> {
     const user = await this.userRepo.findOne({ where: { userId } });
@@ -102,6 +102,7 @@ export class UsersService {
           'Account already exists; please log in instead',
         );
       }
+
       // Update mutable profile fields on the pending row; email & phone stay as-is.
       existing.firstName = args.firstName;
       existing.lastName = args.lastName;

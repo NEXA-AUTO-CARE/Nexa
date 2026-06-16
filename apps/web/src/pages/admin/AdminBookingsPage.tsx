@@ -91,7 +91,7 @@ export default function AdminBookingsPage() {
           customerEmail: b.customer?.email,
           customerPhone: b.customer?.phoneNumber,
           vendorName: vendName,
-        }
+        } as Booking
       })
 
       setBookings(bookingsData)

@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -18,11 +19,22 @@ export class VehiclesService {
   ) {}
 
   async create(ownerId: string, dto: CreateVehicleDto): Promise<Vehicle> {
+    const normalizedReg = dto.registrationNumber
+      .toUpperCase()
+      .replace(/\s/g, '');
+
+    const existing = await this.vehicleRepo.findOne({
+      where: { ownerId, registrationNumber: normalizedReg },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'This vehicle is already registered in your garage',
+      );
+    }
+
     const vehicle = this.vehicleRepo.create({
       ownerId,
-      registrationNumber: dto.registrationNumber
-        .toUpperCase()
-        .replace(/\s/g, ''),
+      registrationNumber: normalizedReg,
       make: dto.make.trim(),
       model: dto.model.trim(),
       vehicleType: dto.vehicleType,
@@ -67,9 +79,20 @@ export class VehiclesService {
     const vehicle = await this.findByIdForOwner(vehicleId, ownerId);
 
     if (dto.registrationNumber !== undefined) {
-      vehicle.registrationNumber = dto.registrationNumber
+      const normalizedReg = dto.registrationNumber
         .toUpperCase()
         .replace(/\s/g, '');
+      if (normalizedReg !== vehicle.registrationNumber) {
+        const existing = await this.vehicleRepo.findOne({
+          where: { ownerId, registrationNumber: normalizedReg },
+        });
+        if (existing) {
+          throw new ConflictException(
+            'This vehicle is already registered in your garage',
+          );
+        }
+        vehicle.registrationNumber = normalizedReg;
+      }
     }
     if (dto.make !== undefined) vehicle.make = dto.make.trim();
     if (dto.model !== undefined) vehicle.model = dto.model.trim();

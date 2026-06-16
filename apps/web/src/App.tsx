@@ -17,6 +17,7 @@ import ProfilePage from './pages/ProfilePage'
 import ReviewPage from './pages/ReviewPage'
 import { SetPasswordPage } from './pages/SetPasswordPage'
 import { SignupPage } from './pages/SignupPage'
+import CancellationPolicyPage from './pages/CancellationPolicyPage'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -26,6 +27,7 @@ import AdminAddonsPage from './pages/admin/AdminAddonsPage'
 import AdminSettingsPage from './pages/admin/AdminSettingsPage'
 import AdminPromotionsPage from './pages/admin/AdminPromotionsPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
+import AdminVendorsPage from './pages/admin/AdminVendorsPage'
 
 function RootRedirect() {
   const { user, loading } = useAuth()
@@ -41,6 +43,7 @@ function App() {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/verify-otp" element={<OtpPage />} />
       <Route path="/set-password" element={<SetPasswordPage />} />
+      <Route path="/cancellation-policy" element={<CancellationPolicyPage />} />
 
       <Route
         element={
@@ -76,6 +79,7 @@ function App() {
         <Route path="/admin/addons" element={<AdminAddonsPage />} />
         <Route path="/admin/promotions" element={<AdminPromotionsPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
+        <Route path="/admin/vendors" element={<AdminVendorsPage />} />
         <Route path="/admin/settings" element={<AdminSettingsPage />} />
       </Route>
 

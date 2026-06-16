@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { useIdleTimeout } from '../../hooks/useIdleTimeout'
+import { useToast } from '@/hooks/use-toast'
 import {
   LayoutDashboard,
   CalendarDays,
@@ -14,6 +16,7 @@ import {
   ShieldCheck,
   Megaphone,
   Users,
+  Store,
 } from 'lucide-react'
 
 export default function AdminLayout() {
@@ -21,6 +24,28 @@ export default function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { toast } = useToast()
+
+  useIdleTimeout({
+    timeoutMs: 30 * 60 * 1000, // 30 minutes
+    warningMs: 60 * 1000, // 60 seconds warning
+    onWarning: () => {
+      toast({
+        title: 'Inactivity Warning ⚠️',
+        description: 'Your admin session will expire in 60 seconds due to inactivity. Move your mouse or touch the screen to stay logged in.',
+        duration: 10000,
+      })
+    },
+    onTimeout: async () => {
+      await logout()
+      toast({
+        title: 'Session Expired 🕒',
+        description: 'You have been logged out due to inactivity.',
+        variant: 'destructive',
+      })
+      navigate('/login')
+    },
+  })
 
   const navItems = [
     {
@@ -60,6 +85,12 @@ export default function AdminLayout() {
       desc: 'User management',
     },
     {
+      name: 'Vendors',
+      path: '/admin/vendors',
+      icon: Store,
+      desc: 'Partner valeting vendors',
+    },
+    {
       name: 'Dynamic Settings',
       path: '/admin/settings',
       icon: Settings,
@@ -75,7 +106,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-nexa-bg-deep text-nexa-text flex font-body relative overflow-hidden">
+    <div className="h-screen bg-nexa-bg-deep text-nexa-text flex font-body relative overflow-hidden">
       {/* Background radial elements for premium dark mode */}
       <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-nexa-mint/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />

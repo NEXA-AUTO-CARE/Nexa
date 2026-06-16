@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
-import { Car, Calendar, MapPin, Sparkles, ChevronRight, X, Send } from "lucide-react";
+import { Car, Calendar, MapPin, Sparkles, ChevronRight, X, Send, Phone } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 import { useAddons } from "../hooks/useAddons";
 import { useVehicles } from "../hooks/useVehicles";
 import { api } from "../lib/api-client";
@@ -14,15 +15,14 @@ import { describeError } from "../lib/errors";
 import { useToast } from "@/hooks/use-toast";
 import CorporateFleetFields, { type CorporateFleetData } from "@/components/CorporateFleetFields";
 
-const TIME_SLOTS: Record<string, number> = { morning: 9, afternoon: 13, evening: 16 };
-
 const BookingPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const { vehicles, isLoading } = useVehicles();
   const { addons } = useAddons();
   const { toast } = useToast();
-  const { priceFor, serviceLabelFor, customerTypes = ["Individual", "Corporate"] } = useSettings();
+  const { priceFor, serviceLabelFor, customerTypes = ["Individual", "Corporate"], timeSlots = [] } = useSettings();
 
   const serviceLabel = serviceLabelFor();
 
@@ -38,6 +38,7 @@ const BookingPage = () => {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState(user?.phoneNumber ?? "");
   const [corporateData, setCorporateData] = useState<CorporateFleetData>({
     companyName: "",
     fleetSize: "",
@@ -73,6 +74,7 @@ const BookingPage = () => {
       !!date &&
       !!time &&
       address.trim().length > 0 &&
+      phone.trim().length > 0 &&
       !submitting;
 
   const handleSubmit = async () => {
@@ -81,7 +83,9 @@ const BookingPage = () => {
     setSubmitting(true);
     setError(null);
     try {
-      const bookingTime = new Date(`${date}T${String(TIME_SLOTS[time] ?? 9).padStart(2, "0")}:00:00`).toISOString();
+      const selectedSlot = timeSlots.find((s) => s.key === time);
+      const hour = selectedSlot ? selectedSlot.hour : 9;
+      const bookingTime = new Date(`${date}T${String(hour).padStart(2, "0")}:00:00`).toISOString();
 
       if (isCorporateFlow) {
         const dto: CreateCorporateFleetEnquiryDto = {
@@ -102,6 +106,7 @@ const BookingPage = () => {
           vehicleId: effectiveVehicleId,
           bookingTime,
           serviceAddress: address.trim(),
+          servicePhone: phone.trim(),
           addonIds: selectedAddons,
           agreedSafeSpace: true,
           agreedDetailsCorrect: true,
@@ -317,9 +322,11 @@ const BookingPage = () => {
                 <SelectValue placeholder="Select time" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="morning">Morning (9:00 AM)</SelectItem>
-                <SelectItem value="afternoon">Afternoon (1:00 PM)</SelectItem>
-                <SelectItem value="evening">Evening (4:00 PM)</SelectItem>
+                {timeSlots.map((slot) => (
+                  <SelectItem key={slot.key} value={slot.key}>
+                    {slot.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -333,6 +340,20 @@ const BookingPage = () => {
               placeholder="Enter your address in Aberdeen"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
+              className="h-11 pl-9 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-2 block uppercase tracking-wider">Service Phone Number</label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="tel"
+              placeholder="Enter your phone number (e.g. +447700900077)"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               className="h-11 pl-9 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
             />
           </div>

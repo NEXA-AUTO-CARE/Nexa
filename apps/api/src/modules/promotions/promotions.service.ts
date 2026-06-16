@@ -208,12 +208,13 @@ export class PromotionsService {
   }
 
   /**
-   * Calculate the discount amount for a given promotion, user, and base price.
+   * Calculate the discount amount for a given promotion, user, and price.
    */
   async calculateDiscount(
     promotion: Promotion,
     userId: string,
-    basePrice: number,
+    totalPrice: number,
+    servicePriceOnly: number = totalPrice,
   ): Promise<DiscountResult> {
     if (promotion.type === PromotionType.ANNOUNCEMENT) {
       return { discount: 0, isFree: false };
@@ -221,7 +222,7 @@ export class PromotionsService {
 
     if (promotion.type === PromotionType.PERCENTAGE_DISCOUNT) {
       const pct = parseFloat(promotion.discountPercent ?? '0');
-      const discount = Math.round(basePrice * (pct / 100) * 100) / 100;
+      const discount = Math.round(servicePriceOnly * (pct / 100) * 100) / 100;
       return { discount, isFree: false };
     }
 
@@ -254,7 +255,7 @@ export class PromotionsService {
 
       // If the user has reached the threshold, next booking is free
       if (paidCount > 0 && paidCount % threshold === 0) {
-        return { discount: basePrice, isFree: true };
+        return { discount: totalPrice, isFree: true };
       }
 
       // Not yet at threshold — full price, but will be recorded as a paid redemption

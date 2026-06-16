@@ -122,6 +122,7 @@ export class PaymentsService {
         });
 
         await this.paymentRepo.save(payment);
+        this.logger.log(`Created Stripe PaymentIntent ${paymentIntent.id} for booking ${booking.bookingId}`);
       } catch (err) {
         this.logger.error('Failed to create Stripe PaymentIntent', err);
         // Fallback for dev mode if stripe isn't configured properly
@@ -142,6 +143,7 @@ export class PaymentsService {
           });
           await this.paymentRepo.save(payment);
           clientSecret = 'pi_mock_secret';
+          this.logger.log(`Created Mock PaymentIntent for booking ${booking.bookingId}`);
         } else {
           throw new BadRequestException('Payment gateway error');
         }
@@ -210,6 +212,7 @@ export class PaymentsService {
 
     payment.status = PaymentStatus.REFUNDED;
     await this.paymentRepo.save(payment);
+    this.logger.log(`Refunded payment for booking ${bookingId}`);
 
     // Also update booking status to cancelled
     try {
@@ -263,6 +266,7 @@ export class PaymentsService {
           destination: vendor.stripeAccountId,
           description: `Payout for booking ${bookingId}`,
         });
+        this.logger.log(`Triggered payout of ${amountInCents} to vendor ${vendor.stripeAccountId} for booking ${bookingId}`);
       }
     } catch (e) {
       this.logger.error('Failed to trigger Stripe transfer/payout', e);

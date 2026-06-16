@@ -2,14 +2,14 @@ name: Deploy Nexa API to AWS ECS
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - 'apps/api/**'
-      - 'packages/shared/**'
-      - 'infra/**'
-      - '.github/workflows/deploy-api.yml'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
+      - "apps/api/**"
+      - "packages/shared/**"
+      - "infra/**"
+      - ".github/workflows/deploy-api.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
 
 permissions:
   id-token: write # Required for requesting JWT OIDC tokens from AWS
@@ -25,8 +25,8 @@ jobs:
       - name: Set up AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }} # Using secure OIDC role assumption
-          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }} # Using secure OIDC role assumption
+          aws-region: ${{ vars.AWS_REGION || 'eu-west-2' }}
 
       - name: Log in to Amazon ECR
         id: login-ecr
@@ -41,7 +41,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Build, tag, and push API image to Amazon ECR
         id: build-image
@@ -57,7 +57,7 @@ jobs:
 
       - name: Download task definition
         run: |
-          aws ecs describe-task-definition --task-definition nexa-api-production --query taskDefinition > task-definition.json
+          aws ecs describe-task-definition --task-definition NexaApiServiceStackproductionApiTaskDef2BC1B8C9 --query taskDefinition > task-definition.json
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: render-task-def
@@ -66,6 +66,35 @@ jobs:
           task-definition: task-definition.json
           container-name: ApiContainer
           image: ${{ steps.build-image.outputs.image }}
+
+      - name: Register and Run Database Migrations
+        run: |
+          jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' ${{ steps.render-task-def.outputs.task-definition }} > clean-task-def.json
+          NEW_TASK_DEF=$(aws ecs register-task-definition --cli-input-json file://clean-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          NETWORK_CONFIG=$(aws ecs describe-services --cluster nexa-cluster-production --services nexa-api-production --query 'services[0].networkConfiguration' --output json)
+
+          echo "Starting migration task using definition $NEW_TASK_DEF"
+          TASK_ARN=$(aws ecs run-task \
+            --cluster nexa-cluster-production \
+            --task-definition $NEW_TASK_DEF \
+            --launch-type FARGATE \
+            --network-configuration "$NETWORK_CONFIG" \
+            --overrides '{"containerOverrides":[{"name":"ApiContainer","command":["node", "./node_modules/typeorm/cli.js", "migration:run", "-d", "dist/data-source.js"]}]}' \
+            --started-by "github-actions-migration" \
+            --query 'tasks[0].taskArn' \
+            --output text)
+            
+          echo "Waiting for migration task ($TASK_ARN) to complete..."
+          aws ecs wait tasks-stopped --cluster nexa-cluster-production --tasks $TASK_ARN
+
+          EXIT_CODE=$(aws ecs describe-tasks --cluster nexa-cluster-production --tasks $TASK_ARN --query 'tasks[0].containers[0].exitCode' --output text)
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Migration task failed with exit code $EXIT_CODE."
+            aws logs get-log-events --log-group-name /ecs/nexa-api-production --log-stream-name nexa-api/ApiContainer/${TASK_ARN##*/} --query 'events[*].message' --output text
+            exit 1
+          fi
+          echo "Database migrations completed successfully."
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2

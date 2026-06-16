@@ -205,6 +205,17 @@ async function seed() {
     }),
     settingRepo.create({ key: 'booking_fee', value: '1.49' }),
     settingRepo.create({
+      key: 'booking_time_slots',
+      value: JSON.stringify([
+        { key: 'early_morning', label: 'Early Morning (7:00 AM)', hour: 7 },
+        { key: 'morning', label: 'Morning (9:00 AM)', hour: 9 },
+        { key: 'late_morning', label: 'Late Morning (11:00 AM)', hour: 11 },
+        { key: 'afternoon', label: 'Afternoon (1:00 PM)', hour: 13 },
+        { key: 'evening', label: 'Evening (4:00 PM)', hour: 16 },
+        { key: 'late_evening', label: 'Late Evening (6:00 PM)', hour: 18 }
+      ]),
+    }),
+    settingRepo.create({
       key: 'service_labels',
       value: JSON.stringify({ base: 'Mini Valet' }),
     }),

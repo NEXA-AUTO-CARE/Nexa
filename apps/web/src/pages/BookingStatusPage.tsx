@@ -1,7 +1,7 @@
 import { BookingStatus, type BookingResponse } from "@nexa/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Check, Clock, User, MapPin, Camera, Star, XCircle } from "lucide-react";
@@ -200,6 +200,7 @@ const BookingStatusPage = () => {
                   <p className="text-xs text-muted-foreground">
                     Cancellations made more than 24 hours before your appointment are eligible for a full refund.
                     Late cancellations may be subject to a 30% retention fee.
+                    View our full <Link to="/cancellation-policy" target="_blank" className="text-primary hover:underline font-semibold">Cancellation Policy</Link> for details.
                   </p>
                   {cancelError && (
                     <p className="text-xs text-destructive">{cancelError}</p>

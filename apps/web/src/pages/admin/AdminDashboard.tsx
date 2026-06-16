@@ -59,8 +59,11 @@ export default function AdminDashboard() {
 
   // Calculations
   const totalRevenue = bookings
-    .filter((b) => b.status.toLowerCase() === 'completed')
-    .reduce((sum, b) => sum + parseFloat(b.price || '0'), 0)
+    .filter((b) => b.status.toLowerCase() !== 'cancelled')
+    .reduce((sum, b) => {
+      const parsed = parseFloat(b.price || '0')
+      return sum + (Number.isNaN(parsed) ? 0 : parsed)
+    }, 0)
 
   const activeLeads = corporateLeads.filter((lead) => !lead.isInvoiced)
   const unassignedJobs = bookings.filter(

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -44,6 +45,8 @@ const TRANSITIONS: Record<string, string[]> = {
 
 @Injectable()
 export class BookingsService {
+  private readonly logger = new Logger(BookingsService.name);
+
   constructor(
     @InjectRepository(Booking)
     private readonly bookingRepo: Repository<Booking>,
@@ -101,7 +104,8 @@ export class BookingsService {
     }
 
     // Mini Valet is the single base service; price is driven by vehicle category.
-    let basePrice = await this.getBasePriceForCategory(vehicle.vehicleType);
+    const servicePriceOnly = await this.getBasePriceForCategory(vehicle.vehicleType);
+    let basePrice = servicePriceOnly;
     let addonsSnapshot: { addonId: string; name: string; price: string }[] = [];
 
     if (dto.addonIds && dto.addonIds.length > 0) {
@@ -143,6 +147,7 @@ export class BookingsService {
         promo,
         userId,
         basePrice,
+        servicePriceOnly,
       );
       discountAmount = result.discount;
       isFreeBooking = result.isFree;
@@ -156,6 +161,7 @@ export class BookingsService {
       serviceType: dto.serviceType ?? ServiceType.BASIC,
       bookingTime: new Date(dto.bookingTime),
       serviceAddress: dto.serviceAddress.trim(),
+      servicePhone: dto.servicePhone ? dto.servicePhone.trim() : null,
       latitude: dto.latitude?.toString() ?? null,
       longitude: dto.longitude?.toString() ?? null,
       price: finalPrice.toFixed(2),
@@ -183,6 +189,9 @@ export class BookingsService {
 
     // Load relations for the event
     const full = await this.findByIdWithRelations(saved.bookingId);
+    
+    this.logger.log(`Booking created: ${saved.bookingId} for user ${userId} with price ${finalPrice}`);
+    
     this.events.emit(
       BookingCreatedEvent.EVENT_NAME,
       new BookingCreatedEvent(full),
@@ -234,6 +243,8 @@ export class BookingsService {
     const previousStatus = booking.status;
     booking.status = newStatus;
     await this.bookingRepo.save(booking);
+    
+    this.logger.log(`Booking ${bookingId} status changed from ${previousStatus} to ${newStatus} by user ${userId}`);
 
     const full = await this.findByIdWithRelations(bookingId);
     this.events.emit(
@@ -255,6 +266,8 @@ export class BookingsService {
 
     // TODO: Implement cancellation logic - potentially with a refund system if the booking was paid for
     await this.updateStatus(bookingId, userId, BookingStatus.CANCELLED);
+    
+    this.logger.log(`Booking ${bookingId} cancelled by user ${userId}`);
 
     // TODO: Emit event for cancellation - potentially with a refund (Admin approval needed) system if the booking was paid for.
     this.events.emit(
@@ -293,8 +306,8 @@ export class BookingsService {
       (sum, a) => sum + parseFloat(a.price),
       0,
     );
-    let basePrice = await this.getBasePriceForCategory(vehicle.vehicleType);
-    basePrice += addonsTotal;
+    const servicePriceOnly = await this.getBasePriceForCategory(vehicle.vehicleType);
+    let basePrice = servicePriceOnly + addonsTotal;
 
     // Add the dynamic booking & protection fee
     const dynamicFee = await this.getBookingFee();
@@ -311,6 +324,7 @@ export class BookingsService {
         promo,
         userId,
         basePrice,
+        servicePriceOnly,
       );
       discountAmount = result.discount;
       isFreeBooking = result.isFree;
@@ -324,6 +338,7 @@ export class BookingsService {
       serviceType: previous.serviceType,
       bookingTime: when,
       serviceAddress: previous.serviceAddress,
+      servicePhone: previous.servicePhone,
       latitude: previous.latitude,
       longitude: previous.longitude,
       price: finalPrice.toFixed(2),
@@ -405,6 +420,7 @@ export class BookingsService {
       price: booking.price,
       status: booking.status,
       createdAt: booking.createdOn.toISOString(),
+      servicePhone: booking.servicePhone ?? undefined,
       addons: booking.addons || [],
       originalPrice: booking.originalPrice ?? undefined,
       discountAmount: booking.discountAmount ?? undefined,

@@ -3,12 +3,15 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  ApiBearerAuth,
   ApiOperation,
   ApiResponse as ApiResponseDoc,
   ApiTags,
@@ -26,6 +29,10 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { VerifyResetOtpDto } from './dto/verify-reset-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ResetTokenDto } from './dto/reset-token.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 
 const REFRESH_COOKIE = 'nexa_rt';
 
@@ -181,5 +188,24 @@ export class AuthController {
       path: '/',
       expires: result.refreshExpiresAt,
     });
+  }
+
+  @Patch('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('jwt')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Change password for authenticated user (e.g. force change on first login)',
+  })
+  @ApiResponseDoc({
+    status: 200,
+    description: 'Password changed successfully',
+    schema: { example: { ok: true } },
+  })
+  async changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.auth.changePassword(user.userId, dto.newPassword);
   }
 }

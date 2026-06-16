@@ -2,13 +2,13 @@ name: Deploy Nexa Frontend to AWS S3 & CloudFront
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - 'apps/web/**'
-      - 'packages/shared/**'
-      - '.github/workflows/deploy-web.yml'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
+      - "apps/web/**"
+      - "packages/shared/**"
+      - ".github/workflows/deploy-web.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
 
 permissions:
   id-token: write
@@ -30,7 +30,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -48,13 +48,13 @@ jobs:
       - name: Set up AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION || 'eu-west-2' }}
 
       - name: Deploy static files to S3 bucket
         run: |
-          aws s3 sync apps/web/dist s3://${{ secrets.S3_WEB_BUCKET }} --delete
+          aws s3 sync apps/web/dist s3://${{ vars.S3_WEB_BUCKET }} --delete
 
       - name: Invalidate CloudFront cache
         run: |
-          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+          aws cloudfront create-invalidation --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"

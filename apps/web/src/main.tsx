@@ -8,6 +8,7 @@ import { Toaster as Sonner } from './components/ui/sonner'
 import { TooltipProvider } from './components/ui/tooltip'
 import { AuthProvider } from './contexts/AuthContext'
 import { SettingsProvider } from './contexts/SettingsContext'
+import { NetworkStatusProvider } from './contexts/NetworkStatusContext'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -21,13 +22,15 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <SettingsProvider>
-          <AuthProvider>
-            <TooltipProvider>
-              <App />
-              <Toaster />
-              <Sonner />
-            </TooltipProvider>
-          </AuthProvider>
+          <NetworkStatusProvider>
+            <AuthProvider>
+              <TooltipProvider>
+                <App />
+                <Toaster />
+                <Sonner />
+              </TooltipProvider>
+            </AuthProvider>
+          </NetworkStatusProvider>
         </SettingsProvider>
       </BrowserRouter>
     </QueryClientProvider>

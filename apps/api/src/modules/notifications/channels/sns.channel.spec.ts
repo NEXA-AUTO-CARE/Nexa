@@ -43,6 +43,10 @@ describe('SnsChannel', () => {
 
     channel = module.get<SnsChannel>(SnsChannel);
     configService = module.get<ConfigService>(ConfigService);
+
+    // Get the mocked SNSClient constructor and instance
+    const mockedSNSClient = SNSClient as jest.Mock;
+    mockSnsClientInstance = mockedSNSClient.mock.results[0]?.value;
   });
 
   it('should be defined', () => {
@@ -54,7 +58,7 @@ describe('SnsChannel', () => {
       const originalNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'development';
 
-      new SnsChannel(configService);
+      const testChannel = new SnsChannel(configService);
 
       expect(SNSClient).toHaveBeenCalledWith({ region: 'us-east-1' });
       process.env.NODE_ENV = originalNodeEnv;

@@ -12,7 +12,11 @@ import { api } from '../lib/api-client'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
-/* ------------------------------------------------------------------ */
+export interface TimeSlot {
+  key: string
+  label: string
+  hour: number
+}
 
 interface SettingsData {
   /** e.g. { standard: "25.00", grande: "30.00", ... } */
@@ -29,6 +33,8 @@ interface SettingsData {
   serviceLabels: Record<string, string>
   /** Enabled customer types: Individual, Corporate */
   customerTypes: string[]
+  /** Configurable booking time slots */
+  timeSlots: TimeSlot[]
 }
 
 interface SettingsContextValue extends SettingsData {
@@ -57,6 +63,14 @@ const DEFAULTS: SettingsData = {
   termsAndConditions: '',
   serviceLabels: SERVICE_LABELS,
   customerTypes: ['Individual', 'Corporate'],
+  timeSlots: [
+    { key: 'early_morning', label: 'Early Morning (7:00 AM)', hour: 7 },
+    { key: 'morning', label: 'Morning (9:00 AM)', hour: 9 },
+    { key: 'late_morning', label: 'Late Morning (11:00 AM)', hour: 11 },
+    { key: 'afternoon', label: 'Afternoon (1:00 PM)', hour: 13 },
+    { key: 'evening', label: 'Evening (4:00 PM)', hour: 16 },
+    { key: 'late_evening', label: 'Late Evening (6:00 PM)', hour: 18 }
+  ],
 }
 
 const CACHE_KEY = 'nexa_settings_cache'
@@ -107,6 +121,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         termsAndConditions: map.get('terms_and_conditions') ?? DEFAULTS.termsAndConditions,
         serviceLabels: tryParseJson(map.get('service_labels'), DEFAULTS.serviceLabels),
         customerTypes: parseStringArray(map.get('customer_type'), DEFAULTS.customerTypes),
+        timeSlots: tryParseJson(map.get('booking_time_slots'), DEFAULTS.timeSlots),
       }
       setData(next)
       // Persist to localStorage for cache-on-load

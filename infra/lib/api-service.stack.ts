@@ -92,7 +92,7 @@ export class ApiServiceStack extends cdk.Stack {
         DATABASE_NAME: 'nexa',
         TWILIO_FROM: '+441234567890', // Default Twilio from number, can be overridden if needed
         SMTP_FROM: 'NEXA <no-reply@nexaautocare.com>',
-        WEB_ORIGIN: `https://${config.webSubdomain}.${config.domainName}`,
+        WEB_ORIGIN: config.domainName ? `https://${config.webSubdomain}.${config.domainName}` : 'https://d3dxi731daye4b.cloudfront.net',
         OTP_DEV_LOG: config.envName === 'development' ? 'true' : 'false',
         MOCK_PAYMENTS: 'false',
         SUPER_ADMIN_EMAIL: 'admin@nexaautocare.com', // Optional: customize based on env if needed
