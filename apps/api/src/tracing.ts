@@ -6,7 +6,8 @@ import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 
-const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
+const otlpEndpoint =
+  process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
 
 const logExporter = new OTLPLogExporter({
   url: `${otlpEndpoint}/v1/logs`,
@@ -32,7 +33,7 @@ export const otelSDK = new NodeSDK({
 // Initialize the SDK and start it safely
 export async function startTracing() {
   try {
-    await otelSDK.start();
+    otelSDK.start();
     console.log('[OpenTelemetry] SDK initialized successfully');
   } catch (error) {
     console.error('[OpenTelemetry] Error initializing SDK', error);
@@ -41,7 +42,8 @@ export async function startTracing() {
 
 // Ensure graceful shutdown
 process.on('SIGTERM', () => {
-  otelSDK.shutdown()
+  otelSDK
+    .shutdown()
     .then(() => console.log('OpenTelemetry SDK terminated'))
     .catch((error) => console.log('Error terminating OpenTelemetry SDK', error))
     .finally(() => process.exit(0));

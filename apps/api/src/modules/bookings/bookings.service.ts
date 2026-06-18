@@ -104,7 +104,9 @@ export class BookingsService {
     }
 
     // Mini Valet is the single base service; price is driven by vehicle category.
-    const servicePriceOnly = await this.getBasePriceForCategory(vehicle.vehicleType);
+    const servicePriceOnly = await this.getBasePriceForCategory(
+      vehicle.vehicleType,
+    );
     let basePrice = servicePriceOnly;
     let addonsSnapshot: { addonId: string; name: string; price: string }[] = [];
 
@@ -137,7 +139,7 @@ export class BookingsService {
     basePrice += dynamicFee;
 
     // --- Promotion discount logic ---
-    const promo = await this.promotionsService.findBestActivePromotion();
+    const promo = await this.promotionsService.findBestActivePromotion(userId);
     let discountAmount = 0;
     let isFreeBooking = false;
     const originalPrice = basePrice;
@@ -172,6 +174,12 @@ export class BookingsService {
       promotionId: promo?.promotionId ?? null,
       originalPrice: promo ? originalPrice.toFixed(2) : null,
       discountAmount: promo ? discountAmount.toFixed(2) : null,
+      addressLine1: dto.addressLine1 ?? null,
+      addressLine2: dto.addressLine2 ?? null,
+      addressLine3: dto.addressLine3 ?? null,
+      postTown: dto.postTown ?? null,
+      postcode: dto.postcode ?? null,
+      uprn: dto.uprn ?? null,
     });
 
     const saved = await this.bookingRepo.save(booking);
@@ -189,9 +197,11 @@ export class BookingsService {
 
     // Load relations for the event
     const full = await this.findByIdWithRelations(saved.bookingId);
-    
-    this.logger.log(`Booking created: ${saved.bookingId} for user ${userId} with price ${finalPrice}`);
-    
+
+    this.logger.log(
+      `Booking created: ${saved.bookingId} for user ${userId} with price ${finalPrice}`,
+    );
+
     this.events.emit(
       BookingCreatedEvent.EVENT_NAME,
       new BookingCreatedEvent(full),
@@ -243,8 +253,10 @@ export class BookingsService {
     const previousStatus = booking.status;
     booking.status = newStatus;
     await this.bookingRepo.save(booking);
-    
-    this.logger.log(`Booking ${bookingId} status changed from ${previousStatus} to ${newStatus} by user ${userId}`);
+
+    this.logger.log(
+      `Booking ${bookingId} status changed from ${previousStatus} to ${newStatus} by user ${userId}`,
+    );
 
     const full = await this.findByIdWithRelations(bookingId);
     this.events.emit(
@@ -266,7 +278,7 @@ export class BookingsService {
 
     // TODO: Implement cancellation logic - potentially with a refund system if the booking was paid for
     await this.updateStatus(bookingId, userId, BookingStatus.CANCELLED);
-    
+
     this.logger.log(`Booking ${bookingId} cancelled by user ${userId}`);
 
     // TODO: Emit event for cancellation - potentially with a refund (Admin approval needed) system if the booking was paid for.
@@ -306,7 +318,9 @@ export class BookingsService {
       (sum, a) => sum + parseFloat(a.price),
       0,
     );
-    const servicePriceOnly = await this.getBasePriceForCategory(vehicle.vehicleType);
+    const servicePriceOnly = await this.getBasePriceForCategory(
+      vehicle.vehicleType,
+    );
     let basePrice = servicePriceOnly + addonsTotal;
 
     // Add the dynamic booking & protection fee
@@ -314,7 +328,7 @@ export class BookingsService {
     basePrice += dynamicFee;
 
     // --- Promotion discount logic ---
-    const promo = await this.promotionsService.findBestActivePromotion();
+    const promo = await this.promotionsService.findBestActivePromotion(userId);
     let discountAmount = 0;
     let isFreeBooking = false;
     const originalPrice = basePrice;
@@ -425,6 +439,12 @@ export class BookingsService {
       originalPrice: booking.originalPrice ?? undefined,
       discountAmount: booking.discountAmount ?? undefined,
       promotionTitle: booking.promotion?.title ?? undefined,
+      addressLine1: booking.addressLine1 ?? undefined,
+      addressLine2: booking.addressLine2 ?? undefined,
+      addressLine3: booking.addressLine3 ?? undefined,
+      postTown: booking.postTown ?? undefined,
+      postcode: booking.postcode ?? undefined,
+      uprn: booking.uprn ?? undefined,
     };
   }
 

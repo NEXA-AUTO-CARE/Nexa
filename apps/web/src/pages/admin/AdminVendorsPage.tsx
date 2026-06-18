@@ -14,12 +14,29 @@ import {
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
+interface PostcodeAddress {
+  line_1: string
+  line_2: string | null
+  line_3: string | null
+  post_town: string
+  postcode: string
+  latitude?: number | null
+  longitude?: number | null
+  uprn?: string | null
+}
+
 interface AdminVendor {
   vendorId: string
   companyName: string
   approvalStatus: string
   latitude: string | null
   longitude: string | null
+  addressLine1?: string | null
+  addressLine2?: string | null
+  addressLine3?: string | null
+  postTown?: string | null
+  postcode?: string | null
+  uprn?: string | null
   user: {
     userId: string
     firstName: string | null
@@ -55,9 +72,69 @@ export default function AdminVendorsPage() {
     phoneNumber: '',
     companyName: '',
     latitude: '',
-    longitude: ''
+    longitude: '',
+    addressLine1: '',
+    addressLine2: '',
+    addressLine3: '',
+    postTown: '',
+    postcode: '',
+    uprn: ''
   })
   const [creating, setCreating] = useState(false)
+
+  // Postcode search state inside the modal
+  const [postcodeQuery, setPostcodeQuery] = useState('')
+  const [lookupResults, setLookupResults] = useState<PostcodeAddress[]>([])
+  const [searchingPostcode, setSearchingPostcode] = useState(false)
+  const [selectedResult, setSelectedResult] = useState<PostcodeAddress | null>(null)
+  const [addressConfirmed, setAddressConfirmed] = useState(false)
+  const [showManualAddress, setShowManualAddress] = useState(false)
+
+  const openCreateModal = () => {
+    setIsCreateModalOpen(true)
+    setFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
+      companyName: '',
+      latitude: '',
+      longitude: '',
+      addressLine1: '',
+      addressLine2: '',
+      addressLine3: '',
+      postTown: '',
+      postcode: '',
+      uprn: ''
+    })
+    setPostcodeQuery('')
+    setLookupResults([])
+    setSelectedResult(null)
+    setAddressConfirmed(false)
+    setShowManualAddress(false)
+  }
+
+  const handlePostcodeSearch = async () => {
+    if (!postcodeQuery.trim()) return
+    setSearchingPostcode(true)
+    setError(null)
+    setLookupResults([])
+    setSelectedResult(null)
+    try {
+      const response = await api.get<PostcodeAddress[]>('/postcode-lookup', {
+        params: { postcode: postcodeQuery.trim() }
+      })
+      setLookupResults(response.data)
+      if (response.data.length === 0) {
+        setShowManualAddress(true)
+      }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to search postcode.'
+      setError(msg)
+    } finally {
+      setSearchingPostcode(false)
+    }
+  }
 
   const load = async () => {
     try {
@@ -72,6 +149,7 @@ export default function AdminVendorsPage() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load() setState is deferred behind await
     load()
   }, [])
 
@@ -97,27 +175,34 @@ export default function AdminVendorsPage() {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!addressConfirmed) {
+      setError('Please search and confirm the vendor\'s service address.')
+      return
+    }
     try {
       setCreating(true)
       setError(null)
       
-      const payload: any = { ...formData }
-      if (payload.latitude) payload.latitude = parseFloat(payload.latitude)
-      if (payload.longitude) payload.longitude = parseFloat(payload.longitude)
+      const payload = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email || undefined,
+        phoneNumber: formData.phoneNumber || undefined,
+        companyName: formData.companyName,
+        latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+        longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+        addressLine1: formData.addressLine1 || null,
+        addressLine2: formData.addressLine2 || null,
+        addressLine3: formData.addressLine3 || null,
+        postTown: formData.postTown || null,
+        postcode: formData.postcode || null,
+        uprn: formData.uprn || null,
+      }
         
       const { data } = await api.post('/admin/vendors', payload)
       
       setSuccess(`Vendor ${data.companyName || data.user?.displayName} created successfully!`)
       setIsCreateModalOpen(false)
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phoneNumber: '',
-        companyName: '',
-        latitude: '',
-        longitude: ''
-      })
       await load()
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message
@@ -172,7 +257,7 @@ export default function AdminVendorsPage() {
           </div>
 
           <button
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={openCreateModal}
             className="flex items-center gap-2 px-4 py-2.5 bg-nexa-mint text-nexa-bg-deep rounded-xl font-semibold text-sm hover:bg-nexa-mint/90 transition-colors whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
@@ -270,9 +355,24 @@ export default function AdminVendorsPage() {
                     
                     {/* Location */}
                     <td className="py-3 px-4">
-                       <span className="flex items-center gap-1.5 text-xs text-nexa-text-secondary">
-                          <MapPin className="w-3 h-3 text-nexa-text-muted" /> {v.latitude && v.longitude ? `${v.latitude}, ${v.longitude}` : 'Not set'}
-                       </span>
+                      <div className="space-y-0.5">
+                        {v.addressLine1 ? (
+                          <>
+                            <span className="block text-xs font-semibold text-nexa-text truncate max-w-[180px]">
+                              {v.addressLine1}{v.addressLine2 ? `, ${v.addressLine2}` : ''}
+                            </span>
+                            <span className="block text-[10px] text-nexa-text-muted">
+                              {v.postTown}, {v.postcode}
+                            </span>
+                          </>
+                        ) : v.latitude && v.longitude ? (
+                          <span className="flex items-center gap-1.5 text-xs text-nexa-text-secondary">
+                            <MapPin className="w-3 h-3 text-nexa-text-muted" /> {Number(v.latitude).toFixed(4)}, {Number(v.longitude).toFixed(4)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-nexa-text-muted italic">Not set</span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Status */}
@@ -393,31 +493,229 @@ export default function AdminVendorsPage() {
                     />
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-nexa-text-secondary uppercase tracking-wider">Latitude</label>
-                      <input
-                        type="number"
-                        step="any"
-                        required
-                        value={formData.latitude}
-                        onChange={e => setFormData({ ...formData, latitude: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
-                        placeholder="51.5072"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-nexa-text-secondary uppercase tracking-wider">Longitude</label>
-                      <input
-                        type="number"
-                        step="any"
-                        required
-                        value={formData.longitude}
-                        onChange={e => setFormData({ ...formData, longitude: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
-                        placeholder="0.1276"
-                      />
-                    </div>
+                  {/* Address Section */}
+                  <div className="space-y-2 border-t border-nexa-border-subtle/50 pt-4">
+                    <label className="text-xs font-semibold text-nexa-text-secondary uppercase tracking-wider block">Company Address</label>
+                    {addressConfirmed ? (
+                      <div className="p-4 rounded-xl border border-nexa-mint/30 bg-nexa-mint/5 relative space-y-1">
+                        <p className="text-sm font-semibold text-nexa-text">{formData.addressLine1}</p>
+                        {formData.addressLine2 && <p className="text-xs text-nexa-text-secondary">{formData.addressLine2}</p>}
+                        {formData.addressLine3 && <p className="text-xs text-nexa-text-secondary">{formData.addressLine3}</p>}
+                        <p className="text-xs text-nexa-text-secondary">{formData.postTown}, {formData.postcode}</p>
+                        {formData.latitude && formData.longitude && (
+                          <p className="text-[10px] text-nexa-text-muted mt-1">
+                            Verified Coordinates: {Number(formData.latitude).toFixed(4)}, {Number(formData.longitude).toFixed(4)}
+                          </p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddressConfirmed(false)
+                            setFormData({
+                              ...formData,
+                              addressLine1: '',
+                              addressLine2: '',
+                              addressLine3: '',
+                              postTown: '',
+                              postcode: '',
+                              uprn: '',
+                              latitude: '',
+                              longitude: ''
+                            })
+                            setSelectedResult(null)
+                            setLookupResults([])
+                          }}
+                          className="absolute top-3 right-3 text-xs text-nexa-mint font-semibold hover:underline"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : showManualAddress ? (
+                      <div className="p-4 rounded-xl border border-nexa-border-subtle bg-nexa-bg-deep/30 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-semibold text-nexa-text">Manual Address Entry</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowManualAddress(false)}
+                            className="text-[11px] text-nexa-mint font-semibold hover:underline"
+                          >
+                            Use Postcode Lookup
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            placeholder="Address Line 1 *"
+                            value={formData.addressLine1}
+                            onChange={e => setFormData({ ...formData, addressLine1: e.target.value })}
+                            className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Address Line 2 (Optional)"
+                            value={formData.addressLine2}
+                            onChange={e => setFormData({ ...formData, addressLine2: e.target.value })}
+                            className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Address Line 3 (Optional)"
+                            value={formData.addressLine3}
+                            onChange={e => setFormData({ ...formData, addressLine3: e.target.value })}
+                            className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              type="text"
+                              placeholder="Town/City *"
+                              value={formData.postTown}
+                              onChange={e => setFormData({ ...formData, postTown: e.target.value })}
+                              className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Postcode *"
+                              value={formData.postcode}
+                              onChange={e => setFormData({ ...formData, postcode: e.target.value })}
+                              className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              type="number"
+                              step="any"
+                              placeholder="Latitude *"
+                              value={formData.latitude}
+                              onChange={e => setFormData({ ...formData, latitude: e.target.value })}
+                              className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
+                            />
+                            <input
+                              type="number"
+                              step="any"
+                              placeholder="Longitude *"
+                              value={formData.longitude}
+                              onChange={e => setFormData({ ...formData, longitude: e.target.value })}
+                              className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={!formData.addressLine1.trim() || !formData.postTown.trim() || !formData.postcode.trim() || !formData.latitude.trim() || !formData.longitude.trim()}
+                          onClick={() => {
+                            setAddressConfirmed(true)
+                            setShowManualAddress(false)
+                          }}
+                          className="w-full py-2 bg-nexa-mint text-nexa-bg-deep rounded-xl font-semibold text-sm hover:bg-nexa-mint/90 transition-colors disabled:opacity-50"
+                        >
+                          Confirm Manual Address
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Enter postcode (e.g. ID1 1QD)"
+                            value={postcodeQuery}
+                            onChange={e => setPostcodeQuery(e.target.value.toUpperCase())}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handlePostcodeSearch();
+                              }
+                            }}
+                            className="flex-1 px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
+                          />
+                          <button
+                            type="button"
+                            onClick={handlePostcodeSearch}
+                            disabled={searchingPostcode || !postcodeQuery.trim()}
+                            className="px-4 py-2.5 bg-nexa-bg-elevated border border-nexa-border-subtle text-nexa-text rounded-xl font-semibold text-sm hover:bg-nexa-border-subtle transition-colors disabled:opacity-50"
+                          >
+                            {searchingPostcode ? 'Searching...' : 'Find'}
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowManualAddress(true)
+                            if (postcodeQuery) setFormData({ ...formData, postcode: postcodeQuery })
+                          }}
+                          className="text-[11px] text-nexa-text-muted hover:text-nexa-text transition-colors"
+                        >
+                          Or enter manually with coordinates
+                        </button>
+
+                        {lookupResults.length > 0 && (
+                          <div className="max-h-40 overflow-y-auto border border-nexa-border-subtle bg-nexa-bg p-1 space-y-0.5 rounded-xl shadow-inner">
+                            {lookupResults.map((addr, idx) => {
+                              const formatted = [addr.line_1, addr.line_2, addr.line_3]
+                                .filter(Boolean)
+                                .join(', ')
+                              return (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => setSelectedResult(addr)}
+                                  className={`w-full text-left p-2 rounded-lg text-xs transition-colors flex justify-between items-center ${
+                                    selectedResult === addr ? 'bg-nexa-mint/10 text-nexa-mint font-medium' : 'text-nexa-text hover:bg-nexa-bg-elevated'
+                                  }`}
+                                >
+                                  <div>
+                                    <p className="font-semibold">{formatted}</p>
+                                    <p className="text-[10px] text-nexa-text-muted">{addr.post_town}, {addr.postcode}</p>
+                                  </div>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+
+                        {selectedResult && (
+                          <div className="p-3 border border-nexa-mint/35 bg-nexa-mint/5 rounded-xl space-y-3">
+                            <div className="text-xs text-nexa-text-secondary">
+                              <span className="font-bold text-nexa-text block mb-1">Confirm Selected Address:</span>
+                              <p className="font-semibold">{selectedResult.line_1}</p>
+                              {selectedResult.line_2 && <p>{selectedResult.line_2}</p>}
+                              {selectedResult.line_3 && <p>{selectedResult.line_3}</p>}
+                              <p>{selectedResult.post_town}, {selectedResult.postcode}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedResult(null)}
+                                className="flex-1 py-1.5 border border-nexa-border-subtle hover:bg-nexa-bg-elevated rounded-lg text-xs font-semibold text-nexa-text"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormData({
+                                    ...formData,
+                                    addressLine1: selectedResult.line_1 || '',
+                                    addressLine2: selectedResult.line_2 || '',
+                                    addressLine3: selectedResult.line_3 || '',
+                                    postTown: selectedResult.post_town || '',
+                                    postcode: selectedResult.postcode || '',
+                                    uprn: selectedResult.uprn || '',
+                                    latitude: selectedResult.latitude?.toString() || '',
+                                    longitude: selectedResult.longitude?.toString() || ''
+                                  })
+                                  setAddressConfirmed(true)
+                                  setSelectedResult(null)
+                                  setLookupResults([])
+                                }}
+                                className="flex-1 py-1.5 bg-nexa-mint text-nexa-bg-deep rounded-lg text-xs font-semibold hover:bg-nexa-mint/90"
+                              >
+                                Confirm
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                 </form>

@@ -1,4 +1,9 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+} from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { OtelLogger } from '../logger/otel.logger';
@@ -12,7 +17,7 @@ export class LoggingInterceptor implements NestInterceptor {
     const ctx = context.switchToHttp();
     const request = ctx.getRequest<Request>();
     const response = ctx.getResponse<Response>();
-    
+
     const { method, url } = request;
     const now = Date.now();
     const contextName = `${context.getClass().name}.${context.getHandler().name}`;
@@ -20,7 +25,10 @@ export class LoggingInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         const time = Date.now() - now;
-        this.logger.log(`[${method}] ${url} - ${response.statusCode} - ${time}ms`, contextName);
+        this.logger.log(
+          `[${method}] ${url} - ${response.statusCode} - ${time}ms`,
+          contextName,
+        );
       }),
     );
   }

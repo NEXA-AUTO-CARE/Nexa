@@ -16,4 +16,6 @@ export interface PromotionResponse {
   endedAt: string | null;
   totalRedemptions: number;
   createdAt: string;
+  assignedUserCount?: number;
 }
+

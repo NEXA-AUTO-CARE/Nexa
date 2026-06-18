@@ -195,6 +195,21 @@ export class ApiServiceStack extends cdk.Stack {
           secretsmanager.Secret.fromSecretNameV2(this, 'SmtpPassRef', `nexa/${config.envName}/smtp-credentials`),
           'pass'
         ),
+
+        // Ideal Postcodes API Key credentials
+        IDEAL_POSTCODES_API_KEY: ecs.Secret.fromSecretsManager(
+          new secretsmanager.Secret(this, 'IdealPostcodesCredentials', {
+            secretName: `nexa/${config.envName}/postcodes-credentials`,
+            description: 'Ideal Postcodes API Credentials',
+            generateSecretString: {
+              secretStringTemplate: JSON.stringify({
+                apiKey: 'replace_with_ideal_postcodes_api_key',
+              }),
+              generateStringKey: 'apiKey',
+            },
+          }),
+          'apiKey'
+        ),
       },
       portMappings: [{ containerPort: 3000 }],
       healthCheck: {

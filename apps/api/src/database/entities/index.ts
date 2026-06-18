@@ -15,3 +15,4 @@ export { SystemSetting } from './system-setting.entity';
 export { Promotion } from './promotion.entity';
 export { PromotionRedemption } from './promotion-redemption.entity';
 export { VendorProfile } from './vendor-profile.entity';
+export { UserPromotion } from './user-promotion.entity';

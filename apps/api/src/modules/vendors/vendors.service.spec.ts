@@ -21,16 +21,20 @@ describe('VendorsService', () => {
 
   beforeEach(async () => {
     mockVendorRepo = {
-      save: jest.fn().mockImplementation(v => Promise.resolve({ ...v })),
+      save: jest.fn().mockImplementation((v) => Promise.resolve({ ...v })),
       find: jest.fn().mockResolvedValue([]),
       findOne: jest.fn().mockResolvedValue(null),
-      create: jest.fn().mockImplementation(v => v),
+      create: jest.fn().mockImplementation((v) => v),
     };
 
     mockUserRepo = {
       findOne: jest.fn().mockResolvedValue(null),
-      create: jest.fn().mockImplementation(u => u),
-      save: jest.fn().mockImplementation(u => Promise.resolve({ ...u, userId: 'test-user-id' })),
+      create: jest.fn().mockImplementation((u) => u),
+      save: jest
+        .fn()
+        .mockImplementation((u) =>
+          Promise.resolve({ ...u, userId: 'test-user-id' }),
+        ),
     };
 
     mockUsersService = {
@@ -50,7 +54,9 @@ describe('VendorsService', () => {
     };
 
     mockRolesService = {
-      findByNameOrFail: jest.fn().mockResolvedValue({ roleId: 'test-role-id', name: 'vendor' }),
+      findByNameOrFail: jest
+        .fn()
+        .mockResolvedValue({ roleId: 'test-role-id', name: 'vendor' }),
     };
 
     mockNotificationsService = {
@@ -68,12 +74,18 @@ describe('VendorsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VendorsService,
-        { provide: getRepositoryToken(VendorProfile), useValue: mockVendorRepo },
+        {
+          provide: getRepositoryToken(VendorProfile),
+          useValue: mockVendorRepo,
+        },
         { provide: getRepositoryToken(User), useValue: mockUserRepo },
         { provide: UsersService, useValue: mockUsersService },
         { provide: RolesService, useValue: mockRolesService },
         { provide: NotificationsService, useValue: mockNotificationsService },
-        { provide: MessageTemplateService, useValue: mockMessageTemplateService },
+        {
+          provide: MessageTemplateService,
+          useValue: mockMessageTemplateService,
+        },
         { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
@@ -97,11 +109,13 @@ describe('VendorsService', () => {
       const result = await service.createVendorByAdmin(dto);
 
       expect(mockUserRepo.create).toHaveBeenCalled();
-      expect(mockVendorRepo.save).toHaveBeenCalledWith(expect.objectContaining({
-        vendorId: 'test-user-id',
-        companyName: 'John Valeting',
-        approvalStatus: VendorApprovalStatus.PENDING,
-      }));
+      expect(mockVendorRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          vendorId: 'test-user-id',
+          companyName: 'John Valeting',
+          approvalStatus: VendorApprovalStatus.PENDING,
+        }),
+      );
       expect(mockNotificationsService.sendEmail).toHaveBeenCalled();
       expect(result.companyName).toBe('John Valeting');
     });
@@ -109,9 +123,16 @@ describe('VendorsService', () => {
     it('should throw error if email is already in use', async () => {
       mockUserRepo.findOne.mockResolvedValueOnce({ userId: 'existing' });
 
-      await expect(service.createVendorByAdmin({ email: 'test@example.com', companyName: 'Test', firstName: 'A', lastName: 'B' }))
-        .rejects
-        .toThrow('A user with this email or phone number already exists');
+      await expect(
+        service.createVendorByAdmin({
+          email: 'test@example.com',
+          companyName: 'Test',
+          firstName: 'A',
+          lastName: 'B',
+        }),
+      ).rejects.toThrow(
+        'A user with this email or phone number already exists',
+      );
     });
   });
 
@@ -124,10 +145,12 @@ describe('VendorsService', () => {
 
       await service.activateVendor('test-user-id');
 
-      expect(mockVendorRepo.save).toHaveBeenCalledWith(expect.objectContaining({
-        userId: 'test-user-id',
-        approvalStatus: VendorApprovalStatus.ACTIVE,
-      }));
+      expect(mockVendorRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'test-user-id',
+          approvalStatus: VendorApprovalStatus.ACTIVE,
+        }),
+      );
     });
   });
 

@@ -16,7 +16,9 @@ export class OtelLogger extends ConsoleLogger {
     super.error(message, stackOrContext, context);
     const resolvedContext = context || stackOrContext;
     const resolvedStack = context ? stackOrContext : undefined;
-    this.emitOtelLog(SeverityNumber.ERROR, message, resolvedContext, { stack: resolvedStack });
+    this.emitOtelLog(SeverityNumber.ERROR, message, resolvedContext, {
+      stack: resolvedStack,
+    });
   }
 
   warn(message: any, context?: string) {
@@ -34,7 +36,12 @@ export class OtelLogger extends ConsoleLogger {
     this.emitOtelLog(SeverityNumber.TRACE, message, context);
   }
 
-  private emitOtelLog(severityNumber: SeverityNumber, message: any, context?: string, attributes?: Record<string, any>) {
+  private emitOtelLog(
+    severityNumber: SeverityNumber,
+    message: any,
+    context?: string,
+    attributes?: Record<string, any>,
+  ) {
     try {
       this.otelLogger.emit({
         severityNumber,
@@ -45,7 +52,7 @@ export class OtelLogger extends ConsoleLogger {
           ...attributes,
         },
       });
-    } catch (e) {
+    } catch (_e) {
       // Ignore if OTel is not initialized yet
     }
   }
