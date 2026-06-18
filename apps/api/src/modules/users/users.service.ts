@@ -47,7 +47,7 @@ export function normalizePhone(phone: string): string {
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly userRepo: Repository<User>,
-  ) { }
+  ) {}
 
   async findById(userId: string): Promise<User> {
     const user = await this.userRepo.findOne({ where: { userId } });

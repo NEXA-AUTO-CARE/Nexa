@@ -1,5 +1,10 @@
 import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -20,7 +25,9 @@ export class VendorsController {
   @Get('me/profile')
   @ApiOperation({ summary: 'Vendor: Get own profile' })
   @ApiOkResponse({ description: 'Vendor profile details' })
-  async getProfile(@CurrentUser() user: AuthenticatedUser): Promise<VendorProfile> {
+  async getProfile(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<VendorProfile> {
     return this.vendorsService.findById(user.userId);
   }
 
@@ -31,7 +38,7 @@ export class VendorsController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateVendorDto,
   ): Promise<VendorProfile> {
-    // Prevent vendors from updating their own status. 
+    // Prevent vendors from updating their own status.
     // Wait, the DTO allows approvalStatus. We must ensure only admin can do it, so we strip it.
     // Actually, creating a separate DTO for Vendor is better or just stripping it manually here.
     return this.vendorsService.updateProfile(user.userId, {

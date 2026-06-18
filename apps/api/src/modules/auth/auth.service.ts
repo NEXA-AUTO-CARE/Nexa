@@ -41,9 +41,7 @@ const SETUP_TOKEN_AUDIENCE = 'nexa:set-password';
 const RESET_TOKEN_TTL_SECONDS = 15 * 60;
 const RESET_TOKEN_AUDIENCE = 'nexa:reset-password';
 
-const SELF_SIGNUP_ROLES: ReadonlySet<string> = new Set([
-  UserRole.CUSTOMER,
-]);
+const SELF_SIGNUP_ROLES: ReadonlySet<string> = new Set([UserRole.CUSTOMER]);
 
 interface SetupTokenPayload {
   sub: string;
@@ -185,7 +183,9 @@ export class AuthService {
     await this.users.setPasswordHash(payload.sub, hash);
     const refreshed = await this.users.findById(payload.sub);
     await this.dispatchAuthEvent(refreshed, 'registration_welcome');
-    this.logger.log(`Password set and user ${payload.sub} registered successfully`);
+    this.logger.log(
+      `Password set and user ${payload.sub} registered successfully`,
+    );
     return this.issueAuthResult(refreshed);
   }
 
@@ -244,13 +244,19 @@ export class AuthService {
     return this.issueAuthResult(refreshed);
   }
 
-  async changePassword(userId: string, newPassword: string): Promise<{ ok: true }> {
+  async changePassword(
+    userId: string,
+    newPassword: string,
+  ): Promise<{ ok: true }> {
     const user = await this.users.findById(userId);
     const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await this.users.setPasswordHash(userId, hash);
-    
+
     // Emit event so other modules (like Vendors) can react
-    this.eventEmitter.emit('user.password.changed', { userId, role: user.role.name });
+    this.eventEmitter.emit('user.password.changed', {
+      userId,
+      role: user.role.name,
+    });
 
     this.logger.log(`Password changed for user ${userId}`);
     return { ok: true };
@@ -269,7 +275,7 @@ export class AuthService {
       this.logger.warn(`Failed login attempt for user ${user.userId}`);
       throw new UnauthorizedException('Invalid credentials');
     }
-    
+
     this.logger.log(`User ${user.userId} logged in successfully`);
     return this.issueAuthResult(user);
   }
@@ -326,9 +332,12 @@ export class AuthService {
       }),
     );
     const publicUser: PublicUser = this.users.toPublic(user, permissions);
-    
+
     let requiresPasswordChange = false;
-    if (user.role.name === UserRole.VENDOR && user.vendorProfile?.approvalStatus === 'PENDING') {
+    if (
+      user.role.name === UserRole.VENDOR &&
+      user.vendorProfile?.approvalStatus === VendorApprovalStatus.PENDING
+    ) {
       requiresPasswordChange = true;
     }
 

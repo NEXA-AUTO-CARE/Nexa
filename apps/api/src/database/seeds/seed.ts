@@ -212,7 +212,7 @@ async function seed() {
         { key: 'late_morning', label: 'Late Morning (11:00 AM)', hour: 11 },
         { key: 'afternoon', label: 'Afternoon (1:00 PM)', hour: 13 },
         { key: 'evening', label: 'Evening (4:00 PM)', hour: 16 },
-        { key: 'late_evening', label: 'Late Evening (6:00 PM)', hour: 18 }
+        { key: 'late_evening', label: 'Late Evening (6:00 PM)', hour: 18 },
       ]),
     }),
     settingRepo.create({

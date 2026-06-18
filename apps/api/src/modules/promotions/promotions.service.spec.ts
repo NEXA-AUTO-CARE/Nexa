@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PromotionStatus, PromotionType } from '@nexa/shared';
 import { PromotionsService } from './promotions.service';
@@ -9,6 +13,15 @@ function makePromoRepo() {
     find: jest.fn(),
     findOne: jest.fn(),
     remove: jest.fn(),
+  };
+}
+
+function makeUserPromoRepo() {
+  return {
+    create: jest.fn((x) => x),
+    save: jest.fn(async (x) => x),
+    find: jest.fn(async () => [] as any[]),
+    delete: jest.fn(),
   };
 }
 
@@ -49,16 +62,19 @@ function makePromotion(overrides: Record<string, any> = {}) {
 describe('PromotionsService', () => {
   let promoRepo: ReturnType<typeof makePromoRepo>;
   let redemptionRepo: ReturnType<typeof makeRedemptionRepo>;
+  let userPromoRepo: ReturnType<typeof makeUserPromoRepo>;
   let events: ReturnType<typeof makeEvents>;
   let service: PromotionsService;
 
   beforeEach(() => {
     promoRepo = makePromoRepo();
     redemptionRepo = makeRedemptionRepo();
+    userPromoRepo = makeUserPromoRepo();
     events = makeEvents();
     service = new PromotionsService(
       promoRepo as never,
       redemptionRepo as never,
+      userPromoRepo as never,
       events as never,
     );
   });
@@ -497,6 +513,112 @@ describe('PromotionsService', () => {
       });
       promoRepo.find.mockResolvedValue([expired]);
       await expect(service.findBestActivePromotion()).resolves.toBeNull();
+    });
+  });
+
+  /* ---------------------------------------------------------------- */
+  /*  Targeted User Assignment & findBestActivePromotion              */
+  /* ---------------------------------------------------------------- */
+
+  describe('assignToUsers', () => {
+    it('saves user assignments after clearing existing ones', async () => {
+      const promo = makePromotion({ promotionId: 'promo-1' });
+      promoRepo.findOne.mockResolvedValue(promo);
+      userPromoRepo.delete.mockResolvedValue({ affected: 1 });
+      userPromoRepo.save.mockResolvedValue([]);
+
+      await service.assignToUsers('promo-1', ['user-1', 'user-2']);
+
+      expect(userPromoRepo.delete).toHaveBeenCalledWith({
+        promotionId: 'promo-1',
+      });
+      expect(userPromoRepo.create).toHaveBeenCalledTimes(2);
+      expect(userPromoRepo.save).toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException if promotion does not exist', async () => {
+      promoRepo.findOne.mockResolvedValue(null);
+      await expect(
+        service.assignToUsers('non-existent', ['user-1']),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getAssignments', () => {
+    it('returns assigned user IDs for a promotion', async () => {
+      userPromoRepo.find.mockResolvedValue([
+        { promotionId: 'promo-1', userId: 'user-1' },
+        { promotionId: 'promo-1', userId: 'user-2' },
+      ]);
+
+      const result = await service.getAssignments('promo-1');
+      expect(result).toEqual(['user-1', 'user-2']);
+      expect(userPromoRepo.find).toHaveBeenCalledWith({
+        where: { promotionId: 'promo-1' },
+      });
+    });
+  });
+
+  describe('findBestActivePromotion with targeting', () => {
+    it('returns global active promotion when no assignments exist', async () => {
+      const discount = makePromotion({
+        type: PromotionType.PERCENTAGE_DISCOUNT,
+        status: PromotionStatus.ACTIVE,
+        discountPercent: '10.00',
+      });
+      promoRepo.find.mockResolvedValue([discount]);
+      userPromoRepo.find.mockResolvedValue([]); // No assignments means global
+
+      const result = await service.findBestActivePromotion('user-1');
+      expect(result).toEqual(discount);
+    });
+
+    it('filters out targeted promotion if user is not assigned', async () => {
+      const discount = makePromotion({
+        promotionId: 'promo-1',
+        type: PromotionType.PERCENTAGE_DISCOUNT,
+        status: PromotionStatus.ACTIVE,
+        discountPercent: '10.00',
+      });
+      promoRepo.find.mockResolvedValue([discount]);
+      userPromoRepo.find.mockResolvedValue([
+        { promotionId: 'promo-1', userId: 'user-2' }, // targeted to user-2 only
+      ]);
+
+      const result = await service.findBestActivePromotion('user-1');
+      expect(result).toBeNull();
+    });
+
+    it('returns targeted promotion if user is assigned', async () => {
+      const discount = makePromotion({
+        promotionId: 'promo-1',
+        type: PromotionType.PERCENTAGE_DISCOUNT,
+        status: PromotionStatus.ACTIVE,
+        discountPercent: '10.00',
+      });
+      promoRepo.find.mockResolvedValue([discount]);
+      userPromoRepo.find.mockResolvedValue([
+        { promotionId: 'promo-1', userId: 'user-1' }, // targeted to user-1
+      ]);
+
+      const result = await service.findBestActivePromotion('user-1');
+      expect(result).toEqual(discount);
+    });
+
+    it('filters out targeted promotion for guest checkouts (no userId)', async () => {
+      const discount = makePromotion({
+        promotionId: 'promo-1',
+        type: PromotionType.PERCENTAGE_DISCOUNT,
+        status: PromotionStatus.ACTIVE,
+        discountPercent: '10.00',
+      });
+      promoRepo.find.mockResolvedValue([discount]);
+      userPromoRepo.find.mockResolvedValue([
+        { promotionId: 'promo-1', userId: 'user-1' },
+      ]);
+
+      const result = await service.findBestActivePromotion();
+      expect(result).toBeNull();
     });
   });
 });

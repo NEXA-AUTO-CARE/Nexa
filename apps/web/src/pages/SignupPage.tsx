@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { UserRole } from '@nexa/shared'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { AuthLayout } from '../components/AuthLayout'
@@ -57,7 +57,7 @@ export function SignupPage() {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -72,7 +72,11 @@ export function SignupPage() {
     },
   })
 
-  const otpChannel = watch('otpChannel')
+  const otpChannel = useWatch({
+    control,
+    name: 'otpChannel',
+    defaultValue: 'email',
+  })
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null)

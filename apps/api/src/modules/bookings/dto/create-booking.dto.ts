@@ -69,6 +69,36 @@ export class CreateBookingDto {
   @IsBoolean()
   @Equals(true, { message: 'You must confirm all vehicle details are correct' })
   agreedDetailsCorrect: boolean;
+
+  @ApiPropertyOptional({ example: 'Flat 1' })
+  @IsOptional()
+  @IsString()
+  addressLine1?: string | null;
+
+  @ApiPropertyOptional({ example: '15 Union Street' })
+  @IsOptional()
+  @IsString()
+  addressLine2?: string | null;
+
+  @ApiPropertyOptional({ example: '' })
+  @IsOptional()
+  @IsString()
+  addressLine3?: string | null;
+
+  @ApiPropertyOptional({ example: 'ABERDEEN' })
+  @IsOptional()
+  @IsString()
+  postTown?: string | null;
+
+  @ApiPropertyOptional({ example: 'AB10 1AB' })
+  @IsOptional()
+  @IsString()
+  postcode?: string | null;
+
+  @ApiPropertyOptional({ example: '123456789' })
+  @IsOptional()
+  @IsString()
+  uprn?: string | null;
 }
 
 export class RebookDto {

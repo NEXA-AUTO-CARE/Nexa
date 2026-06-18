@@ -47,6 +47,7 @@ export interface AppConfig {
   bootstrap: {
     superAdminEmail: string | null;
   };
+  idealPostcodesApiKey?: string;
 }
 
 export default (): { app: AppConfig } => {
@@ -99,6 +100,7 @@ export default (): { app: AppConfig } => {
       bootstrap: {
         superAdminEmail: env.SUPER_ADMIN_EMAIL?.trim().toLowerCase() || null,
       },
+      idealPostcodesApiKey: env.IDEAL_POSTCODES_API_KEY,
     },
   };
 };

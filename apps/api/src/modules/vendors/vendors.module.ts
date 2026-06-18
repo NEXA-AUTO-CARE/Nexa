@@ -19,4 +19,4 @@ import { VendorsController } from './vendors.controller';
   providers: [VendorsService],
   exports: [VendorsService],
 })
-export class VendorsModule { }
+export class VendorsModule {}

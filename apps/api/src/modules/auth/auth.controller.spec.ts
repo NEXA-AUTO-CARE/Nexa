@@ -36,11 +36,14 @@ describe('AuthController', () => {
     it('should change password for authenticated user', async () => {
       const user = { userId: 'auth-user-1' };
       const dto = { newPassword: 'newStrongPassword123' };
-      
+
       const result = await controller.changePassword(user as any, dto);
-      
+
       expect(result).toEqual({ ok: true });
-      expect(mockAuthService.changePassword).toHaveBeenCalledWith('auth-user-1', 'newStrongPassword123');
+      expect(mockAuthService.changePassword).toHaveBeenCalledWith(
+        'auth-user-1',
+        'newStrongPassword123',
+      );
     });
   });
 });

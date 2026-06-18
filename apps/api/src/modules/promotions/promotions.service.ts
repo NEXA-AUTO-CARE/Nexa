@@ -13,8 +13,12 @@ import {
   type PromotionResponse,
   type UpdatePromotionDto,
 } from '@nexa/shared';
-import { Repository } from 'typeorm';
-import { Promotion, PromotionRedemption } from '../../database/entities';
+import { In, Repository } from 'typeorm';
+import {
+  Promotion,
+  PromotionRedemption,
+  UserPromotion,
+} from '../../database/entities';
 import { PromotionStartedEvent } from './events/promotion.events';
 
 export interface DiscountResult {
@@ -31,6 +35,8 @@ export class PromotionsService {
     private readonly promoRepo: Repository<Promotion>,
     @InjectRepository(PromotionRedemption)
     private readonly redemptionRepo: Repository<PromotionRedemption>,
+    @InjectRepository(UserPromotion)
+    private readonly userPromoRepo: Repository<UserPromotion>,
     private readonly events: EventEmitter2,
   ) {}
 
@@ -61,10 +67,27 @@ export class PromotionsService {
     return this.promoRepo.save(promo);
   }
 
-  async findAll(): Promise<Promotion[]> {
-    return this.promoRepo.find({
+  async findAll(): Promise<(Promotion & { assignedUserCount?: number })[]> {
+    const list = await this.promoRepo.find({
       relations: ['redemptions'],
       order: { createdOn: 'DESC' },
+    });
+
+    const counts = await this.userPromoRepo
+      .createQueryBuilder('up')
+      .select('up.promotion_id', 'promotionId')
+      .addSelect('COUNT(up.user_id)', 'count')
+      .groupBy('up.promotion_id')
+      .getRawMany();
+
+    const countMap = new Map<string, number>();
+    for (const c of counts) {
+      countMap.set(c.promotionId, parseInt(c.count, 10));
+    }
+
+    return list.map((p) => {
+      (p as any).assignedUserCount = countMap.get(p.promotionId) ?? 0;
+      return p;
     });
   }
 
@@ -169,6 +192,37 @@ export class PromotionsService {
   }
 
   /* ---------------------------------------------------------------- */
+  /*  Targeted User Assignment                                        */
+  /* ---------------------------------------------------------------- */
+
+  async assignToUsers(promotionId: string, userIds: string[]): Promise<void> {
+    const promo = await this.findOne(promotionId);
+    if (!promo) {
+      throw new NotFoundException('Promotion not found');
+    }
+    await this.userPromoRepo.delete({ promotionId });
+
+    const uniqueUserIds = Array.from(new Set(userIds));
+
+    if (uniqueUserIds.length > 0) {
+      const entities = uniqueUserIds.map((userId) =>
+        this.userPromoRepo.create({
+          promotionId,
+          userId,
+        }),
+      );
+      await this.userPromoRepo.save(entities);
+    }
+  }
+
+  async getAssignments(promotionId: string): Promise<string[]> {
+    const assignments = await this.userPromoRepo.find({
+      where: { promotionId },
+    });
+    return assignments.map((a) => a.userId);
+  }
+
+  /* ---------------------------------------------------------------- */
   /*  Discount Engine                                                  */
   /* ---------------------------------------------------------------- */
 
@@ -177,7 +231,7 @@ export class PromotionsService {
    * Precedence: percentage_discount > bonanza > announcement.
    * Returns null if no active promotions exist.
    */
-  async findBestActivePromotion(): Promise<Promotion | null> {
+  async findBestActivePromotion(userId?: string): Promise<Promotion | null> {
     const active = await this.promoRepo.find({
       where: { status: PromotionStatus.ACTIVE },
       order: { createdOn: 'ASC' },
@@ -187,8 +241,35 @@ export class PromotionsService {
 
     // Filter out promos past their endDate
     const now = new Date();
+
+    // Find all user assignments for these active promotions
+    const activeIds = active.map((p) => p.promotionId);
+    const assignments =
+      (activeIds.length > 0
+        ? await this.userPromoRepo.find({
+            where: { promotionId: In(activeIds) },
+          })
+        : []) ?? [];
+
+    const promoAssignmentsMap = new Map<string, string[]>();
+    for (const a of assignments) {
+      const list = promoAssignmentsMap.get(a.promotionId) ?? [];
+      list.push(a.userId);
+      promoAssignmentsMap.set(a.promotionId, list);
+    }
+
     const valid = active.filter((p) => {
       if (p.endDate && p.endDate < now) return false;
+
+      const assignedUserIds = promoAssignmentsMap.get(p.promotionId);
+      if (assignedUserIds && assignedUserIds.length > 0) {
+        // This is a targeted promotion.
+        // If no userId is provided, or the user is not in the assigned list, they are not eligible.
+        if (!userId || !assignedUserIds.includes(userId)) {
+          return false;
+        }
+      }
+
       return true;
     });
 
@@ -289,7 +370,9 @@ export class PromotionsService {
   /*  Response mapping                                                 */
   /* ---------------------------------------------------------------- */
 
-  toResponse(promo: Promotion): PromotionResponse {
+  toResponse(
+    promo: Promotion & { assignedUserCount?: number },
+  ): PromotionResponse {
     return {
       promotionId: promo.promotionId,
       title: promo.title,
@@ -307,6 +390,7 @@ export class PromotionsService {
       endedAt: promo.endedAt?.toISOString() ?? null,
       totalRedemptions: promo.redemptions?.length ?? 0,
       createdAt: promo.createdOn.toISOString(),
+      assignedUserCount: promo.assignedUserCount ?? 0,
     };
   }
 

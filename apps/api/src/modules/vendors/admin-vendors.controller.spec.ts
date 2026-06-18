@@ -10,18 +10,29 @@ describe('AdminVendorsController', () => {
   beforeEach(async () => {
     mockVendorsService = {
       findAllForAdmin: jest.fn().mockResolvedValue([
-        { userId: '1', companyName: 'Vendor 1', approvalStatus: VendorApprovalStatus.ACTIVE },
+        {
+          userId: '1',
+          companyName: 'Vendor 1',
+          approvalStatus: VendorApprovalStatus.ACTIVE,
+        },
       ]),
-      createVendorByAdmin: jest.fn().mockResolvedValue({ userId: '2', companyName: 'New Vendor' }),
-      updateVendorByAdmin: jest.fn().mockResolvedValue({ userId: '1', approvalStatus: VendorApprovalStatus.SUSPENDED }),
-      getVendorFinancials: jest.fn().mockResolvedValue({ vendorId: '1', totalSales: 100, totalBookings: 2 }),
+      createVendorByAdmin: jest
+        .fn()
+        .mockResolvedValue({ userId: '2', companyName: 'New Vendor' }),
+      updateVendorByAdmin: jest.fn().mockResolvedValue({
+        userId: '1',
+        approvalStatus: VendorApprovalStatus.SUSPENDED,
+      }),
+      getVendorFinancials: jest.fn().mockResolvedValue({
+        vendorId: '1',
+        totalSales: 100,
+        totalBookings: 2,
+      }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AdminVendorsController],
-      providers: [
-        { provide: VendorsService, useValue: mockVendorsService },
-      ],
+      providers: [{ provide: VendorsService, useValue: mockVendorsService }],
     }).compile();
 
     controller = module.get<AdminVendorsController>(AdminVendorsController);
@@ -54,7 +65,10 @@ describe('AdminVendorsController', () => {
       const dto = { status: VendorApprovalStatus.SUSPENDED };
       const result = await controller.update('1', dto as any);
       expect(result.approvalStatus).toBe(VendorApprovalStatus.SUSPENDED);
-      expect(mockVendorsService.updateVendorByAdmin).toHaveBeenCalledWith('1', dto);
+      expect(mockVendorsService.updateVendorByAdmin).toHaveBeenCalledWith(
+        '1',
+        dto,
+      );
     });
   });
 

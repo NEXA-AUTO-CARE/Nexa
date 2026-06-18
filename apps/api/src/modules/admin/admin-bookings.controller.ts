@@ -60,7 +60,7 @@ export class AdminBookingsController {
     if (!booking.latitude || !booking.longitude) {
       throw new BadRequestException('Booking location is not available');
     }
-    
+
     const lat = parseFloat(booking.latitude);
     const lon = parseFloat(booking.longitude);
     return this.vendorsService.findNearbyVendors(lat, lon, 50); // 50km radius
