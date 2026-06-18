@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
-import { Car, Calendar, MapPin, Sparkles, ChevronRight, X, Send, Phone } from "lucide-react";
+import { Car, Calendar, Sparkles, ChevronRight, X, Send, Phone, Search, CheckCircle2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useAddons } from "../hooks/useAddons";
 import { useVehicles } from "../hooks/useVehicles";
@@ -14,6 +14,17 @@ import { api } from "../lib/api-client";
 import { describeError } from "../lib/errors";
 import { useToast } from "@/hooks/use-toast";
 import CorporateFleetFields, { type CorporateFleetData } from "@/components/CorporateFleetFields";
+
+interface PostcodeAddress {
+  line_1: string;
+  line_2: string | null;
+  line_3: string | null;
+  post_town: string;
+  postcode: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  uprn?: string | null;
+}
 
 const BookingPage = () => {
   const navigate = useNavigate();
@@ -50,6 +61,52 @@ const BookingPage = () => {
   const submittingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [postcodeQuery, setPostcodeQuery] = useState("");
+  const [lookupResults, setLookupResults] = useState<PostcodeAddress[]>([]);
+  const [searchingPostcode, setSearchingPostcode] = useState(false);
+  const [showManualAddress, setShowManualAddress] = useState(false);
+  const [addressLine1, setAddressLine1] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
+  const [addressLine3, setAddressLine3] = useState("");
+  const [postTown, setPostTown] = useState("");
+  const [postcodeVal, setPostcodeVal] = useState("");
+  const [uprnVal, setUprnVal] = useState("");
+  const [latVal, setLatVal] = useState<number | null>(null);
+  const [lonVal, setLonVal] = useState<number | null>(null);
+  const [selectedResult, setSelectedResult] = useState<PostcodeAddress | null>(null);
+  const [addressConfirmed, setAddressConfirmed] = useState(false);
+
+  const handlePostcodeSearch = async () => {
+    if (!postcodeQuery.trim()) return;
+    setSearchingPostcode(true);
+    setError(null);
+    setLookupResults([]);
+    setSelectedResult(null);
+    try {
+      const response = await api.get<PostcodeAddress[]>("/postcode-lookup", {
+        params: { postcode: postcodeQuery.trim() },
+      });
+      setLookupResults(response.data);
+      if (response.data.length === 0) {
+        toast({
+          title: "No addresses found",
+          description: "We couldn't find any addresses for that postcode. Please enter it manually.",
+        });
+        setShowManualAddress(true);
+      }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to search postcode.";
+      setError(msg);
+      toast({
+        variant: "destructive",
+        title: "Postcode Search Failed",
+        description: msg,
+      });
+    } finally {
+      setSearchingPostcode(false);
+    }
+  };
+
   const isCorporateFlow = customerType === "Corporate";
 
   const effectiveVehicleId = selectedVehicle || vehicles[0]?.vehicleId || "";
@@ -68,12 +125,13 @@ const BookingPage = () => {
   }, [hasPrice, basePriceStr, addons, selectedAddons]);
 
   const canSubmit = isCorporateFlow
-    ? !!(corporateData.companyName && corporateData.contactPerson && corporateData.businessEmail && date && time && address.trim()) && !submitting
+    ? !!(corporateData.companyName && corporateData.contactPerson && corporateData.businessEmail && date && time && address.trim() && addressConfirmed) && !submitting
     : !!effectiveVehicleId &&
       hasPrice &&
       !!date &&
       !!time &&
       address.trim().length > 0 &&
+      addressConfirmed &&
       phone.trim().length > 0 &&
       !submitting;
 
@@ -110,6 +168,14 @@ const BookingPage = () => {
           addonIds: selectedAddons,
           agreedSafeSpace: true,
           agreedDetailsCorrect: true,
+          addressLine1: addressLine1 || null,
+          addressLine2: addressLine2 || null,
+          addressLine3: addressLine3 || null,
+          postTown: postTown || null,
+          postcode: postcodeVal || null,
+          uprn: uprnVal || null,
+          latitude: latVal,
+          longitude: lonVal,
         };
         const { data } = await api.post<BookingResponse>("/bookings", dto);
         navigate("/payment", { state: { bookingId: data.bookingId } });
@@ -334,15 +400,270 @@ const BookingPage = () => {
 
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-2 block uppercase tracking-wider">Service Address</label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Enter your address in Aberdeen"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="h-11 pl-9 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
+          {addressConfirmed ? (
+            <div className="glass-card p-4 border border-primary bg-primary/5 shadow-sm rounded-xl relative overflow-hidden">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <CheckCircle2 className="h-5 w-5 text-primary animate-pulse" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wider">Service Address Verified</p>
+                  <p className="text-sm font-semibold text-foreground mt-1 leading-snug">{address}</p>
+                  {uprnVal && <p className="text-xs text-muted-foreground mt-1">UPRN: {uprnVal}</p>}
+                  {latVal && lonVal && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      Coordinates: {Number(latVal).toFixed(4)}, {Number(lonVal).toFixed(4)}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setAddressConfirmed(false);
+                    setAddress("");
+                    setAddressLine1("");
+                    setAddressLine2("");
+                    setAddressLine3("");
+                    setPostTown("");
+                    setPostcodeVal("");
+                    setUprnVal("");
+                    setLatVal(null);
+                    setLonVal(null);
+                    setSelectedResult(null);
+                    setLookupResults([]);
+                  }}
+                  className="text-xs border-border hover:bg-secondary text-muted-foreground"
+                >
+                  Change
+                </Button>
+              </div>
+            </div>
+          ) : showManualAddress ? (
+            <div className="glass-card p-4 border border-border bg-secondary/10 space-y-3 rounded-xl">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-semibold text-foreground">Manual Address Entry</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowManualAddress(false)}
+                  className="text-xs text-primary font-medium hover:underline"
+                >
+                  Use Postcode Lookup
+                </button>
+              </div>
+              
+              <div className="space-y-2">
+                <div>
+                  <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">Address Line 1 *</label>
+                  <Input
+                    placeholder="e.g. Flat 1, 15 Union Street"
+                    value={addressLine1}
+                    onChange={(e) => setAddressLine1(e.target.value)}
+                    className="h-10 bg-secondary border-border text-foreground text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">Address Line 2 (Optional)</label>
+                  <Input
+                    placeholder="e.g. Locality"
+                    value={addressLine2}
+                    onChange={(e) => setAddressLine2(e.target.value)}
+                    className="h-10 bg-secondary border-border text-foreground text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">Address Line 3 (Optional)</label>
+                  <Input
+                    placeholder="e.g. Area"
+                    value={addressLine3}
+                    onChange={(e) => setAddressLine3(e.target.value)}
+                    className="h-10 bg-secondary border-border text-foreground text-sm"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">Town/City *</label>
+                    <Input
+                      placeholder="e.g. Aberdeen"
+                      value={postTown}
+                      onChange={(e) => setPostTown(e.target.value)}
+                      className="h-10 bg-secondary border-border text-foreground text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">Postcode *</label>
+                    <Input
+                      placeholder="e.g. AB10 1AB"
+                      value={postcodeVal}
+                      onChange={(e) => setPostcodeVal(e.target.value)}
+                      className="h-10 bg-secondary border-border text-foreground text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="hero"
+                size="sm"
+                className="w-full mt-2"
+                disabled={!addressLine1.trim() || !postTown.trim() || !postcodeVal.trim()}
+                onClick={() => {
+                  const formatted = [
+                    addressLine1.trim(),
+                    addressLine2.trim(),
+                    addressLine3.trim(),
+                    postTown.trim(),
+                    postcodeVal.trim().toUpperCase()
+                  ].filter(Boolean).join(", ");
+                  setAddress(formatted);
+                  setAddressConfirmed(true);
+                  setPostcodeVal(postcodeVal.trim().toUpperCase());
+                  setShowManualAddress(false);
+                }}
+              >
+                Confirm Manual Address
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Enter UK postcode (e.g. ID1 1QD)"
+                    value={postcodeQuery}
+                    onChange={(e) => setPostcodeQuery(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handlePostcodeSearch();
+                      }
+                    }}
+                    className="h-11 pl-9 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={handlePostcodeSearch}
+                  disabled={searchingPostcode || !postcodeQuery.trim()}
+                  className="h-11 px-4"
+                >
+                  {searchingPostcode ? "Searching..." : "Find Address"}
+                </Button>
+              </div>
+
+              <div className="flex justify-between items-center px-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowManualAddress(true);
+                    if (postcodeQuery) setPostcodeVal(postcodeQuery);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors hover:underline"
+                >
+                  Or enter address manually
+                </button>
+              </div>
+
+              {/* Selection List */}
+              {lookupResults.length > 0 && (
+                <div className="glass-card max-h-60 overflow-y-auto border border-border bg-background p-1 space-y-1 rounded-xl shadow-lg">
+                  <div className="text-[10px] font-semibold text-muted-foreground px-2 py-1 uppercase tracking-wider border-b border-border mb-1">
+                    Select your address ({lookupResults.length} found)
+                  </div>
+                  {lookupResults.map((addr, idx) => {
+                    const formatted = [addr.line_1, addr.line_2, addr.line_3]
+                      .filter(Boolean)
+                      .join(", ");
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedResult(addr)}
+                        className={`w-full text-left p-2.5 rounded-lg text-sm transition-all flex justify-between items-center ${
+                          selectedResult === addr ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        <div>
+                          <p className="font-medium">{formatted}</p>
+                          <p className="text-xs text-muted-foreground">{addr.post_town}, {addr.postcode}</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Address Confirmation Prompt Card */}
+              {selectedResult && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="glass-card p-4 border border-primary/40 bg-primary/5 rounded-xl space-y-3"
+                >
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-foreground">Confirm Address Details</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">Please confirm this is your washing location.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 bg-secondary/50 rounded-lg text-sm border border-border">
+                    <p className="font-semibold text-foreground">{selectedResult.line_1}</p>
+                    {selectedResult.line_2 && <p className="text-foreground">{selectedResult.line_2}</p>}
+                    {selectedResult.line_3 && <p className="text-foreground">{selectedResult.line_3}</p>}
+                    <p className="text-foreground">{selectedResult.post_town}</p>
+                    <p className="font-medium text-primary mt-1">{selectedResult.postcode}</p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs"
+                      onClick={() => setSelectedResult(null)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="hero"
+                      size="sm"
+                      className="flex-1 text-xs"
+                      onClick={() => {
+                        setAddressLine1(selectedResult.line_1 || "");
+                        setAddressLine2(selectedResult.line_2 || "");
+                        setAddressLine3(selectedResult.line_3 || "");
+                        setPostTown(selectedResult.post_town || "");
+                        setPostcodeVal(selectedResult.postcode || "");
+                        setUprnVal(selectedResult.uprn || "");
+                        setLatVal(selectedResult.latitude ?? null);
+                        setLonVal(selectedResult.longitude ?? null);
+                        
+                        const formatted = [
+                          selectedResult.line_1,
+                          selectedResult.line_2,
+                          selectedResult.line_3,
+                          selectedResult.post_town,
+                          selectedResult.postcode
+                        ].filter(Boolean).join(", ");
+                        setAddress(formatted);
+                        setAddressConfirmed(true);
+                        setSelectedResult(null);
+                        setLookupResults([]);
+                      }}
+                    >
+                      Confirm Address
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          )}
         </div>
 
         <div>

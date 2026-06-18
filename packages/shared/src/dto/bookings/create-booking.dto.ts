@@ -13,6 +13,12 @@ export interface CreateBookingDto {
   /** Legal consent — both must be true before a booking (and payment) can proceed. */
   agreedSafeSpace: boolean;
   agreedDetailsCorrect: boolean;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  addressLine3?: string | null;
+  postTown?: string | null;
+  postcode?: string | null;
+  uprn?: string | null;
 }
 
 export interface RebookDto {

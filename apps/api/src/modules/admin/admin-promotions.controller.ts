@@ -11,6 +11,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { IsArray, IsUUID } from 'class-validator';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -30,6 +31,12 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { PromotionsService } from '../promotions/promotions.service';
+
+export class AssignPromotionDto {
+  @IsArray()
+  @IsUUID('all', { each: true })
+  userIds: string[];
+}
 
 @ApiTags('admin')
 @ApiBearerAuth('jwt')
@@ -100,5 +107,25 @@ export class AdminPromotionsController {
   @ApiNoContentResponse({ description: 'Promotion deleted' })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     await this.promotionsService.remove(id);
+  }
+
+  @Post(':id/assign')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Admin: assign a promotion to users' })
+  @ApiOkResponse({ description: 'Promotion assigned' })
+  async assign(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AssignPromotionDto,
+  ): Promise<void> {
+    await this.promotionsService.assignToUsers(id, dto.userIds);
+  }
+
+  @Get(':id/assignments')
+  @ApiOperation({ summary: 'Admin: get user assignments for a promotion' })
+  @ApiOkResponse({ description: 'Array of user IDs' })
+  async getAssignments(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<string[]> {
+    return this.promotionsService.getAssignments(id);
   }
 }

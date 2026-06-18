@@ -195,7 +195,8 @@ export class AuthController {
   @ApiBearerAuth('jwt')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Change password for authenticated user (e.g. force change on first login)',
+    summary:
+      'Change password for authenticated user (e.g. force change on first login)',
   })
   @ApiResponseDoc({
     status: 200,

@@ -11,7 +11,13 @@ import { AdminVendorsController } from './admin-vendors.controller';
 import { VendorsModule } from '../vendors/vendors.module';
 
 @Module({
-  imports: [BookingsModule, UsersModule, VehiclesModule, PromotionsModule, VendorsModule],
+  imports: [
+    BookingsModule,
+    UsersModule,
+    VehiclesModule,
+    PromotionsModule,
+    VendorsModule,
+  ],
   controllers: [
     AdminBookingsController,
     AdminUsersController,

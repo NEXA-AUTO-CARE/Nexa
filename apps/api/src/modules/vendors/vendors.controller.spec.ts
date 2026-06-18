@@ -27,9 +27,7 @@ describe('VendorsController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VendorsController],
-      providers: [
-        { provide: VendorsService, useValue: mockVendorsService },
-      ],
+      providers: [{ provide: VendorsService, useValue: mockVendorsService }],
     }).compile();
 
     controller = module.get<VendorsController>(VendorsController);
@@ -54,7 +52,10 @@ describe('VendorsController', () => {
       const dto = { companyName: 'Updated Vendor' };
       const result = await controller.updateProfile(user as any, dto);
       expect(result.companyName).toBe('Updated Vendor');
-      expect(mockVendorsService.updateProfile).toHaveBeenCalledWith('vendor-1', dto);
+      expect(mockVendorsService.updateProfile).toHaveBeenCalledWith(
+        'vendor-1',
+        dto,
+      );
     });
   });
 
@@ -64,7 +65,9 @@ describe('VendorsController', () => {
       const result = await controller.getMetrics(user as any);
       expect(result.totalSales).toBe(500);
       expect(result.totalBookings).toBe(10);
-      expect(mockVendorsService.getVendorFinancials).toHaveBeenCalledWith('vendor-1');
+      expect(mockVendorsService.getVendorFinancials).toHaveBeenCalledWith(
+        'vendor-1',
+      );
     });
   });
 });

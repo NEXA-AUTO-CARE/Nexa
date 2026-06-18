@@ -103,4 +103,38 @@ export class Booking extends AuditEntity {
   /* ---- Service Phone ---- */
   @Column({ type: 'varchar', length: 30, nullable: true })
   servicePhone: string | null;
+
+  /* ---- Verified Address Details ---- */
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'address_line_1',
+  })
+  addressLine1: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'address_line_2',
+  })
+  addressLine2: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'address_line_3',
+  })
+  addressLine3: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true, name: 'post_town' })
+  postTown: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true, name: 'postcode' })
+  postcode: string | null;
+
+  @Column({ type: 'varchar', length: 50, nullable: true, name: 'uprn' })
+  uprn: string | null;
 }

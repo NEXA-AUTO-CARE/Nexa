@@ -1,4 +1,10 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { OtelLogger } from '../logger/otel.logger';
 
@@ -10,7 +16,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    
+
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let details: any = null;
@@ -29,7 +35,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     const logContext = `${request.method} ${request.url}`;
-    
+
     this.logger.error(
       `Request failed with status ${status}: ${message}`,
       exception instanceof Error ? exception.stack : undefined,

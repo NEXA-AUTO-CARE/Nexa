@@ -143,6 +143,10 @@ export class EnvSchema {
   @IsString()
   @IsOptional()
   SUPER_ADMIN_EMAIL?: string;
+
+  @IsString()
+  @IsOptional()
+  IDEAL_POSTCODES_API_KEY?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>): EnvSchema {

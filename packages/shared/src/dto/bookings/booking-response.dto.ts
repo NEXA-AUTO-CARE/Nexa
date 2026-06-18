@@ -21,4 +21,10 @@ export interface BookingResponse {
   discountAmount?: string;
   /** Name of the promotion that was applied. */
   promotionTitle?: string;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  addressLine3?: string | null;
+  postTown?: string | null;
+  postcode?: string | null;
+  uprn?: string | null;
 }

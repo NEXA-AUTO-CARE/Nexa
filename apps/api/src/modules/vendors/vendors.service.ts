@@ -44,7 +44,7 @@ export class VendorsService implements OnModuleInit {
   private async syncMissingVendorProfiles() {
     try {
       const vendorRole = await this.roles.findByNameOrFail(UserRole.VENDOR);
-      
+
       const legacyVendors = await this.userRepo
         .createQueryBuilder('user')
         .leftJoinAndSelect('user.vendorProfile', 'vendorProfile')
@@ -53,15 +53,21 @@ export class VendorsService implements OnModuleInit {
         .getMany();
 
       if (legacyVendors.length > 0) {
-        this.logger.log(`Found ${legacyVendors.length} legacy vendor users missing a VendorProfile. Auto-repairing...`);
-        const newProfiles = legacyVendors.map(user => this.vendorRepo.create({
-          vendorId: user.userId,
-          approvalStatus: VendorApprovalStatus.ACTIVE, // Assuming legacy vendors are already active
-          companyName: user.displayName || 'Legacy Vendor',
-        }));
-        
+        this.logger.log(
+          `Found ${legacyVendors.length} legacy vendor users missing a VendorProfile. Auto-repairing...`,
+        );
+        const newProfiles = legacyVendors.map((user) =>
+          this.vendorRepo.create({
+            vendorId: user.userId,
+            approvalStatus: VendorApprovalStatus.ACTIVE, // Assuming legacy vendors are already active
+            companyName: user.displayName || 'Legacy Vendor',
+          }),
+        );
+
         await this.vendorRepo.save(newProfiles);
-        this.logger.log(`Successfully auto-repaired ${legacyVendors.length} VendorProfile records.`);
+        this.logger.log(
+          `Successfully auto-repaired ${legacyVendors.length} VendorProfile records.`,
+        );
       }
     } catch (err) {
       this.logger.error('Failed to sync missing vendor profiles', err);
@@ -70,7 +76,9 @@ export class VendorsService implements OnModuleInit {
 
   async createVendorByAdmin(dto: CreateVendorDto): Promise<VendorProfile> {
     const email = dto.email ? normalizeEmail(dto.email) : null;
-    const phoneNumber = dto.phoneNumber ? normalizePhone(dto.phoneNumber) : null;
+    const phoneNumber = dto.phoneNumber
+      ? normalizePhone(dto.phoneNumber)
+      : null;
 
     if (!email) {
       throw new ConflictException('Vendor must have an email address');
@@ -81,7 +89,9 @@ export class VendorsService implements OnModuleInit {
     });
 
     if (existingUser) {
-      throw new ConflictException('A user with this email or phone number already exists');
+      throw new ConflictException(
+        'A user with this email or phone number already exists',
+      );
     }
 
     const role = await this.roles.findByNameOrFail(UserRole.VENDOR);
@@ -109,6 +119,14 @@ export class VendorsService implements OnModuleInit {
       vendorId: savedUser.userId,
       approvalStatus: VendorApprovalStatus.PENDING,
       companyName: dto.companyName || null,
+      latitude: dto.latitude?.toString() ?? null,
+      longitude: dto.longitude?.toString() ?? null,
+      addressLine1: dto.addressLine1 ?? null,
+      addressLine2: dto.addressLine2 ?? null,
+      addressLine3: dto.addressLine3 ?? null,
+      postTown: dto.postTown ?? null,
+      postcode: dto.postcode ?? null,
+      uprn: dto.uprn ?? null,
     });
 
     const savedProfile = await this.vendorRepo.save(vendorProfile);
@@ -123,14 +141,16 @@ export class VendorsService implements OnModuleInit {
     if (!user.email) return;
 
     // Use a default hardcoded template if the DB doesn't have one
-    const loginLink = this.config.get<string>('app.frontendUrl', 'https://nexaautocare.com') + '/vendor/login';
+    const loginLink =
+      this.config.get<string>('app.frontendUrl', 'https://nexaautocare.com') +
+      '/vendor/login';
 
     await this.notifications.sendEmail(
       user.email,
       'Welcome to NEXA - Vendor Account Created',
       `<p>Hi ${user.displayName},</p><p>Your vendor account has been created.</p><p>Your temporary password is: <strong>${rawPassword}</strong></p><p><a href="${loginLink}">Login here</a></p><p>You will be required to change your password upon your first login.</p>`,
     );
-    
+
     this.logger.log(`Dispatched vendor welcome email to ${user.email}`);
   }
 
@@ -150,21 +170,56 @@ export class VendorsService implements OnModuleInit {
     return profile;
   }
 
-  async updateVendorByAdmin(vendorId: string, dto: UpdateVendorDto): Promise<VendorProfile> {
+  async updateVendorByAdmin(
+    vendorId: string,
+    dto: UpdateVendorDto,
+  ): Promise<VendorProfile> {
     const profile = await this.findById(vendorId);
     if (dto.companyName !== undefined) profile.companyName = dto.companyName;
-    if (dto.approvalStatus !== undefined) profile.approvalStatus = dto.approvalStatus as VendorApprovalStatus;
+    if (dto.approvalStatus !== undefined)
+      profile.approvalStatus = dto.approvalStatus as VendorApprovalStatus;
+
+    // Address updates
+    if (dto.latitude !== undefined)
+      profile.latitude = dto.latitude !== null ? dto.latitude.toString() : null;
+    if (dto.longitude !== undefined)
+      profile.longitude =
+        dto.longitude !== null ? dto.longitude.toString() : null;
+    if (dto.addressLine1 !== undefined) profile.addressLine1 = dto.addressLine1;
+    if (dto.addressLine2 !== undefined) profile.addressLine2 = dto.addressLine2;
+    if (dto.addressLine3 !== undefined) profile.addressLine3 = dto.addressLine3;
+    if (dto.postTown !== undefined) profile.postTown = dto.postTown;
+    if (dto.postcode !== undefined) profile.postcode = dto.postcode;
+    if (dto.uprn !== undefined) profile.uprn = dto.uprn;
+
     return this.vendorRepo.save(profile);
   }
 
-  async updateProfile(vendorId: string, dto: UpdateVendorDto): Promise<VendorProfile> {
+  async updateProfile(
+    vendorId: string,
+    dto: UpdateVendorDto,
+  ): Promise<VendorProfile> {
     const profile = await this.findById(vendorId);
     if (dto.companyName !== undefined) profile.companyName = dto.companyName;
+
+    // Address updates (for vendor self-update)
+    if (dto.latitude !== undefined)
+      profile.latitude = dto.latitude !== null ? dto.latitude.toString() : null;
+    if (dto.longitude !== undefined)
+      profile.longitude =
+        dto.longitude !== null ? dto.longitude.toString() : null;
+    if (dto.addressLine1 !== undefined) profile.addressLine1 = dto.addressLine1;
+    if (dto.addressLine2 !== undefined) profile.addressLine2 = dto.addressLine2;
+    if (dto.addressLine3 !== undefined) profile.addressLine3 = dto.addressLine3;
+    if (dto.postTown !== undefined) profile.postTown = dto.postTown;
+    if (dto.postcode !== undefined) profile.postcode = dto.postcode;
+    if (dto.uprn !== undefined) profile.uprn = dto.uprn;
+
     return this.vendorRepo.save(profile);
   }
 
   @OnEvent('user.password.changed')
-  async handleUserPasswordChanged(payload: { userId: string, role: string }) {
+  async handleUserPasswordChanged(payload: { userId: string; role: string }) {
     if (payload.role === UserRole.VENDOR) {
       await this.activateVendor(payload.userId);
     }
@@ -175,13 +230,15 @@ export class VendorsService implements OnModuleInit {
     if (profile.approvalStatus === VendorApprovalStatus.PENDING) {
       profile.approvalStatus = VendorApprovalStatus.ACTIVE;
       await this.vendorRepo.save(profile);
-      this.logger.log(`Vendor ${vendorId} activated automatically after password change`);
+      this.logger.log(
+        `Vendor ${vendorId} activated automatically after password change`,
+      );
     }
   }
 
   // Financials placeholder for Admin
   async getVendorFinancials(vendorId: string) {
-    const profile = await this.findById(vendorId);
+    const _profile = await this.findById(vendorId);
     // Here we can sum up completed bookings. This will be implemented fully once we have bookings context.
     return {
       vendorId,
@@ -190,30 +247,36 @@ export class VendorsService implements OnModuleInit {
     };
   }
 
-  async findNearbyVendors(latitude: number, longitude: number, radiusKm: number = 50): Promise<VendorProfile[]> {
-    // For MVP, we fetch all active vendors with coordinates and calculate distance in JS.
-    // In production, we'd use PostGIS or native Haversine SQL queries.
+  async findNearbyVendors(
+    latitude: number,
+    longitude: number,
+    radiusKm: number = 50,
+  ): Promise<VendorProfile[]> {
     const activeVendors = await this.vendorRepo.find({
       where: { approvalStatus: VendorApprovalStatus.ACTIVE },
       relations: ['user'],
     });
 
     const toRad = (value: number) => (value * Math.PI) / 180;
-    
+
     const withDistance = activeVendors
       .filter((v) => v.latitude != null && v.longitude != null)
       .map((v) => {
         const vLat = parseFloat(v.latitude as string);
         const vLon = parseFloat(v.longitude as string);
-        
+
         const R = 6371; // km
         const dLat = toRad(vLat - latitude);
         const dLon = toRad(vLon - longitude);
         const lat1 = toRad(latitude);
         const lat2 = toRad(vLat);
 
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                  Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.sin(dLon / 2) *
+            Math.sin(dLon / 2) *
+            Math.cos(lat1) *
+            Math.cos(lat2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const distance = R * c;
 

@@ -16,6 +16,7 @@ import {
   Clock,
   Users,
   TrendingUp,
+  Search,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -41,6 +42,17 @@ interface Promotion {
   endedAt: string | null
   totalRedemptions: number
   createdAt: string
+  assignedUserCount?: number
+}
+
+interface AdminUser {
+  userId: string
+  firstName: string | null
+  lastName: string | null
+  email: string | null
+  phoneNumber: string | null
+  displayName: string
+  role: string
 }
 
 const TYPE_META: Record<PromotionType, { label: string; icon: typeof Megaphone; color: string }> = {
@@ -66,6 +78,15 @@ export default function AdminPromotionsPage() {
   // Modal
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Promotion | null>(null)
+
+  // User assignment states
+  const [showAssignModal, setShowAssignModal] = useState(false)
+  const [assigningPromotion, setAssigningPromotion] = useState<Promotion | null>(null)
+  const [users, setUsers] = useState<AdminUser[]>([])
+  const [assignedUserIds, setAssignedUserIds] = useState<string[]>([])
+  const [assignSearch, setAssignSearch] = useState('')
+  const [submittingAssign, setSubmittingAssign] = useState(false)
+  const [loadingAssignments, setLoadingAssignments] = useState(false)
 
   // Form
   const [formTitle, setFormTitle] = useState('')
@@ -212,6 +233,79 @@ export default function AdminPromotionsPage() {
     }
   }
 
+  const openAssignModal = async (p: Promotion) => {
+    try {
+      setAssigningPromotion(p)
+      setLoadingAssignments(true)
+      setError(null)
+      
+      const { data: usersData } = await api.get<AdminUser[]>('/admin/users')
+      setUsers(usersData)
+
+      const { data: assignmentsData } = await api.get<string[]>(`/admin/promotions/${p.promotionId}/assignments`)
+      setAssignedUserIds(assignmentsData)
+      setShowAssignModal(true)
+    } catch {
+      setError('Failed to load user assignments.')
+    } finally {
+      setLoadingAssignments(false)
+    }
+  }
+
+  const handleAssignSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!assigningPromotion) return
+
+    try {
+      setSubmittingAssign(true)
+      setError(null)
+      await api.post(`/admin/promotions/${assigningPromotion.promotionId}/assign`, {
+        userIds: assignedUserIds,
+      })
+      setSuccess('User assignments updated successfully.')
+      setShowAssignModal(false)
+      await load()
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(message || 'Failed to update user assignments.')
+    } finally {
+      setSubmittingAssign(false)
+    }
+  }
+
+  const toggleUserSelection = (userId: string) => {
+    setAssignedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    )
+  }
+
+  const handleSelectAllVisible = (visibleUsers: AdminUser[]) => {
+    const visibleIds = visibleUsers.map((u) => u.userId)
+    const allVisibleSelected = visibleIds.every((id) => assignedUserIds.includes(id))
+
+    if (allVisibleSelected) {
+      setAssignedUserIds((prev) => prev.filter((id) => !visibleIds.includes(id)))
+    } else {
+      setAssignedUserIds((prev) => {
+        const next = [...prev]
+        for (const id of visibleIds) {
+          if (!next.includes(id)) next.push(id)
+        }
+        return next
+      })
+    }
+  }
+
+  const filteredModalUsers = users.filter((u) => {
+    if (!assignSearch.trim()) return true
+    const q = assignSearch.toLowerCase()
+    return (
+      u.displayName.toLowerCase().includes(q) ||
+      u.email?.toLowerCase().includes(q) ||
+      u.phoneNumber?.includes(q)
+    )
+  })
+
   const fmtDate = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
 
@@ -340,6 +434,14 @@ export default function AdminPromotionsPage() {
                   {p.totalRedemptions > 0 && (
                     <span className="flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5" /> {p.totalRedemptions} redeemed</span>
                   )}
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5" />{' '}
+                    {p.assignedUserCount && p.assignedUserCount > 0 ? (
+                      <span className="text-nexa-mint font-bold">Targeted ({p.assignedUserCount} users)</span>
+                    ) : (
+                      <span>Global (All users)</span>
+                    )}
+                  </span>
                 </div>
 
                 {/* Scheduled dates */}
@@ -358,6 +460,10 @@ export default function AdminPromotionsPage() {
                         className="flex items-center gap-1.5 py-2 px-4 rounded-xl bg-nexa-mint/10 border border-nexa-mint/20 text-nexa-mint text-xs font-bold hover:bg-nexa-mint/20 transition-all duration-300">
                         <Play className="w-3.5 h-3.5" /> Go Live
                       </button>
+                      <button onClick={() => openAssignModal(p)} disabled={loadingAssignments}
+                        className="flex items-center gap-1.5 py-2 px-4 rounded-xl bg-nexa-mint/10 border border-nexa-mint/20 text-nexa-mint text-xs font-bold hover:bg-nexa-mint/20 transition-all duration-300 disabled:opacity-50">
+                        <Users className="w-3.5 h-3.5" /> Assign Users
+                      </button>
                       <button onClick={() => openEdit(p)}
                         className="p-2 text-nexa-text-secondary hover:text-nexa-mint hover:bg-nexa-mint/10 rounded-xl transition-all duration-300" title="Edit">
                         <Edit2 className="w-4 h-4" />
@@ -369,10 +475,16 @@ export default function AdminPromotionsPage() {
                     </>
                   )}
                   {p.status === 'active' && (
-                    <button onClick={() => handleEnd(p)}
-                      className="flex items-center gap-1.5 py-2 px-4 rounded-xl bg-nexa-error/10 border border-nexa-error/20 text-nexa-error text-xs font-bold hover:bg-nexa-error/20 transition-all duration-300">
-                      <Square className="w-3.5 h-3.5" /> End Promotion
-                    </button>
+                    <>
+                      <button onClick={() => handleEnd(p)}
+                        className="flex items-center gap-1.5 py-2 px-4 rounded-xl bg-nexa-error/10 border border-nexa-error/20 text-nexa-error text-xs font-bold hover:bg-nexa-error/20 transition-all duration-300">
+                        <Square className="w-3.5 h-3.5" /> End Promotion
+                      </button>
+                      <button onClick={() => openAssignModal(p)} disabled={loadingAssignments}
+                        className="flex items-center gap-1.5 py-2 px-4 rounded-xl bg-nexa-mint/10 border border-nexa-mint/20 text-nexa-mint text-xs font-bold hover:bg-nexa-mint/20 transition-all duration-300 disabled:opacity-50">
+                        <Users className="w-3.5 h-3.5" /> Assign Users
+                      </button>
+                    </>
                   )}
                   {p.status === 'ended' && (
                     <span className="text-xs text-nexa-text-muted italic flex items-center gap-1.5">
@@ -523,6 +635,120 @@ export default function AdminPromotionsPage() {
                   <span>{saving ? 'Saving…' : editing ? 'Update Promotion' : 'Create Draft'}</span>
                 </button>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* USER ASSIGNMENT MODAL */}
+      <AnimatePresence>
+        {showAssignModal && assigningPromotion && (
+          <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-nexa-bg border border-nexa-border-subtle w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-nexa-border-subtle flex items-center justify-between bg-nexa-bg">
+                <div>
+                  <h3 className="font-display font-bold text-lg text-nexa-text">
+                    Assign Users
+                  </h3>
+                  <p className="text-xs text-nexa-text-muted mt-0.5">
+                    Target promotion "{assigningPromotion.title}" to specific users
+                  </p>
+                </div>
+                <button onClick={() => setShowAssignModal(false)}
+                  className="p-1 text-nexa-text-secondary hover:text-nexa-text rounded bg-nexa-bg border border-nexa-border-subtle">
+                  <X className="w-4.5 h-4.5" />
+                </button>
+              </div>
+
+              {/* Search and Select All controls */}
+              <div className="p-6 pb-4 border-b border-nexa-border-subtle/50 space-y-4">
+                <div className="relative w-full">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-nexa-text-muted" />
+                  <input
+                    type="text"
+                    placeholder="Search users by name, email..."
+                    value={assignSearch}
+                    onChange={(e) => setAssignSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg focus:border-nexa-mint/40 focus:ring-0 text-sm text-nexa-text placeholder-nexa-text-muted transition-all duration-300"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-nexa-text-secondary">
+                  <span>
+                    {assignedUserIds.length} user{assignedUserIds.length !== 1 ? 's' : ''} selected
+                  </span>
+                  {filteredModalUsers.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleSelectAllVisible(filteredModalUsers)}
+                      className="text-nexa-mint hover:underline font-bold"
+                    >
+                      {filteredModalUsers.every((u) => assignedUserIds.includes(u.userId))
+                        ? 'Deselect All Visible'
+                        : 'Select All Visible'
+                      }
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* User list */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-3 min-h-[250px] max-h-[400px]">
+                {filteredModalUsers.length === 0 ? (
+                  <div className="text-center py-10 text-nexa-text-muted text-sm">
+                    No users found
+                  </div>
+                ) : (
+                  filteredModalUsers.map((u) => {
+                    const isSelected = assignedUserIds.includes(u.userId)
+                    return (
+                      <div
+                        key={u.userId}
+                        onClick={() => toggleUserSelection(u.userId)}
+                        className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 cursor-pointer ${
+                          isSelected
+                            ? 'border-nexa-mint/40 bg-nexa-mint/5 text-nexa-text'
+                            : 'border-nexa-border-subtle text-nexa-text-secondary hover:border-nexa-mint/20'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <span className="block font-semibold text-sm text-nexa-text truncate">
+                            {u.displayName}
+                          </span>
+                          <span className="block text-[10px] text-nexa-text-muted truncate">
+                            {u.email || 'No Email'} • Role: {u.role}
+                          </span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {}} // handled by parent onClick
+                          className="rounded border-nexa-border-subtle text-nexa-mint focus:ring-0 focus:ring-offset-0 bg-transparent h-4 w-4"
+                        />
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="p-6 border-t border-nexa-border-subtle bg-nexa-bg">
+                <button
+                  type="button"
+                  onClick={handleAssignSubmit}
+                  disabled={submittingAssign}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-nexa-mint text-nexa-bg font-bold hover:bg-nexa-mint/90 transition-all duration-300 disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{submittingAssign ? 'Saving...' : 'Save Assignments'}</span>
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
