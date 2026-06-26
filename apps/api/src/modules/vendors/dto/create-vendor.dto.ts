@@ -28,11 +28,11 @@ export class CreateVendorDto {
   @MaxLength(255)
   email: string;
 
-  @ApiPropertyOptional({ example: '+447911123456' })
-  @IsOptional()
-  @IsPhoneNumber()
+  @ApiProperty({ example: '+447911123456' })
+  @IsNotEmpty({ message: 'Phone number is required' })
+  @IsPhoneNumber('GB', { message: 'Must be a valid UK phone number' })
   @MaxLength(20)
-  phoneNumber?: string;
+  phoneNumber: string;
 
   @ApiPropertyOptional({ example: 'Nexa Car Detailers Ltd' })
   @IsOptional()
