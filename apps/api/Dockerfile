@@ -1,10 +1,10 @@
 # =============================================================================
-# Nexa API — Multi-stage production Dockerfile
-# Build context: repo root (run from monorepo root with -f apps/api/Dockerfile)
+# Nexa API — Multi-stage production Dockerfile (ARM64)
+# Build context: repo root (run from monorepo root with -f apps/api/Dockerfile.arm64)
 # =============================================================================
 
 # ---- Stage 1: Install dependencies -----------------------------------------
-FROM node:22-alpine AS deps
+FROM --platform=linux/arm64 node:22-alpine AS deps
 
 # pnpm is included in modern Node images via corepack
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
@@ -22,7 +22,7 @@ COPY apps/api/package.json apps/api/package.json
 RUN pnpm install --frozen-lockfile
 
 # ---- Stage 2: Build --------------------------------------------------------
-FROM deps AS build
+FROM --platform=linux/arm64 deps AS build
 
 WORKDIR /app
 
@@ -40,7 +40,7 @@ RUN pnpm --filter @nexa/api run build
 RUN pnpm --filter @nexa/api --prod deploy --legacy /app/pruned
 
 # ---- Stage 3: Production runtime -------------------------------------------
-FROM node:22-alpine AS production
+FROM --platform=linux/arm64 node:22-alpine AS production
 
 # Security: run as non-root
 RUN apk add --no-cache dumb-init curl
