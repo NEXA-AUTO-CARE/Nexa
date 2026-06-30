@@ -103,11 +103,13 @@ export class UsersService {
         );
       }
 
-      // Update mutable profile fields on the pending row; email & phone stay as-is.
+      // Update mutable profile fields on the pending row
       existing.firstName = args.firstName;
       existing.lastName = args.lastName;
       existing.roleId = args.role.roleId;
       existing.displayName = args.displayName;
+      if (email) existing.email = email;
+      if (phoneNumber) existing.phoneNumber = phoneNumber;
       return this.userRepo.save(existing);
     }
 

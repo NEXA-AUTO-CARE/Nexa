@@ -1,5 +1,6 @@
 export const BookingStatus = {
   BOOKED: 'booked',
+  ASSIGNED: 'assigned',
   ACCEPTED: 'accepted',
   IN_PROGRESS: 'in_progress',
   COMPLETED: 'completed',

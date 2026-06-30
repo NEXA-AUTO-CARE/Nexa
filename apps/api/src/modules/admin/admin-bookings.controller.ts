@@ -48,6 +48,14 @@ export class AdminBookingsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AssignVendorDto,
   ): Promise<BookingResponse> {
+    const vendor = await this.vendorsService.findById(dto.vendorId);
+    if (!vendor) {
+      throw new BadRequestException('Vendor not found');
+    }
+    if (vendor.approvalStatus !== 'ACTIVE') {
+      throw new BadRequestException('Cannot assign an inactive vendor');
+    }
+    
     const booking = await this.bookingsService.assignVendor(id, dto.vendorId);
     return this.bookingsService.toResponse(booking);
   }

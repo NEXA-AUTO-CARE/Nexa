@@ -71,9 +71,9 @@ export default function AdminBookingsPage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [bookingsRes, usersRes] = await Promise.all([
+      const [bookingsRes, vendorsRes] = await Promise.all([
         api.get<RawBooking[]>('/admin/bookings'),
-        api.get<SystemUser[]>('/admin/users'),
+        api.get<any[]>('/admin/vendors'),
       ])
 
       // Map raw backend responses
@@ -95,7 +95,22 @@ export default function AdminBookingsPage() {
       })
 
       setBookings(bookingsData)
-      setVendors(usersRes.data.filter((u) => u.role.toLowerCase() === 'vendor'))
+      
+      const activeVendors = vendorsRes.data
+        .filter((v: any) => v.approvalStatus === 'ACTIVE')
+        .map((v: any) => {
+          const user = v.user || {};
+          return {
+            userId: user.userId || '',
+            displayName: user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || '',
+            role: user.role || 'vendor',
+            email: user.email || '',
+            firstName: user.firstName,
+            lastName: user.lastName,
+          } as SystemUser;
+        });
+        
+      setVendors(activeVendors)
     } catch (err) {
       console.error('Failed to load admin bookings data', err)
       setActionError('Could not fetch bookings list. Please check authorization.')
