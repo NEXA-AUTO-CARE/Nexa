@@ -11,6 +11,7 @@ import { mockVendor } from "@/lib/mock";
 
 const STEP_ORDER: BookingStatus[] = [
   BookingStatus.BOOKED,
+  BookingStatus.ASSIGNED,
   BookingStatus.ACCEPTED,
   BookingStatus.IN_PROGRESS,
   BookingStatus.COMPLETED,
@@ -18,7 +19,8 @@ const STEP_ORDER: BookingStatus[] = [
 
 const STEP_LABELS: Record<string, string> = {
   [BookingStatus.BOOKED]: "Booked",
-  [BookingStatus.ACCEPTED]: "Assigned",
+  [BookingStatus.ASSIGNED]: "Assigned",
+  [BookingStatus.ACCEPTED]: "Accepted",
   [BookingStatus.IN_PROGRESS]: "In Progress",
   [BookingStatus.COMPLETED]: "Completed",
 };
