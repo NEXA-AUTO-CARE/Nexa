@@ -49,6 +49,7 @@ async function bootstrap() {
   });
 
   const port = config.getOrThrow<number>('app.port');
+  app.enableShutdownHooks();
   await app.listen(port);
 
   console.log(`[nexa-api] listening on http://localhost:${port}`);

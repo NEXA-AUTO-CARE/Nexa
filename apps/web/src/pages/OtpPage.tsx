@@ -44,7 +44,7 @@ export function OtpPage() {
   return (
     <AuthLayout
       title="Verify your code"
-      subtitle={`We sent a 6-digit code to ${identifier}. In dev, check the API console.`}
+      subtitle={`We sent a 6-digit code to ${identifier}.`}
       footer={
         <Link className="text-nexa-mint hover:underline" to="/signup">
           Use a different identifier

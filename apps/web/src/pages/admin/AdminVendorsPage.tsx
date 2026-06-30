@@ -458,27 +458,30 @@ export default function AdminVendorsPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-nexa-text-secondary uppercase tracking-wider">Email (Optional)</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={e => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
-                      placeholder="vendor@example.com"
-                    />
-                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-nexa-text-secondary uppercase tracking-wider">Email <span className="text-red-500">*</span></label>
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
+                        placeholder="e.g. john@example.com"
+                      />
+                    </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-nexa-text-secondary uppercase tracking-wider">Phone Number (Optional)</label>
-                    <input
-                      type="tel"
-                      value={formData.phoneNumber}
-                      onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
-                      placeholder="+1234567890"
-                    />
-                    <p className="text-[10px] text-nexa-text-muted mt-1">Provide at least an email or phone number for the vendor to login.</p>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-nexa-text-secondary uppercase tracking-wider">Phone Number <span className="text-red-500">*</span></label>
+                      <input
+                        type="tel"
+                        required
+                        value={formData.phoneNumber}
+                        onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg text-sm text-nexa-text focus:border-nexa-mint/40 focus:ring-0 transition-colors"
+                        placeholder="e.g. +447700900077"
+                      />
+                    </div>
                   </div>
                   
                   <div className="space-y-1">

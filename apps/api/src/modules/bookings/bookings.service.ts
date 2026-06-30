@@ -59,7 +59,7 @@ export class BookingsService {
     private readonly events: EventEmitter2,
     private readonly settingsService: SettingsService,
     private readonly promotionsService: PromotionsService,
-  ) {}
+  ) { }
 
   async getBasePriceForCategory(vehicleType: string): Promise<number> {
     let categoryPricing = MINI_VALET_PRICING;
@@ -101,6 +101,11 @@ export class BookingsService {
       throw new BadRequestException(
         'Vehicle not found or does not belong to you',
       );
+    }
+
+    const bookingTime = new Date(dto.bookingTime);
+    if (bookingTime.getTime() - Date.now() < 24 * 60 * 60 * 1000 - 60000) {
+      throw new BadRequestException('Booking must be at least 24 hours in advance');
     }
 
     // Mini Valet is the single base service; price is driven by vehicle category.
@@ -397,9 +402,19 @@ export class BookingsService {
   async assignVendor(bookingId: string, vendorId: string): Promise<Booking> {
     const booking = await this.bookingRepo.findOne({ where: { bookingId } });
     if (!booking) throw new NotFoundException('Booking not found');
+
+    const previousStatus = booking.status;
     booking.vendorId = vendorId;
+    booking.status = BookingStatus.ASSIGNED;
     await this.bookingRepo.save(booking);
-    return this.findByIdWithRelations(bookingId);
+
+    const full = await this.findByIdWithRelations(bookingId);
+    this.events.emit(
+      BookingStatusChangedEvent.EVENT_NAME,
+      new BookingStatusChangedEvent(full, previousStatus),
+    );
+
+    return full;
   }
 
   async acceptBooking(bookingId: string, userId: string): Promise<Booking> {

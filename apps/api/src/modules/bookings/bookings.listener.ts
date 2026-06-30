@@ -120,6 +120,7 @@ export class BookingsListener {
     return {
       customerName: booking.customer?.displayName ?? 'Customer',
       bookingId: booking.bookingId,
+      bookingRef: booking.bookingId.split('-')[0].toUpperCase(),
       vehicleSummary: v
         ? `${v.make} ${v.model} (${v.registrationNumber})`
         : 'Your vehicle',
