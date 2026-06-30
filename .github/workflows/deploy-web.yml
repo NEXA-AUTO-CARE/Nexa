@@ -38,18 +38,28 @@ jobs:
       - name: Build Shared Package
         run: pnpm --filter @nexa/shared run build
 
-      - name: Build Frontend Web App
-        env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-          VITE_GOOGLE_MAPS_KEY: ${{ secrets.VITE_GOOGLE_MAPS_KEY }}
-          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
-        run: pnpm --filter @nexa/web run build
-
       - name: Set up AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ vars.AWS_REGION || 'eu-west-2' }}
+
+      - name: Fetch frontend secrets from AWS Secrets Manager
+        id: secrets
+        run: |
+          SECRET_JSON=$(aws secretsmanager get-secret-value \
+            --secret-id "nexa/production/frontend-config" \
+            --query 'SecretString' --output text)
+
+          echo "VITE_STRIPE_PUBLISHABLE_KEY=$(echo "$SECRET_JSON" | jq -r '.stripePublishableKey')" >> $GITHUB_ENV
+          echo "VITE_GOOGLE_MAPS_KEY=$(echo "$SECRET_JSON" | jq -r '.googleMapsKey')" >> $GITHUB_ENV
+          echo "VITE_IDEAL_POSTCODES_API_KEY=$(echo "$SECRET_JSON" | jq -r '.idealPostcodesApiKey')" >> $GITHUB_ENV
+          echo "VITE_API_BASE_URL=/api" >> $GITHUB_ENV
+
+      - name: Build Frontend Web App
+        run: pnpm --filter @nexa/web run build
+
+
 
       - name: Deploy static files to S3 bucket
         run: |
