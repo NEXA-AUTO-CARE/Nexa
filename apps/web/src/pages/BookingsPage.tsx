@@ -7,6 +7,7 @@ import { mockGiftBookings } from "@/lib/mock";
 
 const statusMeta: Record<BookingStatus, { label: string; color: string }> = {
   [BookingStatus.BOOKED]: { label: "Booked", color: "text-warning" },
+  [BookingStatus.ASSIGNED]: { label: "Assigned", color: "text-info" },
   [BookingStatus.ACCEPTED]: { label: "Accepted", color: "text-info" },
   [BookingStatus.IN_PROGRESS]: { label: "In Progress", color: "text-warning" },
   [BookingStatus.COMPLETED]: { label: "Completed", color: "text-success" },
