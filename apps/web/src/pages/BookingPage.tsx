@@ -508,7 +508,9 @@ const BookingPage = () => {
                       setAddressConfirmed(true);
                     }}
                     onFailedCheck={() => setShowManualAddress(true)}
-                  />
+                  >
+                    <Input placeholder="Start typing your address..." />
+                  </AddressFinder>
                 </div>
               </div>
 
