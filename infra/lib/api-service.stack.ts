@@ -63,6 +63,10 @@ export class ApiServiceStack extends cdk.Stack {
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'ApiTaskDef', {
       memoryLimitMiB: 512,
       cpu: 256, // 0.25 vCPU
+      runtimePlatform: {
+        cpuArchitecture: ecs.CpuArchitecture.ARM64,
+        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+      },
     });
 
     // 5. Grant permissions to Fargate Task Execution Role & Task Role

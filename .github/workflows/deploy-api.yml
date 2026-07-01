@@ -43,6 +43,9 @@ jobs:
           node-version: 22
           cache: "pnpm"
 
+      - name: Set up QEMU for ARM64 builds
+        uses: docker/setup-qemu-action@v3
+
       - name: Build, tag, and push API image to Amazon ECR
         id: build-image
         env:
