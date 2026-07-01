@@ -356,7 +356,9 @@ const BookingPage = () => {
 
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-2 block uppercase tracking-wider">Service Address</label>
-          {addressConfirmed ? (
+          
+          {/* Confirmed Address View */}
+          {addressConfirmed && (
             <div className="glass-card p-4 border border-primary bg-primary/5 shadow-sm rounded-xl relative overflow-hidden">
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -393,7 +395,10 @@ const BookingPage = () => {
                 </Button>
               </div>
             </div>
-          ) : showManualAddress ? (
+          )}
+
+          {/* Manual Address View */}
+          {!addressConfirmed && showManualAddress && (
             <div className="glass-card p-4 border border-border bg-secondary/10 space-y-3 rounded-xl">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-semibold text-foreground">Manual Address Entry</h3>
@@ -479,57 +484,57 @@ const BookingPage = () => {
                 Confirm Manual Address
               </Button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <AddressFinder
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm text-foreground idpc-input-override"
-                    placeholder="Start typing your address..."
-                    apiKey={import.meta.env.VITE_IDEAL_POSTCODES_API_KEY || ""}
-                    onAddressRetrieved={(addr: any) => {
-                      setTimeout(() => {
-                        setAddressLine1(addr.line_1 || "");
-                        setAddressLine2(addr.line_2 || "");
-                        setAddressLine3(addr.line_3 || "");
-                        setPostTown(addr.post_town || "");
-                        setPostcodeVal(addr.postcode || "");
-                        setUprnVal(addr.uprn || "");
-                        setLatVal(addr.latitude ?? null);
-                        setLonVal(addr.longitude ?? null);
-
-                        const formatted = [
-                          addr.line_1,
-                          addr.line_2,
-                          addr.line_3,
-                          addr.post_town,
-                          addr.postcode,
-                        ]
-                          .filter(Boolean)
-                          .join(", ");
-                        setAddress(formatted);
-                        setAddressConfirmed(true);
-                      }, 0);
-                    }}
-                    onFailedCheck={() => setShowManualAddress(true)}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center px-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowManualAddress(true);
-                  }}
-                  className="text-xs text-muted-foreground hover:text-primary transition-colors hover:underline"
-                >
-                  Or enter address manually
-                </button>
-              </div>
-
-            </div>
           )}
+
+          {/* Postcode Lookup View (AddressFinder) */}
+          <div className={addressConfirmed || showManualAddress ? "hidden" : "space-y-3"}>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <AddressFinder
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm text-foreground idpc-input-override"
+                  placeholder="Start typing your address..."
+                  apiKey={import.meta.env.VITE_IDEAL_POSTCODES_API_KEY || ""}
+                  onAddressRetrieved={(addr: any) => {
+                    setTimeout(() => {
+                      setAddressLine1(addr.line_1 || "");
+                      setAddressLine2(addr.line_2 || "");
+                      setAddressLine3(addr.line_3 || "");
+                      setPostTown(addr.post_town || "");
+                      setPostcodeVal(addr.postcode || "");
+                      setUprnVal(addr.uprn || "");
+                      setLatVal(addr.latitude ?? null);
+                      setLonVal(addr.longitude ?? null);
+
+                      const formatted = [
+                        addr.line_1,
+                        addr.line_2,
+                        addr.line_3,
+                        addr.post_town,
+                        addr.postcode,
+                      ]
+                        .filter(Boolean)
+                        .join(", ");
+                      setAddress(formatted);
+                      setAddressConfirmed(true);
+                    }, 0);
+                  }}
+                  onFailedCheck={() => setShowManualAddress(true)}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center px-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowManualAddress(true);
+                }}
+                className="text-xs text-muted-foreground hover:text-primary transition-colors hover:underline"
+              >
+                Or enter address manually
+              </button>
+            </div>
+          </div>
         </div>
 
         <div>
