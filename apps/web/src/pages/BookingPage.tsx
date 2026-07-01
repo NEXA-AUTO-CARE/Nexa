@@ -484,33 +484,35 @@ const BookingPage = () => {
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <AddressFinder
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm text-foreground idpc-input-override"
+                    placeholder="Start typing your address..."
                     apiKey={import.meta.env.VITE_IDEAL_POSTCODES_API_KEY || ""}
                     onAddressRetrieved={(addr: any) => {
-                      setAddressLine1(addr.line_1 || "");
-                      setAddressLine2(addr.line_2 || "");
-                      setAddressLine3(addr.line_3 || "");
-                      setPostTown(addr.post_town || "");
-                      setPostcodeVal(addr.postcode || "");
-                      setUprnVal(addr.uprn || "");
-                      setLatVal(addr.latitude ?? null);
-                      setLonVal(addr.longitude ?? null);
+                      setTimeout(() => {
+                        setAddressLine1(addr.line_1 || "");
+                        setAddressLine2(addr.line_2 || "");
+                        setAddressLine3(addr.line_3 || "");
+                        setPostTown(addr.post_town || "");
+                        setPostcodeVal(addr.postcode || "");
+                        setUprnVal(addr.uprn || "");
+                        setLatVal(addr.latitude ?? null);
+                        setLonVal(addr.longitude ?? null);
 
-                      const formatted = [
-                        addr.line_1,
-                        addr.line_2,
-                        addr.line_3,
-                        addr.post_town,
-                        addr.postcode,
-                      ]
-                        .filter(Boolean)
-                        .join(", ");
-                      setAddress(formatted);
-                      setAddressConfirmed(true);
+                        const formatted = [
+                          addr.line_1,
+                          addr.line_2,
+                          addr.line_3,
+                          addr.post_town,
+                          addr.postcode,
+                        ]
+                          .filter(Boolean)
+                          .join(", ");
+                        setAddress(formatted);
+                        setAddressConfirmed(true);
+                      }, 0);
                     }}
                     onFailedCheck={() => setShowManualAddress(true)}
-                  >
-                    <Input placeholder="Start typing your address..." />
-                  </AddressFinder>
+                  />
                 </div>
               </div>
 

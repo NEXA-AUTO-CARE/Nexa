@@ -273,4 +273,33 @@
   .font-body {
     font-family: var(--font-body), sans-serif;
   }
+
+  /* Ideal Postcodes Overrides for Dark/Light Mode */
+  .idpc-input-override {
+    color: hsl(var(--foreground)) !important;
+    background-color: hsl(var(--background)) !important;
+  }
+
+  .idpc-select {
+    background-color: hsl(var(--popover)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    color: hsl(var(--popover-foreground)) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-card) !important;
+    overflow: hidden !important;
+    margin-top: 4px !important;
+  }
+
+  .idpc-select li {
+    color: hsl(var(--popover-foreground)) !important;
+    padding: 8px 12px !important;
+    font-size: 0.875rem !important;
+  }
+
+  .idpc-select li:hover,
+  .idpc-select li.idpc-active {
+    background-color: hsl(var(--accent)) !important;
+    color: hsl(var(--accent-foreground)) !important;
+    cursor: pointer !important;
+  }
 }
