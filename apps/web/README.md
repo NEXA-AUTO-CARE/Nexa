@@ -1,73 +1,64 @@
-# React + TypeScript + Vite
+# Nexa Web Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The frontend web application for **Nexa Auto Care**, built with modern web technologies to provide a seamless, responsive, and intuitive user experience for auto care bookings and management.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+This project is built using the following core technologies:
 
-## React Compiler
+- **Framework**: [React 19](https://react.dev/) with [Vite](https://vitejs.dev/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Routing**: [React Router](https://reactrouter.com/)
+- **Components**: [Radix UI](https://www.radix-ui.com/) (Accessible headless UI components)
+- **Forms & Validation**: [React Hook Form](https://react-hook-form.com/) & [Zod](https://zod.dev/)
+- **Data Fetching**: [TanStack Query](https://tanstack.com/query/latest) (React Query)
+- **Payments**: [Stripe Elements](https://stripe.com/docs/stripe-js/react)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Date Utilities**: [date-fns](https://date-fns.org/)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Prerequisites
 
-## Expanding the ESLint configuration
+Before running the application, ensure you have the following installed:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Node.js (v20+ recommended)
+- npm, yarn, or pnpm
+- Access to the internal `@nexa/shared` workspace package
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1. **Install dependencies:**
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+   ```bash
+   npm install
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+2. **Set up environment variables:**
+   
+   Create a `.env` file in the root of the `apps/web` directory (or use `.env.local`). You may need to configure variables for API URLs, Stripe publishable keys, etc.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+3. **Start the development server:**
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+   ```bash
+   npm run dev
+   ```
+
+   The application will be available at `http://localhost:5173` (or the port specified by Vite).
+
+## Available Scripts
+
+- `npm run dev`: Starts the Vite development server.
+- `npm run build`: Compiles TypeScript and builds the app for production into the `dist` folder.
+- `npm run lint`: Runs ESLint to check for code quality and formatting issues.
+- `npm run preview`: Bootstraps a local web server to serve the production build from the `dist` folder.
+
+## Project Structure
+
+- `src/` - Contains the React source code.
+  - Components, pages, hooks, and utilities are housed here.
+- `public/` - Static assets that are served directly.
+- `Dockerfile` & `nginx.conf` - Configuration for containerizing the application for production deployment (e.g., to AWS ECS).
+
+## Deployment
+
+The application is containerized using Docker and deployed using an Nginx web server to serve the static built files. Production deployments are orchestrated via AWS (ECS, CloudFront).
