@@ -30,7 +30,12 @@ export class Payment extends AuditEntity {
   @Column({ type: 'varchar', length: 255 })
   stripePaymentIntentId: string;
 
-  @Column({ type: 'varchar', length: 50, unique: true })
+  @Column({
+    type: 'varchar',
+    length: 50,
+    unique: true,
+    default: () => 'gen_random_uuid()',
+  })
   transactionReference: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })

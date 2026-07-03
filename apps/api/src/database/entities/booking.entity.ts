@@ -25,7 +25,12 @@ export class Booking extends AuditEntity {
   })
   bookingId: string;
 
-  @Column({ type: 'varchar', length: 50, unique: true })
+  @Column({
+    type: 'varchar',
+    length: 50,
+    unique: true,
+    default: () => 'gen_random_uuid()',
+  })
   bookingReference: string;
 
   @Column({ type: 'uuid' })

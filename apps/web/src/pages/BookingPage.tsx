@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { BookingResponse, CreateBookingDto, CreateCorporateFleetEnquiryDto } from "@nexa/shared";
 import { useSettings } from "../contexts/SettingsContext";
@@ -79,6 +79,32 @@ const BookingPage = () => {
     }, 0);
     return (base + addonsPrice).toFixed(2);
   }, [hasPrice, basePriceStr, addons, selectedAddons]);
+
+  const availableTimeSlots = useMemo(() => {
+    if (!date) return timeSlots;
+    const nowPlus48Hours = Date.now() + 48 * 60 * 60 * 1000 - 60000;
+    return timeSlots.filter((slot) => {
+      const slotTime = new Date(`${date}T${String(slot.hour).padStart(2, "0")}:00:00`).getTime();
+      return slotTime >= nowPlus48Hours;
+    });
+  }, [date, timeSlots]);
+
+  const minDateString = useMemo(() => {
+    const now = new Date();
+    const fortyEightHours = new Date(Date.now() + 172800000); // 48 hours from now
+    const sixthDay = new Date(now.getFullYear(), now.getMonth(), 6); // 6th day of the current month
+    
+    // Pick whichever is later: 48 hours from now, or the 6th day of the month
+    const minDate = new Date(Math.max(fortyEightHours.getTime(), sixthDay.getTime()));
+    return minDate.toISOString().split("T")[0];
+  }, []);
+
+  // Clear time if it's no longer valid for the selected date
+  useEffect(() => {
+    if (time && availableTimeSlots.length > 0 && !availableTimeSlots.find((s) => s.key === time)) {
+      setTime("");
+    }
+  }, [time, availableTimeSlots]);
 
   const canSubmit = isCorporateFlow
     ? !!(corporateData.companyName && corporateData.contactPerson && corporateData.businessEmail && date && time && address.trim() && addressConfirmed) && !submitting
@@ -334,17 +360,17 @@ const BookingPage = () => {
               <Input
                 type="date"
                 value={date}
-                min={new Date(Date.now() + 172800000).toISOString().split("T")[0]}
+                min={minDateString}
                 onChange={(e) => setDate(e.target.value)}
                 className="h-11 pl-9 bg-secondary border-border text-foreground"
               />
             </div>
             <Select value={time} onValueChange={setTime}>
               <SelectTrigger className="h-11 bg-secondary border-border text-foreground">
-                <SelectValue placeholder="Select time" />
+                <SelectValue placeholder={availableTimeSlots.length === 0 ? "No available times" : "Select time"} />
               </SelectTrigger>
               <SelectContent>
-                {timeSlots.map((slot) => (
+                {availableTimeSlots.map((slot) => (
                   <SelectItem key={slot.key} value={slot.key}>
                     {slot.label}
                   </SelectItem>
