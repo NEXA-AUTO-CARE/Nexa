@@ -229,37 +229,37 @@ async function seed() {
         booked: {
           title: 'Booking Confirmed',
           emailBody:
-            "Your booking for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We'll notify you when a detailer accepts.",
+            "Your booking (Ref: {{bookingRef}} / TXN: {{transactionRef}}) for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We'll notify you when a detailer accepts.",
           smsBody:
-            "NEXA: Your booking for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We'll notify you when a detailer accepts.",
+            "NEXA: Your booking (Ref: {{bookingRef}}) for {{vehicleSummary}} on {{bookingTime}} has been confirmed. We'll notify you when a detailer accepts.",
         },
         accepted: {
           title: 'Booking Accepted',
           emailBody:
-            "Great news! A detailer has accepted your booking for {{vehicleSummary}}. They'll arrive on {{bookingTime}}.",
+            "Great news! A detailer has accepted your booking (Ref: {{bookingRef}} / TXN: {{transactionRef}}) for {{vehicleSummary}}. They'll arrive on {{bookingTime}}.",
           smsBody:
-            "NEXA: Great news! A detailer has accepted your booking for {{vehicleSummary}}. They'll arrive on {{bookingTime}}.",
+            "NEXA: Great news! A detailer has accepted your booking (Ref: {{bookingRef}}) for {{vehicleSummary}}. They'll arrive on {{bookingTime}}.",
         },
         in_progress: {
           title: 'Detailing In Progress',
           emailBody:
-            'Your detailer is now working on {{vehicleSummary}}. Sit back and relax!',
+            'Your detailer is now working on {{vehicleSummary}} (Ref: {{bookingRef}} / TXN: {{transactionRef}}). Sit back and relax!',
           smsBody:
-            'NEXA: Your detailer is now working on {{vehicleSummary}}. Sit back and relax!',
+            'NEXA: Your detailer is now working on {{vehicleSummary}} (Ref: {{bookingRef}}). Sit back and relax!',
         },
         completed: {
           title: 'Wash Complete',
           emailBody:
-            "Your {{vehicleSummary}} is looking fresh! Your wash is complete. We'd love to hear your feedback.",
+            "Your {{vehicleSummary}} (Ref: {{bookingRef}} / TXN: {{transactionRef}}) is looking fresh! Your wash is complete. We'd love to hear your feedback.",
           smsBody:
-            "NEXA: Your {{vehicleSummary}} is looking fresh! Your wash is complete. We'd love to hear your feedback.",
+            "NEXA: Your {{vehicleSummary}} (Ref: {{bookingRef}}) is looking fresh! Your wash is complete. We'd love to hear your feedback.",
         },
         cancelled: {
           title: 'Booking Cancelled',
           emailBody:
-            'Your booking for {{vehicleSummary}} on {{bookingTime}} has been cancelled.',
+            'Your booking (Ref: {{bookingRef}} / TXN: {{transactionRef}}) for {{vehicleSummary}} on {{bookingTime}} has been cancelled.',
           smsBody:
-            'NEXA: Your booking for {{vehicleSummary}} on {{bookingTime}} has been cancelled.',
+            'NEXA: Your booking (Ref: {{bookingRef}}) for {{vehicleSummary}} on {{bookingTime}} has been cancelled.',
         },
       }),
     }),

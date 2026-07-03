@@ -21,6 +21,7 @@ interface Booking {
   vehicleSummary?: string
   customerName?: string
   vendorId?: string
+  paymentStatus?: string
 }
 
 interface CorporateLead {
@@ -59,7 +60,7 @@ export default function AdminDashboard() {
 
   // Calculations
   const totalRevenue = bookings
-    .filter((b) => b.status.toLowerCase() !== 'cancelled')
+    .filter((b) => b.paymentStatus === 'CAPTURED' && b.status.toLowerCase() !== 'cancelled')
     .reduce((sum, b) => {
       const parsed = parseFloat(b.price || '0')
       return sum + (Number.isNaN(parsed) ? 0 : parsed)
@@ -67,7 +68,7 @@ export default function AdminDashboard() {
 
   const activeLeads = corporateLeads.filter((lead) => !lead.isInvoiced)
   const unassignedJobs = bookings.filter(
-    (b) => !b.vendorId && b.status.toLowerCase() !== 'cancelled'
+    (b) => !b.vendorId && b.paymentStatus === 'CAPTURED' && b.status.toLowerCase() !== 'cancelled'
   )
 
   const containerVariants = {

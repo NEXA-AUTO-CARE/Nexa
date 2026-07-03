@@ -22,14 +22,19 @@ import type { AuthenticatedUser } from '../../common/decorators/current-user.dec
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { CreatePaymentIntentDto } from './dto/create-payment.dto';
 import { PaymentsService } from './payments.service';
+import { AuditTrailService } from '../../common/audit/audit-trail.service';
 
 @ApiTags('payments')
 @ApiBearerAuth('jwt')
 @Controller('payments')
 export class PaymentsController {
-  constructor(private readonly payments: PaymentsService) {}
+  constructor(
+    private readonly payments: PaymentsService,
+    private readonly auditTrail: AuditTrailService,
+  ) {}
 
   @Post('intent')
   @UseGuards(JwtAuthGuard)
@@ -49,8 +54,21 @@ export class PaymentsController {
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Admin: Refund a captured booking payment' })
   @ApiOkResponse({ description: 'Payment refunded' })
-  async refund(@Param('id') id: string): Promise<PaymentResponse> {
+  async refund(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ): Promise<PaymentResponse> {
     const p = await this.payments.refundBookingPayment(id);
+
+    await this.auditTrail.record(
+      'PAYMENT',
+      id,
+      'REFUND',
+      { status: 'CAPTURED' },
+      { status: p.status },
+      user.userId,
+    );
+
     return this.payments.toResponse(p);
   }
 
@@ -59,12 +77,26 @@ export class PaymentsController {
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Admin: Payout vendor for completed wash' })
   @ApiOkResponse({ description: 'Payout triggered' })
-  async payout(@Param('id') id: string): Promise<PaymentResponse> {
+  async payout(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ): Promise<PaymentResponse> {
     const p = await this.payments.payoutVendor(id);
+
+    await this.auditTrail.record(
+      'PAYMENT',
+      id,
+      'PAYOUT',
+      null,
+      { vendorPayout: p.vendorPayout, platformFee: p.platformFee },
+      user.userId,
+    );
+
     return this.payments.toResponse(p);
   }
 
   @Post('webhook')
+  @Public()
   @ApiOperation({ summary: 'Stripe webhook endpoint' })
   async handleWebhook(
     @Headers('stripe-signature') signature: string,

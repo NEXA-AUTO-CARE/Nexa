@@ -1,4 +1,4 @@
-import { BookingStatus, ServiceType } from '@nexa/shared';
+import { BookingStatus, ServiceType, PaymentStatus } from '@nexa/shared';
 import {
   Column,
   Entity,
@@ -24,6 +24,9 @@ export class Booking extends AuditEntity {
     default: () => 'uuidv7()',
   })
   bookingId: string;
+
+  @Column({ type: 'varchar', length: 50, unique: true })
+  bookingReference: string;
 
   @Column({ type: 'uuid' })
   userId: string;
@@ -75,6 +78,9 @@ export class Booking extends AuditEntity {
 
   @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.BOOKED })
   status: BookingStatus;
+
+  @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
+  paymentStatus: PaymentStatus;
 
   @OneToOne(() => Payment, (p) => p.booking)
   payment: Payment | null;

@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import {
   BadRequestException,
   ForbiddenException,
@@ -12,6 +13,7 @@ import {
   MINI_VALET_PRICING,
   ServiceType,
   BOOKING_FEE,
+  PaymentStatus,
 } from '@nexa/shared';
 import type { BookingResponse } from '@nexa/shared';
 import { In, Repository } from 'typeorm';
@@ -104,8 +106,8 @@ export class BookingsService {
     }
 
     const bookingTime = new Date(dto.bookingTime);
-    if (bookingTime.getTime() - Date.now() < 24 * 60 * 60 * 1000 - 60000) {
-      throw new BadRequestException('Booking must be at least 24 hours in advance');
+    if (bookingTime.getTime() - Date.now() < 48 * 60 * 60 * 1000 - 60000) {
+      throw new BadRequestException('Booking must be at least 48 hours in advance');
     }
 
     // Mini Valet is the single base service; price is driven by vehicle category.
@@ -162,8 +164,11 @@ export class BookingsService {
 
     const finalPrice = Math.max(0, basePrice - discountAmount);
 
+    const bookingReference = 'BKG-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+
     const booking = this.bookingRepo.create({
       userId,
+      bookingReference,
       vehicleId: dto.vehicleId,
       serviceType: dto.serviceType ?? ServiceType.BASIC,
       bookingTime: new Date(dto.bookingTime),
@@ -185,6 +190,7 @@ export class BookingsService {
       postTown: dto.postTown ?? null,
       postcode: dto.postcode ?? null,
       uprn: dto.uprn ?? null,
+      paymentStatus: PaymentStatus.PENDING,
     });
 
     const saved = await this.bookingRepo.save(booking);
@@ -205,11 +211,6 @@ export class BookingsService {
 
     this.logger.log(
       `Booking created: ${saved.bookingId} for user ${userId} with price ${finalPrice}`,
-    );
-
-    this.events.emit(
-      BookingCreatedEvent.EVENT_NAME,
-      new BookingCreatedEvent(full),
     );
 
     return full;
@@ -235,7 +236,7 @@ export class BookingsService {
   async findByIdWithRelations(bookingId: string): Promise<Booking> {
     const booking = await this.bookingRepo.findOne({
       where: { bookingId },
-      relations: ['vehicle', 'customer', 'promotion'],
+      relations: ['vehicle', 'customer', 'promotion', 'payment'],
     });
     if (!booking) throw new NotFoundException('Booking not found');
     return booking;
@@ -269,6 +270,29 @@ export class BookingsService {
       new BookingStatusChangedEvent(full, previousStatus),
     );
 
+    return full;
+  }
+
+  async updatePaymentStatus(bookingId: string, newStatus: PaymentStatus): Promise<Booking> {
+    const booking = await this.bookingRepo.findOne({ where: { bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const previousStatus = booking.paymentStatus;
+    booking.paymentStatus = newStatus;
+    await this.bookingRepo.save(booking);
+
+    this.logger.log(`Booking ${bookingId} payment status updated from ${previousStatus} to ${newStatus}`);
+
+    const full = await this.findByIdWithRelations(bookingId);
+    
+    // If payment is now captured, emit BookingCreatedEvent
+    if (newStatus === PaymentStatus.CAPTURED && previousStatus !== PaymentStatus.CAPTURED) {
+      this.events.emit(
+        BookingCreatedEvent.EVENT_NAME,
+        new BookingCreatedEvent(full),
+      );
+    }
+    
     return full;
   }
 
@@ -351,8 +375,11 @@ export class BookingsService {
 
     const finalPrice = Math.max(0, basePrice - discountAmount);
 
+    const bookingReference = 'BKG-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+
     const booking = this.bookingRepo.create({
       userId,
+      bookingReference,
       vehicleId: previous.vehicleId,
       serviceType: previous.serviceType,
       bookingTime: when,
@@ -368,6 +395,7 @@ export class BookingsService {
       promotionId: promo?.promotionId ?? null,
       originalPrice: promo ? originalPrice.toFixed(2) : null,
       discountAmount: promo ? discountAmount.toFixed(2) : null,
+      paymentStatus: PaymentStatus.PENDING,
     });
 
     const saved = await this.bookingRepo.save(booking);
@@ -384,10 +412,6 @@ export class BookingsService {
     }
 
     const full = await this.findByIdWithRelations(saved.bookingId);
-    this.events.emit(
-      BookingCreatedEvent.EVENT_NAME,
-      new BookingCreatedEvent(full),
-    );
     return full;
   }
 
@@ -433,10 +457,35 @@ export class BookingsService {
     return await this.updateStatus(bookingId, userId, BookingStatus.COMPLETED);
   }
 
+  async adminUpdateStatus(
+    bookingId: string,
+    newStatus: BookingStatus,
+  ): Promise<Booking> {
+    const booking = await this.bookingRepo.findOne({ where: { bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const previousStatus = booking.status;
+    booking.status = newStatus;
+    await this.bookingRepo.save(booking);
+
+    this.logger.log(
+      `Booking ${bookingId} status changed from ${previousStatus} to ${newStatus} by admin`,
+    );
+
+    const full = await this.findByIdWithRelations(bookingId);
+    this.events.emit(
+      BookingStatusChangedEvent.EVENT_NAME,
+      new BookingStatusChangedEvent(full, previousStatus),
+    );
+
+    return full;
+  }
+
   toResponse(booking: Booking): BookingResponse {
     const v = booking.vehicle;
     return {
       bookingId: booking.bookingId,
+      bookingReference: booking.bookingReference,
       vehicleId: booking.vehicleId,
       vehicleSummary: v
         ? `${v.make} ${v.model} (${v.registrationNumber})`
@@ -448,6 +497,7 @@ export class BookingsService {
       longitude: booking.longitude ? parseFloat(booking.longitude) : undefined,
       price: booking.price,
       status: booking.status,
+      paymentStatus: booking.paymentStatus,
       createdAt: booking.createdOn.toISOString(),
       servicePhone: booking.servicePhone ?? undefined,
       addons: booking.addons || [],

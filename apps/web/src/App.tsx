@@ -22,6 +22,7 @@ import { ProtectedRoute } from './routes/ProtectedRoute'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminBookingsPage from './pages/admin/AdminBookingsPage'
+import AdminBookingDetailsPage from './pages/admin/AdminBookingDetailsPage'
 import AdminCorporatePage from './pages/admin/AdminCorporatePage'
 import AdminAddonsPage from './pages/admin/AdminAddonsPage'
 import AdminSettingsPage from './pages/admin/AdminSettingsPage'
@@ -75,6 +76,7 @@ function App() {
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/bookings" element={<AdminBookingsPage />} />
+        <Route path="/admin/bookings/:id" element={<AdminBookingDetailsPage />} />
         <Route path="/admin/corporate" element={<AdminCorporatePage />} />
         <Route path="/admin/addons" element={<AdminAddonsPage />} />
         <Route path="/admin/promotions" element={<AdminPromotionsPage />} />

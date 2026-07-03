@@ -30,6 +30,9 @@ export class Payment extends AuditEntity {
   @Column({ type: 'varchar', length: 255 })
   stripePaymentIntentId: string;
 
+  @Column({ type: 'varchar', length: 50, unique: true })
+  transactionReference: string;
+
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   amount: string;
 

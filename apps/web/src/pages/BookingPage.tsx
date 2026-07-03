@@ -148,7 +148,7 @@ const BookingPage = () => {
     <div className="px-4 pt-12 pb-6 space-y-5">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="font-heading text-2xl font-bold">Book a Wash</h1>
-        <p className="text-sm text-muted-foreground mt-1">Schedule your detailing service</p>
+        <p className="text-sm text-muted-foreground mt-1">Schedule your detailing service. Bookings require a minimum 48-hour notice.</p>
       </motion.div>
 
       {/* Dynamic Tab Control */}
@@ -334,7 +334,7 @@ const BookingPage = () => {
               <Input
                 type="date"
                 value={date}
-                min={new Date(Date.now() + 86400000).toISOString().split("T")[0]}
+                min={new Date(Date.now() + 172800000).toISOString().split("T")[0]}
                 onChange={(e) => setDate(e.target.value)}
                 className="h-11 pl-9 bg-secondary border-border text-foreground"
               />

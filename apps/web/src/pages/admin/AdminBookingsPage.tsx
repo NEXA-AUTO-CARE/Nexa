@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../../lib/api-client'
 import {
   CalendarDays,
@@ -13,6 +14,7 @@ import {
   CreditCard,
   CheckSquare,
   AlertCircle,
+  Settings,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -51,6 +53,7 @@ interface SystemUser {
 }
 
 export default function AdminBookingsPage() {
+  const navigate = useNavigate()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [vendors, setVendors] = useState<SystemUser[]>([])
   const [loading, setLoading] = useState(true)
@@ -417,6 +420,14 @@ export default function AdminBookingsPage() {
 
                   {/* Action Panel */}
                   <div className="w-full space-y-2">
+                    <button
+                      onClick={() => navigate(`/admin/bookings/${booking.bookingId}`)}
+                      className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-nexa-mint hover:bg-nexa-mint/90 text-nexa-bg text-sm font-bold transition-all duration-300"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Manage Booking
+                    </button>
+
                     {/* Assign Matching Controls */}
                     {!isCancelled && (
                       <div className="space-y-1">

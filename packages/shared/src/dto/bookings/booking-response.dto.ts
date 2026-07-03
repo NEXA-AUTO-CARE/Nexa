@@ -3,6 +3,7 @@ import type { ServiceType } from '../../enums/service-type.enum.js';
 
 export interface BookingResponse {
   bookingId: string;
+  bookingReference?: string;
   vehicleId: string;
   vehicleSummary: string; // e.g. "2020 Toyota Camry (ABC-123)"
   serviceType: ServiceType;
@@ -12,6 +13,7 @@ export interface BookingResponse {
   longitude?: number;
   price: string;
   status: BookingStatus;
+  paymentStatus?: string;
   createdAt: string;
   servicePhone?: string;
   addons?: { addonId: string; name: string; price: string }[];

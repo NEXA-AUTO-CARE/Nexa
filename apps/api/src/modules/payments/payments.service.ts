@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import {
   BadRequestException,
   Injectable,
@@ -112,9 +113,12 @@ export class PaymentsService {
 
         // 4. Save Payment record to database
         const split = splitPayout(booking.price);
+        const transactionReference = 'TXN-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+
         payment = this.paymentRepo.create({
           bookingId: booking.bookingId,
           stripePaymentIntentId: paymentIntent.id,
+          transactionReference,
           amount: booking.price,
           platformFee: split.platformFee,
           vendorPayout: split.vendorPayout,
@@ -135,9 +139,12 @@ export class PaymentsService {
         ) {
           this.logger.warn('Mocking payment intent for development');
           const split = splitPayout(booking.price);
+          const transactionReference = 'TXN-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+
           payment = this.paymentRepo.create({
             bookingId: booking.bookingId,
             stripePaymentIntentId: 'pi_mock_' + Date.now(),
+            transactionReference,
             amount: booking.price,
             platformFee: split.platformFee,
             vendorPayout: split.vendorPayout,
@@ -179,20 +186,66 @@ export class PaymentsService {
       throw new BadRequestException(`Webhook Error: ${err.message}`);
     }
 
-    if (event.type === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object;
+    const successEvents = [
+      'checkout.session.async_payment_succeeded',
+      'checkout.session.completed',
+      'invoice.paid',
+      'invoice.payment_succeeded',
+      'payment_intent.succeeded',
+    ];
 
-      const payment = await this.paymentRepo.findOne({
-        where: { stripePaymentIntentId: paymentIntent.id },
-      });
+    const failedEvents = [
+      'checkout.session.async_payment_failed',
+      'checkout.session.expired',
+      'invoice.marked_uncollectible',
+      'invoice.payment_failed',
+      'payment_intent.payment_failed',
+    ];
 
-      if (payment && payment.status !== PaymentStatus.CAPTURED) {
-        payment.status = PaymentStatus.CAPTURED;
-        await this.paymentRepo.save(payment);
+    const processingEvents = [
+      'payment_intent.processing',
+    ];
 
-        // Let BookingsService know payment is complete
-        this.logger.log(`Payment captured for booking ${payment.bookingId}`);
-        // Can optionally update booking status or emit an event
+    const obj = event.data.object;
+    let paymentIntentId = null;
+
+    if (event.type.startsWith('payment_intent.')) {
+      paymentIntentId = obj.id;
+    } else {
+      paymentIntentId = typeof obj.payment_intent === 'string' ? obj.payment_intent : obj.payment_intent?.id;
+    }
+
+    if (!paymentIntentId) {
+      this.logger.debug(`No payment intent ID found for event ${event.type}`);
+      return;
+    }
+
+    const payment = await this.paymentRepo.findOne({
+      where: { stripePaymentIntentId: paymentIntentId },
+    });
+
+    if (payment) {
+      let newStatus = payment.status;
+
+      if (successEvents.includes(event.type)) {
+        newStatus = PaymentStatus.CAPTURED;
+      } else if (failedEvents.includes(event.type)) {
+        newStatus = PaymentStatus.FAILED;
+      } else if (processingEvents.includes(event.type)) {
+        newStatus = PaymentStatus.PROCESSING;
+      } else if (event.type.startsWith('refund.')) {
+        if (obj.status === 'succeeded') {
+          newStatus = PaymentStatus.REFUNDED;
+        } else if (obj.status === 'failed') {
+          newStatus = PaymentStatus.CAPTURED;
+        }
+      }
+
+      if (payment.status !== newStatus) {
+         payment.status = newStatus;
+         await this.paymentRepo.save(payment);
+         this.logger.log(`Payment status updated to ${newStatus} for booking ${payment.bookingId}`);
+         await this.bookingsService.updatePaymentStatus(payment.bookingId, newStatus);
       }
     }
   }
@@ -285,6 +338,7 @@ export class PaymentsService {
     return {
       paymentId: payment.paymentId,
       bookingId: payment.bookingId,
+      transactionReference: payment.transactionReference,
       status: payment.status,
       amount: payment.amount,
       clientSecret: clientSecret || undefined,

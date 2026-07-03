@@ -3,8 +3,6 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { MessageTemplateService } from '../notifications/message-template.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
-  BOOKING_GENERIC_FALLBACK,
-  DEFAULT_BOOKING_TEMPLATES,
   NOTIFICATION_TEMPLATES_KEY,
 } from '../notifications/templates/booking.templates';
 import type { BookingNotificationContext } from '../notifications/templates/booking.templates';
@@ -67,29 +65,36 @@ export class BookingsListener {
   }
 
   /**
-   * Use MessageTemplateService to load overrides, resolve the template,
-   * and build the email + SMS content — with an extra detail card for bookings.
+   * Load templates from the database (the single source of truth).
+   * A minimal generic fallback is used only as a safety net if the
+   * DB row is missing entirely — this is NOT a parallel template store.
    */
   private async processBookingTemplate(
     ctx: BookingNotificationContext,
   ): Promise<{ subject: string; html: string; smsText: string }> {
-    const overrides = await this.templateService.loadOverrides(
+    const dbTemplates = await this.templateService.loadOverrides(
       NOTIFICATION_TEMPLATES_KEY,
     );
-    const tpl = this.templateService.resolveTemplate(
-      ctx.status,
-      DEFAULT_BOOKING_TEMPLATES,
-      overrides,
-      BOOKING_GENERIC_FALLBACK,
-    );
+
+    const genericFallback = {
+      title: 'Booking Update',
+      emailBody:
+        'Your booking (Ref: {{bookingRef}}) has been updated to: {{status}}.',
+      smsBody:
+        'NEXA: Your booking (Ref: {{bookingRef}}) has been updated.',
+    };
+
+    const tpl = dbTemplates?.[ctx.status] ?? genericFallback;
 
     const flatCtx: Record<string, string> = {
       customerName: ctx.customerName,
       bookingId: ctx.bookingId,
+      bookingRef: ctx.bookingRef,
       vehicleSummary: ctx.vehicleSummary,
       serviceType: ctx.serviceType,
       bookingTime: ctx.bookingTime,
       status: ctx.status,
+      transactionRef: ctx.transactionRef,
     };
 
     const detailCard = `
@@ -120,7 +125,7 @@ export class BookingsListener {
     return {
       customerName: booking.customer?.displayName ?? 'Customer',
       bookingId: booking.bookingId,
-      bookingRef: booking.bookingId.split('-')[0].toUpperCase(),
+      bookingRef: booking.bookingReference ?? booking.bookingId.split('-')[0].toUpperCase(),
       vehicleSummary: v
         ? `${v.make} ${v.model} (${v.registrationNumber})`
         : 'Your vehicle',
@@ -134,6 +139,7 @@ export class BookingsListener {
         minute: '2-digit',
       }),
       status: booking.status,
+      transactionRef: booking.payment?.transactionReference ?? 'N/A',
     };
   }
 }

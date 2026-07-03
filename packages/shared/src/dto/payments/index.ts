@@ -7,6 +7,7 @@ export interface CreatePaymentIntentDto {
 export interface PaymentResponse {
   paymentId: string;
   bookingId: string;
+  transactionReference?: string;
   status: PaymentStatus;
   amount: string;
   clientSecret?: string; // Provided to frontend for completing payment
