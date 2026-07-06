@@ -213,6 +213,11 @@ export class BookingsService {
       `Booking created: ${saved.bookingId} for user ${userId} with price ${finalPrice}`,
     );
 
+    this.events.emit(
+      BookingCreatedEvent.EVENT_NAME,
+      new BookingCreatedEvent(full),
+    );
+
     return full;
   }
 
