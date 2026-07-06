@@ -58,7 +58,7 @@ export class PaymentsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ): Promise<PaymentResponse> {
-    return this.payments.syncPaymentStatusByIntentId(id, user.userId);
+    return this.payments.syncPaymentStatusByIntentId(id, user.userId, user.role);
   }
 
   @Post('bookings/:id/refund')

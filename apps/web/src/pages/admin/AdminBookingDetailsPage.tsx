@@ -40,6 +40,7 @@ interface Booking {
   customerName?: string
   customerEmail?: string
   customerPhone?: string
+  stripePaymentIntentId?: string
 }
 
 interface SystemUser {
@@ -92,6 +93,7 @@ export default function AdminBookingDetailsPage() {
         customerEmail: b.customerEmail,
         customerPhone: b.customerPhone,
         vendorName: vendName,
+        stripePaymentIntentId: b.stripePaymentIntentId,
       } as Booking
 
       setBooking(bookingData)
@@ -172,6 +174,12 @@ export default function AdminBookingDetailsPage() {
     if (!newPaymentStatus) return
     await api.patch(`/admin/bookings/${id}/payment-status`, { status: newPaymentStatus })
     setActionSuccess('Payment status updated.')
+  })
+
+  const handleSyncPaymentStatus = () => handleAction(async () => {
+    await api.post(`/admin/bookings/${id}/sync-payment`)
+    setActionSuccess('Payment status successfully synced from Stripe.')
+    await loadData()
   })
 
   const handlePayout = () => handleAction(async () => {
@@ -460,7 +468,7 @@ export default function AdminBookingDetailsPage() {
               Payment Status
             </h2>
 
-            <div className="mb-4">
+            <div className="mb-4 flex items-center justify-between">
               <span
                 className={`inline-block text-xs px-3 py-1 rounded-full font-semibold capitalize ${
                   booking.paymentStatus === 'CAPTURED'
@@ -472,6 +480,18 @@ export default function AdminBookingDetailsPage() {
               >
                 Current: {booking.paymentStatus}
               </span>
+              
+              {booking.stripePaymentIntentId && (
+                <button
+                  onClick={handleSyncPaymentStatus}
+                  disabled={processing}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-nexa-mint/20 bg-nexa-mint/5 hover:bg-nexa-mint/10 text-nexa-mint text-xs font-semibold transition-all duration-300 disabled:opacity-50"
+                  title="Sync latest payment status from Stripe"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${processing ? 'animate-spin' : ''}`} />
+                  Sync from Stripe
+                </button>
+              )}
             </div>
 
             <div className="space-y-3 pb-4 border-b border-nexa-border-subtle/50 mb-4">

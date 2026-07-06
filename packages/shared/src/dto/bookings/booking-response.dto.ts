@@ -33,4 +33,5 @@ export interface BookingResponse {
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
+  stripePaymentIntentId?: string;
 }

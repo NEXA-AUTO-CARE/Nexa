@@ -520,6 +520,7 @@ export class BookingsService {
         : undefined,
       customerEmail: cust?.email ?? undefined,
       customerPhone: cust?.phoneNumber ?? undefined,
+      stripePaymentIntentId: booking.payment?.stripePaymentIntentId ?? undefined,
     };
   }
 

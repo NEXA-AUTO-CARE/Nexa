@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PaymentsModule } from '../payments/payments.module';
 import { BookingsModule } from '../bookings/bookings.module';
 import { PromotionsModule } from '../promotions/promotions.module';
 import { UsersModule } from '../users/users.module';
@@ -17,6 +18,7 @@ import { VendorsModule } from '../vendors/vendors.module';
     VehiclesModule,
     PromotionsModule,
     VendorsModule,
+    PaymentsModule,
   ],
   controllers: [
     AdminBookingsController,

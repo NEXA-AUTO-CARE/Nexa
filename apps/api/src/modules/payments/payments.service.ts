@@ -164,7 +164,7 @@ export class PaymentsService {
     return this.toResponse(payment, clientSecret ?? undefined);
   }
 
-  async syncPaymentStatusByIntentId(paymentIntentId: string, userId: string): Promise<PaymentResponse> {
+  async syncPaymentStatusByIntentId(paymentIntentId: string, userId: string, userRole?: string): Promise<PaymentResponse> {
     const payment = await this.paymentRepo.findOne({
       where: { stripePaymentIntentId: paymentIntentId },
     });
@@ -173,8 +173,10 @@ export class PaymentsService {
       throw new NotFoundException('Payment record not found');
     }
 
-    // Verify booking ownership to ensure the user has access to this payment
-    await this.bookingsService.verifyMyBooking(payment.bookingId, userId);
+    // Verify booking ownership if the user is not an admin
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
+      await this.bookingsService.verifyMyBooking(payment.bookingId, userId);
+    }
 
     if (!payment.stripePaymentIntentId.startsWith('pi_mock_')) {
       try {
@@ -203,6 +205,15 @@ export class PaymentsService {
     }
 
     return this.toResponse(payment);
+  }
+
+  async syncPaymentStatusByBookingId(bookingId: string): Promise<PaymentResponse> {
+    const payment = await this.paymentRepo.findOne({ where: { bookingId } });
+    if (!payment) {
+      throw new NotFoundException('Payment record not found');
+    }
+    // We pass 'admin' role to bypass the ownership check
+    return this.syncPaymentStatusByIntentId(payment.stripePaymentIntentId, 'system', 'admin');
   }
 
   async handleStripeWebhook(signature: string, payload: Buffer): Promise<void> {

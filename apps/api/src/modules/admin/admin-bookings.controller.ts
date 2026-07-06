@@ -6,6 +6,7 @@ import {
   Patch,
   ParseUUIDPipe,
   UseGuards,
+  Post,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -21,6 +22,7 @@ import type { AuthenticatedUser } from '../../common/decorators/current-user.dec
 import { BookingsService } from '../bookings/bookings.service';
 import { VendorsService } from '../vendors/vendors.service';
 import { AssignVendorDto } from '../bookings/dto/create-booking.dto';
+import { PaymentsService } from '../payments/payments.service';
 import type { BookingResponse } from '@nexa/shared';
 import { BadRequestException } from '@nestjs/common';
 import { UpdateBookingStatusDto } from '../bookings/dto/update-booking-status.dto';
@@ -37,6 +39,7 @@ export class AdminBookingsController {
     private readonly bookingsService: BookingsService,
     private readonly vendorsService: VendorsService,
     private readonly auditTrail: AuditTrailService,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   @Get()
@@ -151,5 +154,15 @@ export class AdminBookingsController {
     );
 
     return this.bookingsService.toResponse(booking);
+  }
+
+  @Post(':id/sync-payment')
+  @ApiOperation({ summary: 'Admin: sync payment status from Stripe' })
+  @ApiOkResponse({ description: 'Synced booking' })
+  async syncPaymentStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<BookingResponse> {
+    await this.paymentsService.syncPaymentStatusByBookingId(id);
+    return this.getBooking(id);
   }
 }
