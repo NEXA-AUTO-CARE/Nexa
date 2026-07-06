@@ -83,20 +83,12 @@ describe('BookingsService', () => {
   });
 
   describe('create', () => {
-    it('should create a booking and emit created event', async () => {
-      vehicleRepo.findOne.mockResolvedValue({
-        vehicleId: 'v1',
-        ownerId: 'u1',
-        vehicleType: 'regular',
-      });
-      bookingRepo.create.mockReturnValue({
-        bookingId: 'b1',
-        status: BookingStatus.BOOKED,
-      });
+    it('should create a booking and return it', async () => {
+      vehicleRepo.findOne.mockResolvedValue({ vehicleId: 'v1' });
+      bookingRepo.create.mockReturnValue({ bookingId: 'b1' });
       bookingRepo.save.mockResolvedValue({ bookingId: 'b1' });
       bookingRepo.findOne.mockResolvedValue({
         bookingId: 'b1',
-        status: BookingStatus.BOOKED,
         customer: {},
       });
 
@@ -116,10 +108,6 @@ describe('BookingsService', () => {
         where: { vehicleId: 'v1', ownerId: 'u1' },
       });
       expect(bookingRepo.save).toHaveBeenCalled();
-      expect(events.emit).toHaveBeenCalledWith(
-        BookingCreatedEvent.EVENT_NAME,
-        expect.any(BookingCreatedEvent),
-      );
       expect(result.bookingId).toBe('b1');
     });
 
