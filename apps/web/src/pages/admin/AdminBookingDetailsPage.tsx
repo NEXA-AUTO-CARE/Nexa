@@ -82,19 +82,15 @@ export default function AdminBookingDetailsPage() {
         api.get<any[]>('/admin/vendors'),
       ])
 
-      const b = bookingRes.data
-      const custName = b.customer
-        ? `${b.customer.firstName || ''} ${b.customer.lastName || ''}`.trim() || b.customer.displayName
-        : 'Unknown'
-      const vendName = b.vendor
-        ? `${b.vendor.firstName || ''} ${b.vendor.lastName || ''}`.trim() || b.vendor.displayName
-        : undefined
+      const b = bookingRes.data as any
+      const custName = b.customerName || 'Unknown'
+      const vendName = b.vendorName || undefined
 
       const bookingData = {
         ...b,
         customerName: custName,
-        customerEmail: b.customer?.email,
-        customerPhone: b.customer?.phoneNumber,
+        customerEmail: b.customerEmail,
+        customerPhone: b.customerPhone,
         vendorName: vendName,
       } as Booking
 
