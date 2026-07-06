@@ -2,6 +2,8 @@ import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-
 import { loadStripe } from '@stripe/stripe-js';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api-client';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_replace_me');
 
@@ -32,7 +34,7 @@ function CheckoutForm({ onSuccess, onCancel, amount }: Omit<PaymentFormProps, 'c
       return;
     }
 
-    const { error: confirmError } = await stripe.confirmPayment({
+    const { paymentIntent, error: confirmError } = await stripe.confirmPayment({
       elements,
       confirmParams: {
         return_url: `${window.location.origin}/bookings`,
@@ -43,6 +45,15 @@ function CheckoutForm({ onSuccess, onCancel, amount }: Omit<PaymentFormProps, 'c
     if (confirmError) {
       setError(confirmError.message || 'Payment failed');
       setProcessing(false);
+    } else if (paymentIntent) {
+      try {
+        await api.get(`/payments/intent/${paymentIntent.id}/status`);
+        onSuccess();
+      } catch (err) {
+        // Even if sync fails, the payment itself succeeded on Stripe's end.
+        // The webhook might still catch it, but we let the user proceed.
+        onSuccess();
+      }
     } else {
       onSuccess();
     }
@@ -53,22 +64,23 @@ function CheckoutForm({ onSuccess, onCancel, amount }: Omit<PaymentFormProps, 'c
       <PaymentElement />
 
       {error && <div className="text-sm text-nexa-error">{error}</div>}
-      <div className="flex justify-end gap-3 pt-4">
-        <button
+      <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
+        <Button
           type="button"
           onClick={onCancel}
           disabled={processing}
-          className="btn-secondary text-sm"
+          variant="outline"
+          className="w-full sm:w-auto h-12"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
           disabled={!stripe || processing}
-          className="btn-primary text-sm disabled:opacity-50"
+          className="w-full sm:w-auto h-12 bg-primary text-primary-foreground font-bold"
         >
           {processing ? 'Processing...' : `Pay £${amount}`}
-        </button>
+        </Button>
       </div>
     </form>
   );

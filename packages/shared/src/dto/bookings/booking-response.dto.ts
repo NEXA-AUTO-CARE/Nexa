@@ -29,4 +29,8 @@ export interface BookingResponse {
   postTown?: string | null;
   postcode?: string | null;
   uprn?: string | null;
+  vendorName?: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
 }

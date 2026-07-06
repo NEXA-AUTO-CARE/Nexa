@@ -10,6 +10,7 @@ import {
   Printer,
   X,
   AlertTriangle,
+  Trash2,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSettings } from '../../contexts/SettingsContext'
@@ -76,6 +77,17 @@ export default function AdminCorporatePage() {
     } catch (err) {
       console.error(err)
       alert('Failed to update enquiry status. Please try again.')
+    }
+  }
+
+  const handleDeleteLead = async (leadId: string, companyName: string) => {
+    if (!window.confirm(`Are you sure you want to delete the enquiry for ${companyName}?`)) return
+    try {
+      await api.delete(`/corporate-fleet/${leadId}`)
+      setLeads(leads.filter(l => l.enquiryId !== leadId))
+    } catch (err) {
+      console.error(err)
+      alert('Failed to delete enquiry.')
     }
   }
 
@@ -193,6 +205,13 @@ export default function AdminCorporatePage() {
                 >
                   <FileText className="w-4 h-4" />
                   <span>{lead.status === 'invoiced' ? 'View Invoice' : 'Generate Invoice'}</span>
+                </button>
+                <button
+                  onClick={() => handleDeleteLead(lead.enquiryId, lead.companyName)}
+                  className="p-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-xl transition-colors"
+                  title="Delete Lead"
+                >
+                  <Trash2 className="w-5 h-5" />
                 </button>
               </div>
             </motion.div>

@@ -15,6 +15,8 @@ import {
   CheckSquare,
   AlertCircle,
   Settings,
+  Phone,
+  Mail,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -40,6 +42,10 @@ interface Booking {
   customerName?: string
   customerEmail?: string
   customerPhone?: string
+  bookingReference?: string
+  paymentStatus?: string
+  originalPrice?: string
+  discountAmount?: string
 }
 
 interface SystemUser {
@@ -80,20 +86,14 @@ export default function AdminBookingsPage() {
       ])
 
       // Map raw backend responses
-      const bookingsData = bookingsRes.data.map((b: RawBooking) => {
-        const custName = b.customer
-          ? `${b.customer.firstName} ${b.customer.lastName}`.trim() || b.customer.displayName
-          : 'Unknown'
-        const vendName = b.vendor
-          ? `${b.vendor.firstName} ${b.vendor.lastName}`.trim() || b.vendor.displayName
-          : undefined
-
+      const bookingsData = bookingsRes.data.map((b: any) => {
         return {
           ...b,
-          customerName: custName,
-          customerEmail: b.customer?.email,
-          customerPhone: b.customer?.phoneNumber,
-          vendorName: vendName,
+          customerName: b.customerName || 'Unknown',
+          customerEmail: b.customerEmail,
+          customerPhone: b.customerPhone,
+          vendorName: b.vendorName,
+          bookingReference: b.bookingReference,
         } as Booking
       })
 
@@ -331,7 +331,7 @@ export default function AdminBookingsPage() {
                       {booking.vehicleSummary || 'Wash Booking'}
                     </h3>
                     <span className="text-[10px] text-nexa-text-muted font-mono bg-nexa-bg-elevated px-2 py-0.5 rounded border border-nexa-border-subtle">
-                      ID: {booking.bookingId.slice(0, 8)}...
+                      Ref: {booking.bookingReference || booking.bookingId.slice(0, 8).toUpperCase()}
                     </span>
                     <span
                       className={`text-xs px-2.5 py-0.5 rounded-full font-semibold capitalize ${
@@ -359,9 +359,21 @@ export default function AdminBookingsPage() {
                     </div>
                     <div className="flex items-center gap-2 text-nexa-text-secondary">
                       <User className="w-4 h-4 text-nexa-mint" />
-                      <span>
-                        {booking.customerName} ({booking.customerPhone || 'No Phone'})
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-nexa-text-secondary">{booking.customerName}</span>
+                        {booking.customerPhone && (
+                          <span className="flex items-center gap-1.5 text-[11px] text-nexa-text-muted">
+                            <Phone className="w-3 h-3" />
+                            {booking.customerPhone}
+                          </span>
+                        )}
+                        {booking.customerEmail && (
+                          <span className="flex items-center gap-1.5 text-[11px] text-nexa-text-muted">
+                            <Mail className="w-3 h-3" />
+                            {booking.customerEmail}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 text-nexa-text-secondary md:col-span-2">
                       <MapPin className="w-4 h-4 text-nexa-mint shrink-0" />
@@ -391,14 +403,14 @@ export default function AdminBookingsPage() {
                   {/* Detailer Matching Status */}
                   <div className="pt-2">
                     {booking.vendorId ? (
-                      <div className="flex items-center gap-2 text-xs text-nexa-mint">
+                      <div className="flex items-center gap-2 text-xs text-nexa-mint mt-2">
                         <CheckSquare className="w-4 h-4" />
                         <span>
                           Assigned to: <strong className="font-semibold">{booking.vendorName}</strong>
                         </span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 text-xs text-amber-400">
+                      <div className="flex items-center gap-2 text-xs text-amber-400 mt-2">
                         <AlertCircle className="w-4 h-4" />
                         <span>Awaiting Detailer Match</span>
                       </div>
@@ -412,6 +424,9 @@ export default function AdminBookingsPage() {
                   <div className="text-right">
                     <span className="block text-[10px] text-nexa-text-secondary uppercase tracking-widest">
                       Total Paid
+                    </span>
+                    <span className="font-display font-bold text-nexa-text text-sm">
+                      Ref: {booking.bookingReference || booking.bookingId.slice(0, 8).toUpperCase()}
                     </span>
                     <span className="font-display font-extrabold text-2xl text-nexa-text block">
                       £{parseFloat(booking.price).toFixed(2)}

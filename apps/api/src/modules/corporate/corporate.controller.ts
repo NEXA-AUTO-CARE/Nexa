@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Delete,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -58,5 +59,15 @@ export class CorporateController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CorporateFleetEnquiryResponse> {
     return this.corporate.markInvoiced(id);
+  }
+
+  @Delete(':id')
+  @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Admin: delete a corporate fleet enquiry' })
+  @ApiOkResponse({ description: 'Enquiry deleted' })
+  async deleteEnquiry(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    await this.corporate.deleteEnquiry(id);
   }
 }

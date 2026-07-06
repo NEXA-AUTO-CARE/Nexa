@@ -101,6 +101,7 @@ export class BookingsListener {
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 24px; background-color: #1a2332; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
         <tr>
           <td style="padding: 16px; font-family: 'Inter', Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.8; color: #94A3B8;">
+            <strong style="color: #ffffff;">Booking Ref:</strong> ${ctx.bookingRef}<br/>
             <strong style="color: #ffffff;">Vehicle:</strong> ${ctx.vehicleSummary}<br/>
             <strong style="color: #ffffff;">Service:</strong> ${ctx.serviceType}<br/>
             <strong style="color: #ffffff;">Date:</strong> ${ctx.bookingTime}

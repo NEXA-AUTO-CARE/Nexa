@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Car, ChevronRight, Gift } from "lucide-react";
 import { useBookings } from "../hooks/useBookings";
-import { mockGiftBookings } from "@/lib/mock";
-
 const statusMeta: Record<BookingStatus, { label: string; color: string }> = {
   [BookingStatus.BOOKED]: { label: "Booked", color: "text-warning" },
   [BookingStatus.ASSIGNED]: { label: "Assigned", color: "text-info" },
@@ -71,38 +69,15 @@ const BookingsPage = () => {
         )}
       </div>
 
-      {/* Gift Bookings — TODO(api): replace with real gift-bookings endpoint */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Gift className="h-4 w-4 text-primary" />
-          <p className="text-xs font-heading font-semibold text-primary uppercase tracking-wider">Gift Bookings</p>
-        </div>
-        {mockGiftBookings.map((g, i) => (
-          <motion.div
-            key={g.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="glass-card p-4 space-y-2 border-primary/10"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Gift className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">{g.vehicle}</p>
-                <p className="text-xs text-muted-foreground">{g.service} · {g.date}</p>
-              </div>
-              <span className={`text-xs font-medium ${g.statusColor}`}>{g.status}</span>
-            </div>
-            <div className="pl-[52px]">
-              <p className="text-xs text-muted-foreground">
-                <span className="text-foreground font-medium">To:</span> {g.recipient}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">{g.recipientEmail}</p>
-            </div>
-          </motion.div>
-        ))}
+      {/* Gift Bookings Button */}
+      <div className="pt-6">
+        <button
+          onClick={() => window.location.href = '/gift-booking'}
+          className="w-full flex items-center justify-center gap-2 h-14 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors shadow-lg"
+        >
+          <Gift className="w-5 h-5" />
+          Give a Gift Booking
+        </button>
       </div>
     </div>
   );

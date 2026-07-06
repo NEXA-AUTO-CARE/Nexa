@@ -11,6 +11,7 @@ import {
   Phone,
   BadgeCheck,
   Clock,
+  Trash2,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -80,6 +81,19 @@ export default function AdminUsersPage() {
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
       setError(message || 'Failed to update role.')
+    }
+  }
+
+  const handleDeleteUser = async (user: AdminUser) => {
+    if (!window.confirm(`Are you sure you want to delete ${user.displayName}?`)) return
+    try {
+      setError(null)
+      await api.delete(`/admin/users/${user.userId}`)
+      setUsers(users.filter(u => u.userId !== user.userId))
+      setSuccess(`${user.displayName} was deleted successfully.`)
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(message || 'Failed to delete user.')
     }
   }
 
@@ -189,6 +203,7 @@ export default function AdminUsersPage() {
                   <th className="text-left py-3 px-4 text-[10px] font-bold uppercase tracking-widest text-nexa-text-muted">Role</th>
                   <th className="text-left py-3 px-4 text-[10px] font-bold uppercase tracking-widest text-nexa-text-muted hidden lg:table-cell">Status</th>
                   <th className="text-left py-3 px-4 text-[10px] font-bold uppercase tracking-widest text-nexa-text-muted hidden lg:table-cell">Joined</th>
+                  <th className="text-left py-3 px-4 text-[10px] font-bold uppercase tracking-widest text-nexa-text-muted">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -267,6 +282,20 @@ export default function AdminUsersPage() {
                       <span className="flex items-center gap-1 text-xs text-nexa-text-muted">
                         <Clock className="w-3 h-3" /> {fmtDate(u.createdAt)}
                       </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-3 px-4 text-right">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteUser(u)
+                        }}
+                        className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded transition-colors"
+                        title="Delete User"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}

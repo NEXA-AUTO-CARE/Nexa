@@ -213,11 +213,6 @@ export class BookingsService {
       `Booking created: ${saved.bookingId} for user ${userId} with price ${finalPrice}`,
     );
 
-    this.events.emit(
-      BookingCreatedEvent.EVENT_NAME,
-      new BookingCreatedEvent(full),
-    );
-
     return full;
   }
 
@@ -241,7 +236,7 @@ export class BookingsService {
   async findByIdWithRelations(bookingId: string): Promise<Booking> {
     const booking = await this.bookingRepo.findOne({
       where: { bookingId },
-      relations: ['vehicle', 'customer', 'promotion', 'payment'],
+      relations: ['vehicle', 'customer', 'promotion', 'payment', 'vendor'],
     });
     if (!booking) throw new NotFoundException('Booking not found');
     return booking;
@@ -488,6 +483,8 @@ export class BookingsService {
 
   toResponse(booking: Booking): BookingResponse {
     const v = booking.vehicle;
+    const cust = booking.customer;
+    const vend = booking.vendor;
     return {
       bookingId: booking.bookingId,
       bookingReference: booking.bookingReference,
@@ -515,6 +512,14 @@ export class BookingsService {
       postTown: booking.postTown ?? undefined,
       postcode: booking.postcode ?? undefined,
       uprn: booking.uprn ?? undefined,
+      vendorName: vend
+        ? `${vend.firstName} ${vend.lastName}`.trim() || vend.displayName
+        : undefined,
+      customerName: cust
+        ? `${cust.firstName} ${cust.lastName}`.trim() || cust.displayName
+        : undefined,
+      customerEmail: cust?.email ?? undefined,
+      customerPhone: cust?.phoneNumber ?? undefined,
     };
   }
 

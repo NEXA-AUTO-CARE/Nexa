@@ -7,8 +7,6 @@ import { motion } from "framer-motion";
 import { Check, Clock, User, MapPin, Camera, Star, XCircle } from "lucide-react";
 import { api } from "../lib/api-client";
 import { describeError } from "../lib/errors";
-import { mockVendor } from "@/lib/mock";
-
 const STEP_ORDER: BookingStatus[] = [
   BookingStatus.BOOKED,
   BookingStatus.ASSIGNED,
@@ -134,25 +132,38 @@ const BookingStatusPage = () => {
             </div>
           </motion.div>
 
-          {/* Vendor Info — TODO(api): real assigned-vendor data */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="glass-card p-4 flex items-center gap-3"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
-              <User className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">{mockVendor.name}</p>
-              <p className="text-xs text-muted-foreground">Assigned Vendor</p>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-primary">
-              <Star className="h-3.5 w-3.5 fill-primary" />
-              {mockVendor.rating}
-            </div>
-          </motion.div>
+          {/* Vendor Info */}
+          {booking.vendorName ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="glass-card p-4 flex items-center gap-3"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
+                <User className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">{booking.vendorName || "Certified Detailer"}</p>
+                <p className="text-xs text-muted-foreground">Assigned Vendor</p>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="glass-card p-4 flex items-center gap-3"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
+                <User className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Awaiting Match</p>
+                <p className="text-xs text-muted-foreground">Finding a detailer for you</p>
+              </div>
+            </motion.div>
+          )}
 
           {/* Details */}
           <motion.div

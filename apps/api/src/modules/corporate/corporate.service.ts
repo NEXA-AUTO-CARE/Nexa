@@ -39,6 +39,12 @@ export class CorporateService {
     return this.toResponse(enquiry);
   }
 
+  async deleteEnquiry(id: string): Promise<void> {
+    const enquiry = await this.repo.findOne({ where: { enquiryId: id } });
+    if (!enquiry) throw new NotFoundException('Enquiry not found');
+    await this.repo.remove(enquiry);
+  }
+
   private toResponse(e: CorporateFleetEnquiry): CorporateFleetEnquiryResponse {
     return {
       enquiryId: e.enquiryId,

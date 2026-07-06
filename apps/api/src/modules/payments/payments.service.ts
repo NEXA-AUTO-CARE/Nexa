@@ -164,6 +164,47 @@ export class PaymentsService {
     return this.toResponse(payment, clientSecret ?? undefined);
   }
 
+  async syncPaymentStatusByIntentId(paymentIntentId: string, userId: string): Promise<PaymentResponse> {
+    const payment = await this.paymentRepo.findOne({
+      where: { stripePaymentIntentId: paymentIntentId },
+    });
+
+    if (!payment) {
+      throw new NotFoundException('Payment record not found');
+    }
+
+    // Verify booking ownership to ensure the user has access to this payment
+    await this.bookingsService.verifyMyBooking(payment.bookingId, userId);
+
+    if (!payment.stripePaymentIntentId.startsWith('pi_mock_')) {
+      try {
+        const intent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+        let newStatus = payment.status;
+
+        if (intent.status === 'succeeded') {
+          newStatus = PaymentStatus.CAPTURED;
+        } else if (intent.status === 'processing') {
+          newStatus = PaymentStatus.PROCESSING;
+        } else if (intent.status === 'requires_payment_method' || intent.status === 'requires_action') {
+          newStatus = PaymentStatus.PENDING;
+        } else if (intent.status === 'canceled') {
+          newStatus = PaymentStatus.FAILED;
+        }
+
+        if (payment.status !== newStatus) {
+           payment.status = newStatus;
+           await this.paymentRepo.save(payment);
+           this.logger.log(`Payment status synced to ${newStatus} for intent ${paymentIntentId}`);
+           await this.bookingsService.updatePaymentStatus(payment.bookingId, newStatus);
+        }
+      } catch (e) {
+        this.logger.error(`Failed to retrieve payment intent ${paymentIntentId} from Stripe`, e);
+      }
+    }
+
+    return this.toResponse(payment);
+  }
+
   async handleStripeWebhook(signature: string, payload: Buffer): Promise<void> {
     const webhookSecret = this.config.get<string>('app.stripe.webhookSecret');
     if (!webhookSecret) {

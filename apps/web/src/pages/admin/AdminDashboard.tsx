@@ -29,7 +29,7 @@ interface CorporateLead {
   companyName: string
   contactName: string
   fleetSize: number
-  isInvoiced: boolean
+  status: 'new' | 'invoiced'
 }
 
 export default function AdminDashboard() {
@@ -60,15 +60,15 @@ export default function AdminDashboard() {
 
   // Calculations
   const totalRevenue = bookings
-    .filter((b) => b.paymentStatus === 'CAPTURED' && b.status.toLowerCase() !== 'cancelled')
+    .filter((b) => b.paymentStatus?.toLowerCase() === 'captured' && b.status.toLowerCase() !== 'cancelled')
     .reduce((sum, b) => {
       const parsed = parseFloat(b.price || '0')
       return sum + (Number.isNaN(parsed) ? 0 : parsed)
     }, 0)
 
-  const activeLeads = corporateLeads.filter((lead) => !lead.isInvoiced)
+  const activeLeads = corporateLeads.filter((lead) => lead.status === 'new')
   const unassignedJobs = bookings.filter(
-    (b) => !b.vendorId && b.paymentStatus === 'CAPTURED' && b.status.toLowerCase() !== 'cancelled'
+    (b) => !b.vendorId && b.paymentStatus?.toLowerCase() === 'captured' && b.status.toLowerCase() !== 'cancelled'
   )
 
   const containerVariants = {

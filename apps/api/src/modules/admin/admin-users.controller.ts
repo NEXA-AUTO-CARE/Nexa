@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -63,5 +63,12 @@ export class AdminUsersController {
   ): Promise<PublicUserDto> {
     const updated = await this.usersService.adminUpdateUser(id, dto);
     return this.usersService.toPublic(updated);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Admin: delete a user' })
+  @ApiOkResponse({ description: 'User deleted' })
+  async deleteUser(@Param('id') id: string): Promise<void> {
+    await this.usersService.deleteUser(id);
   }
 }
