@@ -163,14 +163,22 @@ export class UsersService {
       otpVerified: user.otpVerified,
       createdAt: user.createdOn.toISOString(),
       stripeAccountId: user.stripeAccountId,
+      isActive: user.isActive,
     };
   }
 
-  async findAllForAdmin(): Promise<User[]> {
-    return this.userRepo.find({
-      relations: ['role'],
-      order: { createdOn: 'DESC' },
-    });
+  async findAllForAdmin(status: 'all' | 'active' | 'inactive' = 'active'): Promise<User[]> {
+    const query = this.userRepo.createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .orderBy('user.createdOn', 'DESC');
+      
+    if (status === 'active') {
+      query.andWhere('user.isActive = :isActive', { isActive: true });
+    } else if (status === 'inactive') {
+      query.andWhere('user.isActive = :isActive', { isActive: false });
+    }
+    
+    return query.getMany();
   }
 
   /**
@@ -208,6 +216,9 @@ export class UsersService {
       if (!role) throw new NotFoundException(`Role ${dto.role} not found`);
       user.roleId = role.roleId;
       user.role = role;
+    }
+    if (dto.isActive !== undefined) {
+      user.isActive = dto.isActive;
     }
 
     return this.userRepo.save(user);

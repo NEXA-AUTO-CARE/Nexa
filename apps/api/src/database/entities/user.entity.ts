@@ -52,6 +52,9 @@ export class User extends AuditEntity {
   @Column({ type: 'boolean', default: false })
   otpVerified: boolean;
 
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
+
   @Column({
     type: 'varchar',
     length: 255,

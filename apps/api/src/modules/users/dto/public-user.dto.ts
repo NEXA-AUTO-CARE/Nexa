@@ -45,4 +45,7 @@ export class PublicUserDto implements PublicUser {
     description: 'Stripe connected account ID',
   })
   stripeAccountId: string | null;
+
+  @ApiProperty({ example: true })
+  isActive: boolean;
 }

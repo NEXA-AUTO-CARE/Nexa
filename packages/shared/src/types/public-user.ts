@@ -17,5 +17,6 @@ export interface PublicUser {
   otpVerified: boolean;
   createdAt: string;
   stripeAccountId: string | null;
+  isActive: boolean;
 }
 

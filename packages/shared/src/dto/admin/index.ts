@@ -2,6 +2,7 @@ export interface UpdateUserAdminDto {
   role?: string;
   stripeAccountId?: string | null;
   displayName?: string;
+  isActive?: boolean;
 }
 
 export interface AssignVendorDto {

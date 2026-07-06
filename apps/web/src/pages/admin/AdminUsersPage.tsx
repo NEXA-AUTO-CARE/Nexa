@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../../lib/api-client'
 import {
   Users,
@@ -24,6 +25,7 @@ interface AdminUser {
   otpVerified: boolean
   createdAt: string
   stripeAccountId: string | null
+  isActive: boolean
 }
 
 const ROLE_STYLES: Record<string, string> = {
@@ -36,16 +38,18 @@ const ROLE_STYLES: Record<string, string> = {
 const AVAILABLE_ROLES = ['customer', 'admin', 'super_admin', 'vendor']
 
 export default function AdminUsersPage() {
+  const navigate = useNavigate()
   const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active')
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const load = async () => {
     try {
       setLoading(true)
-      const { data } = await api.get<AdminUser[]>('/admin/users')
+      const { data } = await api.get<AdminUser[]>(`/admin/users?status=${statusFilter}`)
       setUsers(data)
     } catch {
       setError('Failed to load users.')
@@ -57,7 +61,7 @@ export default function AdminUsersPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- load() setState is deferred behind await
     load()
-  }, [])
+  }, [statusFilter])
 
   useEffect(() => {
     if (!success && !error) return
@@ -110,16 +114,27 @@ export default function AdminUsersPage() {
           <p className="text-nexa-text-secondary text-sm">Manage users, roles, and account statuses.</p>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-xs w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-nexa-text-muted" />
-          <input
-            type="text"
-            placeholder="Search by name, email, or phone…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg focus:border-nexa-mint/40 focus:ring-0 text-sm text-nexa-text placeholder-nexa-text-muted transition-all duration-300"
-          />
+        {/* Search & Filter */}
+        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg focus:border-nexa-mint/40 focus:ring-0 text-sm text-nexa-text transition-all duration-300"
+          >
+            <option value="active">Active Only</option>
+            <option value="inactive">Inactive Only</option>
+            <option value="all">All Users</option>
+          </select>
+          <div className="relative w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-nexa-text-muted" />
+            <input
+              type="text"
+              placeholder="Search by name, email, or phone…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg focus:border-nexa-mint/40 focus:ring-0 text-sm text-nexa-text placeholder-nexa-text-muted transition-all duration-300"
+            />
+          </div>
         </div>
       </div>
 
@@ -178,15 +193,21 @@ export default function AdminUsersPage() {
               </thead>
               <tbody>
                 {filtered.map((u) => (
-                  <tr key={u.userId} className="border-b border-nexa-border-subtle/50 hover:bg-nexa-bg-elevated/20 transition-colors">
+                  <tr 
+                    key={u.userId} 
+                    onClick={() => navigate(`/admin/users/${u.userId}`)}
+                    className="border-b border-nexa-border-subtle/50 hover:bg-nexa-bg-elevated/40 transition-colors cursor-pointer"
+                  >
                     {/* User */}
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-nexa-bg-elevated border border-nexa-border-subtle flex items-center justify-center shrink-0">
-                          <span className="text-xs font-bold text-nexa-text-secondary">{getInitials(u.displayName)}</span>
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${u.isActive ? 'bg-nexa-bg-elevated border-nexa-border-subtle' : 'bg-red-500/10 border-red-500/20'}`}>
+                          <span className={`text-xs font-bold ${u.isActive ? 'text-nexa-text-secondary' : 'text-red-400'}`}>{getInitials(u.displayName)}</span>
                         </div>
                         <div className="min-w-0">
-                          <span className="block font-semibold text-nexa-text truncate">{u.displayName}</span>
+                          <span className={`block font-semibold truncate ${u.isActive ? 'text-nexa-text' : 'text-nexa-text-muted line-through'}`}>
+                            {u.displayName}
+                          </span>
                           <span className="block text-[11px] text-nexa-text-muted truncate md:hidden">
                             {u.email || u.phoneNumber || '—'}
                           </span>
@@ -214,6 +235,7 @@ export default function AdminUsersPage() {
                     <td className="py-3 px-4">
                       <select
                         value={u.role}
+                        onClick={(e) => e.stopPropagation()}
                         onChange={(e) => handleRoleChange(u, e.target.value)}
                         className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border cursor-pointer bg-transparent focus:ring-0 focus:outline-none ${ROLE_STYLES[u.role] || ROLE_STYLES.customer}`}
                       >
