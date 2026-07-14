@@ -88,12 +88,16 @@ function CheckoutForm({ onSuccess, onCancel, amount }: Omit<PaymentFormProps, 'c
 
 export function PaymentModal({ clientSecret, onSuccess, onCancel, amount }: PaymentFormProps) {
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl bg-nexa-bg-elevated p-6 shadow-2xl ring-1 ring-white/10">
-        <h3 className="mb-6 text-xl font-bold text-white">Complete Payment</h3>
-        <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night' } }}>
-          <CheckoutForm onSuccess={onSuccess} onCancel={onCancel} amount={amount} />
-        </Elements>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm sm:p-6">
+      <div className="w-full max-w-md max-h-[85vh] flex flex-col rounded-2xl bg-nexa-bg-elevated shadow-2xl ring-1 ring-white/10 overflow-hidden">
+        <div className="p-6 border-b border-white/5 shrink-0">
+          <h3 className="text-xl font-bold text-white m-0">Complete Payment</h3>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night' } }}>
+            <CheckoutForm onSuccess={onSuccess} onCancel={onCancel} amount={amount} />
+          </Elements>
+        </div>
       </div>
     </div>,
     document.body
