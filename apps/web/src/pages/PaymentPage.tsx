@@ -207,7 +207,7 @@ const PaymentPage = () => {
 
           <div className="flex justify-between text-muted-foreground">
             <span className="flex items-center gap-1">
-              <span>Booking & Protection Fee</span>
+              <span>Booking Fee</span>
               <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold">Secure</span>
             </span>
             <span>£{bookingFee.toFixed(2)}</span>

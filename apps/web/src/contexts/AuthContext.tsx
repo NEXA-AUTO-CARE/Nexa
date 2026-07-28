@@ -19,6 +19,9 @@ interface AuthContextValue {
   setPassword: (dto: SetPasswordDto) => Promise<PublicUser>
   login: (dto: LoginDto) => Promise<PublicUser>
   logout: () => Promise<void>
+  forgotPassword: (identifier: string) => Promise<void>
+  verifyResetOtp: (identifier: string, code: string) => Promise<string>
+  resetPassword: (resetToken: string, newPassword: string) => Promise<PublicUser>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -92,6 +95,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } finally {
           handleLogout()
         }
+      },
+      async forgotPassword(identifier: string) {
+        await api.post('/auth/forgot-password', { identifier })
+      },
+      async verifyResetOtp(identifier: string, code: string) {
+        const { data } = await api.post<{ resetToken: string }>('/auth/verify-reset-otp', { identifier, code })
+        return data.resetToken
+      },
+      async resetPassword(resetToken: string, newPassword: string) {
+        const { data } = await api.post<AuthResponse>('/auth/reset-password', { resetToken, newPassword })
+        accessTokenStore.set(data.accessToken)
+        setUser(data.user)
+        return data.user
       },
     }),
     [user, loading, handleLogout],

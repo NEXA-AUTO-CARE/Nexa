@@ -12,7 +12,7 @@ import {
 } from './events/booking.events';
 
 const SERVICE_LABELS: Record<string, string> = {
-  basic: 'Basic Wash',
+  basic: 'Mini-valet',
   full: 'Full Detail',
   premium: 'Premium Detail',
 };
@@ -138,6 +138,7 @@ export class BookingsListener {
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'Europe/London',
       }),
       status: booking.status,
       transactionRef: booking.payment?.transactionReference ?? 'N/A',

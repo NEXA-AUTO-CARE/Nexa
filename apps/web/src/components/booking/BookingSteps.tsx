@@ -208,27 +208,29 @@ export function BookingSteps({ onSuccess }: BookingStepsProps) {
       {/* Step 2 — Date/Time, Address & Legal consent */}
       {step === 2 && (
         <div className="mx-auto max-w-md space-y-4">
-          <label className="block space-y-1">
-            <span className="text-sm font-medium text-nexa-text-secondary">Date</span>
-            <input
-              type="date"
-              className="nexa-input"
-              value={bookingDate}
-              onChange={(e) => setBookingDate(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
-            />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-sm font-medium text-nexa-text-secondary">Time</span>
-            <input
-              type="time"
-              className="nexa-input"
-              value={bookingTime}
-              onChange={(e) => setBookingTime(e.target.value)}
-              min="08:00"
-              max="18:00"
-            />
-          </label>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-nexa-text-secondary">Date</span>
+              <input
+                type="date"
+                className="nexa-input w-full"
+                value={bookingDate}
+                onChange={(e) => setBookingDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-nexa-text-secondary">Time</span>
+              <input
+                type="time"
+                className="nexa-input w-full"
+                value={bookingTime}
+                onChange={(e) => setBookingTime(e.target.value)}
+                min="08:00"
+                max="18:00"
+              />
+            </label>
+          </div>
           <label className="block space-y-1">
             <span className="text-sm font-medium text-nexa-text-secondary">Service Address</span>
             <input

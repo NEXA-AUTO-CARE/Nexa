@@ -13,7 +13,8 @@ import {
   CheckSquare,
   AlertCircle,
   ArrowLeft,
-  Settings
+  Settings,
+  Trash2
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -197,6 +198,22 @@ export default function AdminBookingDetailsPage() {
     await api.post(`/payments/bookings/${id}/refund`)
     setActionSuccess('Customer refund successfully processed.')
   })
+
+  const handleDeleteBooking = async () => {
+    if (!window.confirm('Are you sure you want to permanently delete this booking? This action cannot be undone.')) {
+      return
+    }
+    try {
+      setProcessing(true)
+      await api.delete(`/bookings/${id}`)
+      navigate('/admin/bookings')
+    } catch (err: unknown) {
+      console.error(err)
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setActionError(message || 'Failed to delete booking.')
+      setProcessing(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -545,6 +562,25 @@ export default function AdminBookingDetailsPage() {
               >
                 <CreditCard className="w-4 h-4" />
                 Process Payout
+              </button>
+            </div>
+          </div>
+
+          {/* Danger Zone */}
+          <div className="glass-card p-6 border border-nexa-border-subtle">
+            <h2 className="text-lg font-bold text-nexa-text mb-4 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-nexa-error" />
+              Danger Zone
+            </h2>
+            <div className="space-y-3">
+              <p className="text-xs text-nexa-text-secondary">Permanently remove this booking:</p>
+              <button
+                disabled={processing}
+                onClick={handleDeleteBooking}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-nexa-error/25 bg-nexa-error/5 hover:bg-nexa-error/10 text-nexa-error text-sm font-semibold transition-all"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Booking
               </button>
             </div>
           </div>

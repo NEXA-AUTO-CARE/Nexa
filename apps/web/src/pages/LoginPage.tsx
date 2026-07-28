@@ -82,6 +82,11 @@ export function LoginPage() {
             </button>
           </div>
         </Field>
+        <div className="flex justify-end -mt-2">
+          <Link to="/forgot-password" className="text-sm text-nexa-mint hover:underline">
+            Forgot Password?
+          </Link>
+        </div>
         {serverError && <p className="text-sm text-nexa-error">{serverError}</p>}
         <button className={btnPrimaryCls} type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Signing in…' : 'Log in'}

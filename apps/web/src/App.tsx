@@ -8,6 +8,7 @@ import GaragePage from './pages/GaragePage'
 import HomePage from './pages/HomePage'
 import LandingPage from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import NotFound from './pages/NotFound'
 import { OtpPage } from './pages/OtpPage'
 import PaymentMethodsPage from './pages/PaymentMethodsPage'
@@ -45,6 +46,7 @@ function App() {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/verify-otp" element={<OtpPage />} />
       <Route path="/set-password" element={<SetPasswordPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/cancellation-policy" element={<CancellationPolicyPage />} />
 
       <Route

@@ -2,6 +2,7 @@ import { VehicleType } from '@nexa/shared'
 import type { CreateVehicleDto, UpdateVehicleDto, VehicleResponse } from '@nexa/shared'
 import { useEffect, useMemo, useState } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
+import { CATEGORY_DEFS } from '../VehicleCategorySelector'
 
 interface VehicleFormModalProps {
   open: boolean
@@ -23,9 +24,9 @@ export function VehicleFormModal({
 
   const VEHICLE_TYPES = useMemo(
     () =>
-      (Object.values(VehicleType) as VehicleType[]).map((value) => ({
-        value,
-        label: `${labelFor(value)} — £${priceFor(value)}`,
+      CATEGORY_DEFS.filter((def) => def.vehicleType !== null).map((def) => ({
+        value: def.vehicleType as VehicleType,
+        label: `${labelFor(def.vehicleType as string)} — £${priceFor(def.vehicleType as string)}`,
       })),
     [priceFor, labelFor],
   )

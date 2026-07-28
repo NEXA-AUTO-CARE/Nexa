@@ -206,7 +206,7 @@ export default function AdminBookingsPage() {
       statusFilter === 'all' || b.status.toLowerCase() === statusFilter.toLowerCase()
 
     return matchesSearch && matchesStatus
-  })
+  }).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
 
   // Close notifications after a delay
   useEffect(() => {

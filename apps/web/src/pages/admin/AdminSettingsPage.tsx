@@ -368,7 +368,7 @@ export default function AdminSettingsPage() {
               </div>
               <div>
                 <h3 className="font-display font-bold text-lg text-nexa-text">Booking Fee</h3>
-                <p className="text-xs text-nexa-text-secondary">Set the flat booking & protection fee added to every booking</p>
+                <p className="text-xs text-nexa-text-secondary">Set the flat booking fee added to every booking</p>
               </div>
             </div>
             <button

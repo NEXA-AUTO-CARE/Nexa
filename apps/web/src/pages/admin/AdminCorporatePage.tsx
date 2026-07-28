@@ -30,6 +30,7 @@ export default function AdminCorporatePage() {
   const [leads, setLeads] = useState<CorporateLead[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState('all')
   
   // Invoice state
   const [selectedLead, setSelectedLead] = useState<CorporateLead | null>(null)
@@ -144,8 +145,49 @@ export default function AdminCorporatePage() {
           <p className="text-sm">No corporate fleet inquiries are currently pending.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6">
-          {leads.map((lead) => (
+        <div className="space-y-6">
+          {/* SUMMARY CARDS */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="glass-card p-4 border border-nexa-border-subtle flex items-center justify-between">
+              <div>
+                <p className="text-xs text-nexa-text-secondary uppercase tracking-wider mb-1">Total Leads</p>
+                <p className="text-2xl font-bold text-nexa-text">{leads.length}</p>
+              </div>
+              <Building2 className="w-8 h-8 text-nexa-text-muted opacity-50" />
+            </div>
+            <div className="glass-card p-4 border border-nexa-border-subtle flex items-center justify-between">
+              <div>
+                <p className="text-xs text-nexa-text-secondary uppercase tracking-wider mb-1">Active (Pending)</p>
+                <p className="text-2xl font-bold text-amber-400">{leads.filter((l) => l.status === 'new').length}</p>
+              </div>
+              <AlertTriangle className="w-8 h-8 text-amber-400 opacity-50" />
+            </div>
+            <div className="glass-card p-4 border border-nexa-border-subtle flex items-center justify-between">
+              <div>
+                <p className="text-xs text-nexa-text-secondary uppercase tracking-wider mb-1">Invoiced</p>
+                <p className="text-2xl font-bold text-nexa-mint">{leads.filter((l) => l.status === 'invoiced').length}</p>
+              </div>
+              <CheckCircle className="w-8 h-8 text-nexa-mint opacity-50" />
+            </div>
+          </div>
+
+          {/* FILTER BAR */}
+          <div className="flex justify-end">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl px-4 py-2 text-sm focus:ring-0 focus:border-nexa-mint/40"
+            >
+              <option value="all">All Leads</option>
+              <option value="new">Pending Invoice</option>
+              <option value="invoiced">Invoiced</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            {leads
+              .filter((l) => (statusFilter === 'all' ? true : l.status === statusFilter))
+              .map((lead) => (
             <motion.div
               layout
               key={lead.enquiryId}
@@ -215,7 +257,13 @@ export default function AdminCorporatePage() {
                 </button>
               </div>
             </motion.div>
-          ))}
+            ))}
+            {leads.filter((l) => (statusFilter === 'all' ? true : l.status === statusFilter)).length === 0 && (
+              <div className="text-center py-8 text-nexa-text-secondary text-sm">
+                No corporate leads match the selected filter.
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -395,7 +443,7 @@ export default function AdminCorporatePage() {
                       </tr>
                       <tr>
                         <td className="py-4">
-                          <strong className="font-semibold text-slate-800">Booking & Protection Fee</strong>
+                          <strong className="font-semibold text-slate-800">Booking Fee</strong>
                           <p className="text-[10px] text-slate-500 mt-0.5">Nexa secure platform match fee per vehicle</p>
                         </td>
                         <td className="py-4 text-center font-mono">£{bookingFee}</td>

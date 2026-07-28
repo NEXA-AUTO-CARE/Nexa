@@ -3,17 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { CreditCard, Plus, Trash2, ArrowLeft, Smartphone } from "lucide-react";
-import { mockSavedCards, type MockSavedCard } from "@/lib/mock";
+import { CreditCard, Plus, Trash2, ArrowLeft } from "lucide-react";
+import { type MockSavedCard } from "@/lib/mock";
 
 // TODO(api): this whole screen is mock — wire to a saved-payment-methods endpoint when it exists.
 const PaymentMethodsPage = () => {
   const navigate = useNavigate();
   const [showAddCard, setShowAddCard] = useState(false);
-  const [applePay, setApplePay] = useState(false);
-  const [googlePay, setGooglePay] = useState(false);
-  const [cards, setCards] = useState<MockSavedCard[]>(mockSavedCards);
+  const [cards, setCards] = useState<MockSavedCard[]>([]);
   const [newCard, setNewCard] = useState({ number: "", expiry: "", cvc: "", name: "" });
 
   const handleAddCard = () => {
@@ -89,35 +86,6 @@ const PaymentMethodsPage = () => {
         )}
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-3">
-        <h2 className="font-heading font-semibold text-sm text-muted-foreground uppercase tracking-wide">Digital Wallets</h2>
-        <div className="glass-card overflow-hidden">
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                <Smartphone className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Apple Pay</p>
-                <p className="text-xs text-muted-foreground">Pay with Face ID or Touch ID</p>
-              </div>
-            </div>
-            <Switch checked={applePay} onCheckedChange={setApplePay} />
-          </div>
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                <Smartphone className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Google Pay</p>
-                <p className="text-xs text-muted-foreground">Fast checkout with Google</p>
-              </div>
-            </div>
-            <Switch checked={googlePay} onCheckedChange={setGooglePay} />
-          </div>
-        </div>
-      </motion.div>
     </div>
   );
 };

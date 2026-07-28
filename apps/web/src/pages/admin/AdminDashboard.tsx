@@ -22,6 +22,7 @@ interface Booking {
   customerName?: string
   vendorId?: string
   paymentStatus?: string
+  createdAt: string
 }
 
 interface CorporateLead {
@@ -223,7 +224,7 @@ export default function AdminDashboard() {
               {activeLeads.length}
             </h3>
             <p className="text-[11px] text-nexa-text-secondary">
-              Uninvoiced company requests
+              Out of {corporateLeads.length} total company requests
             </p>
           </div>
         </motion.div>
@@ -248,7 +249,10 @@ export default function AdminDashboard() {
           </div>
 
           <div className="divide-y divide-nexa-border-subtle/50">
-            {bookings.slice(0, 5).map((b) => (
+            {[...bookings]
+              .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+              .slice(0, 5)
+              .map((b) => (
               <div key={b.bookingId} className="py-4 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
