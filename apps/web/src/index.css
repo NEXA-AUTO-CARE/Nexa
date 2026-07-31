@@ -215,6 +215,9 @@
   .nexa-input,
   .nexa-select {
     width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
     border-radius: 0.75rem;
     border: 1px solid hsl(var(--border) / 0.6);
     background-color: hsl(var(--secondary) / 0.4);
@@ -224,6 +227,18 @@
     color: hsl(var(--foreground));
     outline: none;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  input[type="date"],
+  input[type="time"] {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="time"]::-webkit-date-and-time-value {
+    text-align: left;
   }
 
   .nexa-input::placeholder {

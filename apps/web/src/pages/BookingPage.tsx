@@ -355,18 +355,18 @@ const BookingPage = () => {
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-2 block uppercase tracking-wider">Date & Time</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="relative">
-              <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <div className="relative w-full min-w-0 max-w-full">
+              <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
               <Input
                 type="date"
                 value={date}
                 min={minDateString}
                 onChange={(e) => setDate(e.target.value)}
-                className="h-11 pl-9 bg-secondary border-border text-foreground w-full"
+                className="h-11 pl-9 bg-secondary border-border text-foreground w-full min-w-0 max-w-full box-border"
               />
             </div>
             <Select value={time} onValueChange={setTime}>
-              <SelectTrigger className="h-11 bg-secondary border-border text-foreground w-full">
+              <SelectTrigger className="h-11 bg-secondary border-border text-foreground w-full min-w-0 max-w-full">
                 <SelectValue placeholder={availableTimeSlots.length === 0 ? "No available times" : "Select time"} />
               </SelectTrigger>
               <SelectContent>
@@ -565,14 +565,14 @@ const BookingPage = () => {
 
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-2 block uppercase tracking-wider">Service Phone Number</label>
-          <div className="relative">
-            <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <div className="relative w-full min-w-0 max-w-full">
+            <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
             <Input
               type="tel"
               placeholder="Enter your phone number (e.g. +447700900077)"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="h-11 pl-9 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+              className="h-11 pl-9 bg-secondary border-border text-foreground placeholder:text-muted-foreground w-full min-w-0 max-w-full box-border"
             />
           </div>
         </div>
