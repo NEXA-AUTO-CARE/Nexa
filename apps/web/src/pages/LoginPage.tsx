@@ -89,7 +89,7 @@ export function LoginPage() {
         </div>
         {serverError && <p className="text-sm text-nexa-error">{serverError}</p>}
         <button className={btnPrimaryCls} type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Signing in…' : 'Log in'}
+          {isSubmitting ? 'Logging in…' : 'Log in'}
         </button>
       </form>
     </AuthLayout>

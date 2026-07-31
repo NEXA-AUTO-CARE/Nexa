@@ -55,8 +55,11 @@ export function createApiClient(): AxiosInstance {
 
       const original = error.config as RetriableConfig | undefined
       const status = error.response?.status
-      const isRefreshCall = original?.url?.endsWith('/auth/refresh')
-      if (status !== 401 || !original || original._retry || isRefreshCall || !accessTokenStore.get()) {
+      const isAuthEndpoint =
+        original?.url?.includes('/auth/login') ||
+        original?.url?.includes('/auth/signup') ||
+        original?.url?.includes('/auth/refresh')
+      if (status !== 401 || !original || original._retry || isAuthEndpoint || !accessTokenStore.get()) {
         return Promise.reject(error)
       }
       original._retry = true
