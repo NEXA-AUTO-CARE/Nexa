@@ -171,7 +171,7 @@ const BookingPage = () => {
   };
 
   return (
-    <div className="px-4 pt-12 pb-6 space-y-5">
+    <div className="px-4 pt-12 pb-28 space-y-5">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="font-heading text-2xl font-bold">Book a Wash</h1>
         <p className="text-sm text-muted-foreground mt-1">Schedule your detailing service. Bookings require a minimum 48-hour notice.</p>
@@ -354,7 +354,7 @@ const BookingPage = () => {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-4">
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-2 block uppercase tracking-wider">Date & Time</label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="relative">
               <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -362,11 +362,11 @@ const BookingPage = () => {
                 value={date}
                 min={minDateString}
                 onChange={(e) => setDate(e.target.value)}
-                className="h-11 pl-9 bg-secondary border-border text-foreground"
+                className="h-11 pl-9 bg-secondary border-border text-foreground w-full"
               />
             </div>
             <Select value={time} onValueChange={setTime}>
-              <SelectTrigger className="h-11 bg-secondary border-border text-foreground">
+              <SelectTrigger className="h-11 bg-secondary border-border text-foreground w-full">
                 <SelectValue placeholder={availableTimeSlots.length === 0 ? "No available times" : "Select time"} />
               </SelectTrigger>
               <SelectContent>
@@ -465,7 +465,7 @@ const BookingPage = () => {
                     className="h-10 bg-secondary border-border text-foreground text-sm"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">Town/City *</label>
                     <Input

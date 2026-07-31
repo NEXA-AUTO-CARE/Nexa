@@ -95,7 +95,7 @@ export function VehicleFormModal({
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-2xl border border-nexa-border-card bg-nexa-bg-card-solid p-6 shadow-2xl animate-fade-in-up">
+      <div className="relative w-[92vw] max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-nexa-border-card bg-nexa-bg-card-solid p-5 sm:p-6 shadow-2xl animate-fade-in-up">
         <h2 className="text-xl font-semibold text-white">
           {isEdit ? 'Edit Vehicle' : 'Add Vehicle'}
         </h2>
@@ -119,7 +119,7 @@ export function VehicleFormModal({
             />
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="block space-y-1">
               <span className="text-sm font-medium text-nexa-text-secondary">
                 Make

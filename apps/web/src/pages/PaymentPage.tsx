@@ -154,7 +154,7 @@ const PaymentPage = () => {
   const hasListItems = listItems.length > 0;
 
   return (
-    <div className="px-4 pt-12 pb-6 space-y-6 max-w-2xl mx-auto">
+    <div className="px-4 pt-12 pb-28 space-y-6 max-w-2xl mx-auto">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="font-heading text-2xl font-bold">Checkout & Review</h1>
         <p className="text-sm text-muted-foreground mt-1">Review details and confirm your booking</p>

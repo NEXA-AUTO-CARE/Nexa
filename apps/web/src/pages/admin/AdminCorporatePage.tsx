@@ -147,7 +147,7 @@ export default function AdminCorporatePage() {
       ) : (
         <div className="space-y-6">
           {/* SUMMARY CARDS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="glass-card p-4 border border-nexa-border-subtle flex items-center justify-between">
               <div>
                 <p className="text-xs text-nexa-text-secondary uppercase tracking-wider mb-1">Total Leads</p>

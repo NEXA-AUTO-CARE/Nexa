@@ -32,7 +32,7 @@ const AppLayout = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="mx-auto max-w-lg pb-20">
+      <main className="mx-auto max-w-lg pb-24 sm:pb-28">
         <Outlet />
       </main>
       <BottomNav />
