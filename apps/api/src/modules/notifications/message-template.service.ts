@@ -199,7 +199,7 @@ export class MessageTemplateService {
           <!-- Footer -->
           <tr>
             <td style="padding: 24px 32px; border-top: 1px solid rgba(255,255,255,0.06);">
-              <p style="margin: 0; font-family: 'Inter', Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.5; color: #64748B;">© ${new Date().getFullYear()} NEXA Auto Care Ltd. Aberdeen, Scotland.</p>
+              <p style="margin: 0; font-family: 'Inter', Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.5; color: #64748B;">© ${new Date().getFullYear()} NEXA Autocare Technologies Ltd. Aberdeen, Scotland.</p>
               <p style="margin: 8px 0 0 0; font-family: 'Inter', Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.5; color: #475569;">This is an automated message. Please do not reply directly to this email.</p>
             </td>
           </tr>
