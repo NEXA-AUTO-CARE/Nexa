@@ -72,7 +72,7 @@ const BookingsPage = () => {
       {/* Gift Bookings Button */}
       <div className="pt-6">
         <button
-          onClick={() => window.location.href = '/gift-booking'}
+          onClick={() => navigate('/book')}
           className="w-full flex items-center justify-center gap-2 h-14 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors shadow-lg"
         >
           <Gift className="w-5 h-5" />
