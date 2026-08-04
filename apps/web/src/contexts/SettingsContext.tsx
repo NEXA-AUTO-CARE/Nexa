@@ -1,12 +1,9 @@
-/* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
-  MINI_VALET_PRICING,
-  VEHICLE_CATEGORY_LABELS,
-  VEHICLE_CATEGORY_DESCRIPTIONS,
   BOOKING_FEE,
   SERVICE_LABELS,
-  type VehicleType,
+  resolveCategoryPrice,
+  type VehicleCategoryConfig,
 } from '@nexa/shared'
 import { api } from '../lib/api-client'
 
@@ -19,11 +16,13 @@ export interface TimeSlot {
 }
 
 interface SettingsData {
-  /** e.g. { standard: "25.00", grande: "30.00", ... } */
-  categoryPricing: Record<string, string>
-  /** e.g. { standard: "Standard", grande: "Grande", ... } */
+  /** Rich categories config */
+  vehicleCategories: Record<string, VehicleCategoryConfig>
+  /** e.g. { small_car: 40.00, family_car: 50.00, ... } */
+  categoryPricing: Record<string, number | string>
+  /** e.g. { small_car: "Small Car", ... } */
   categoryLabels: Record<string, string>
-  /** e.g. { standard: "Hatchbacks, Saloons…", ... } */
+  /** e.g. { small_car: "Subcompact hatchbacks...", ... } */
   categoryDescriptions: Record<string, string>
   /** e.g. "1.49" */
   bookingFee: string
@@ -41,12 +40,14 @@ interface SettingsContextValue extends SettingsData {
   loading: boolean
   /** Force a re-fetch from the API (e.g. after admin saves) */
   refresh: () => Promise<void>
-  /** Helper: get the category price for a vehicle type */
-  priceFor: (vehicleType: VehicleType | string) => string
+  /** Helper: get the effective numeric price for a vehicle type */
+  numericPriceFor: (vehicleType: string) => number
+  /** Helper: get the category price string formatted to 2 decimals for a vehicle type */
+  priceFor: (vehicleType: string) => string
   /** Helper: get the human label for a vehicle type */
-  labelFor: (vehicleType: VehicleType | string) => string
+  labelFor: (vehicleType: string) => string
   /** Helper: get the description for a vehicle type */
-  descriptionFor: (vehicleType: VehicleType | string) => string
+  descriptionFor: (vehicleType: string) => string
   /** Helper: get a service label by key (e.g. 'base'). Defaults to the base service name. */
   serviceLabelFor: (key?: string) => string
 }
@@ -56,9 +57,41 @@ interface SettingsContextValue extends SettingsData {
 /* ------------------------------------------------------------------ */
 
 const DEFAULTS: SettingsData = {
-  categoryPricing: MINI_VALET_PRICING as Record<string, string>,
-  categoryLabels: VEHICLE_CATEGORY_LABELS as Record<string, string>,
-  categoryDescriptions: VEHICLE_CATEGORY_DESCRIPTIONS as Record<string, string>,
+  vehicleCategories: {
+    small_car: {
+      key: 'small_car',
+      displayName: 'Small Car',
+      price: 40.00,
+      description: 'Subcompact hatchbacks, City cars, Small-segment hatchbacks',
+    },
+    family_car: {
+      key: 'family_car',
+      displayName: 'Family Car',
+      price: 50.00,
+      description: 'Mid-size sedans, Compact family hatchbacks, Crossover SUVs',
+    },
+    large_suv_van: {
+      key: 'large_suv_van',
+      displayName: 'Large SUV / 7-Seater / Van',
+      price: 60.00,
+      description: 'Full-size luxury SUVs, 7-seater passenger vehicles, Multi-purpose vans',
+    },
+  },
+  categoryPricing: {
+    small_car: 40.00,
+    family_car: 50.00,
+    large_suv_van: 60.00,
+  },
+  categoryLabels: {
+    small_car: 'Small Car',
+    family_car: 'Family Car',
+    large_suv_van: 'Large SUV / 7-Seater / Van',
+  },
+  categoryDescriptions: {
+    small_car: 'Subcompact hatchbacks, City cars, Small-segment hatchbacks',
+    family_car: 'Mid-size sedans, Compact family hatchbacks, Crossover SUVs',
+    large_suv_van: 'Full-size luxury SUVs, 7-seater passenger vehicles, Multi-purpose vans',
+  },
   bookingFee: BOOKING_FEE,
   termsAndConditions: '',
   serviceLabels: SERVICE_LABELS,
@@ -97,9 +130,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     try {
       const cached = localStorage.getItem(CACHE_KEY)
       if (cached) {
+        const parsed = JSON.parse(cached)
+        // If cache only contains legacy categories ('standard'), purge stale cache to load new defaults
+        if (parsed.categoryPricing?.standard && !parsed.categoryPricing?.small_car) {
+          localStorage.removeItem(CACHE_KEY)
+          return DEFAULTS
+        }
         return {
           ...DEFAULTS,
-          ...JSON.parse(cached),
+          ...parsed,
         } as SettingsData
       }
     } catch { /* ignore corrupt cache */ }
@@ -113,8 +152,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const { data: raw } = await api.get<{ key: string; value: string }[]>('/settings')
       const map = new Map(raw.map((s) => [s.key, s.value]))
 
+      const parsedCategories = tryParseJson<Record<string, VehicleCategoryConfig>>(map.get('vehicle_categories'), DEFAULTS.vehicleCategories)
+      let parsedPricing = tryParseJson<Record<string, number | string>>(map.get('car_category_pricing'), DEFAULTS.categoryPricing)
+
+      // Purge legacy pricing if only old keys exist
+      if (parsedPricing.standard && !parsedPricing.small_car) {
+        parsedPricing = DEFAULTS.categoryPricing
+      }
+
       const next: SettingsData = {
-        categoryPricing: tryParseJson(map.get('car_category_pricing'), DEFAULTS.categoryPricing),
+        vehicleCategories: parsedCategories,
+        categoryPricing: parsedPricing,
         categoryLabels: tryParseJson(map.get('vehicle_category_labels'), DEFAULTS.categoryLabels),
         categoryDescriptions: tryParseJson(map.get('vehicle_category_descriptions'), DEFAULTS.categoryDescriptions),
         bookingFee: map.get('booking_fee') ?? DEFAULTS.bookingFee,
@@ -144,23 +192,53 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       ...data,
       loading,
       refresh: fetchSettings,
+      numericPriceFor: (vt) => {
+        if (!vt) return 0;
+        const key = vt.toLowerCase();
+
+        // 1. Check rich vehicleCategories with schedule support
+        if (data.vehicleCategories?.[key]) {
+          return resolveCategoryPrice(data.vehicleCategories[key]);
+        }
+        // 2. Fallback to categoryPricing
+        const raw = data.categoryPricing?.[key] ?? data.categoryPricing?.[vt.toUpperCase()];
+        const num = typeof raw === 'number' ? raw : parseFloat(String(raw ?? 0));
+        return isNaN(num) ? 0 : num;
+      },
       priceFor: (vt) => {
         if (!vt) return '0.00';
         const key = vt.toLowerCase();
-        const upper = vt.toUpperCase();
-        return data.categoryPricing?.[key] ?? data.categoryPricing?.[upper] ?? DEFAULTS.categoryPricing[key] ?? '0.00';
+
+        let num = 0;
+        if (data.vehicleCategories?.[key]) {
+          num = resolveCategoryPrice(data.vehicleCategories[key]);
+        } else {
+          const raw = data.categoryPricing?.[key] ?? data.categoryPricing?.[vt.toUpperCase()];
+          num = typeof raw === 'number' ? raw : parseFloat(String(raw ?? 0));
+        }
+        return isNaN(num) ? '0.00' : num.toFixed(2);
       },
       labelFor: (vt) => {
         if (!vt) return '';
         const key = vt.toLowerCase();
-        const upper = vt.toUpperCase();
-        return data.categoryLabels?.[key] ?? data.categoryLabels?.[upper] ?? DEFAULTS.categoryLabels[key] ?? vt;
+        const upper = key.toUpperCase();
+        return (
+          data.vehicleCategories?.[key]?.displayName ??
+          data.categoryLabels?.[key] ??
+          data.categoryLabels?.[upper] ??
+          vt
+        );
       },
       descriptionFor: (vt) => {
         if (!vt) return '';
         const key = vt.toLowerCase();
-        const upper = vt.toUpperCase();
-        return data.categoryDescriptions?.[key] ?? data.categoryDescriptions?.[upper] ?? DEFAULTS.categoryDescriptions[key] ?? '';
+        const upper = key.toUpperCase();
+        return (
+          data.vehicleCategories?.[key]?.description ??
+          data.categoryDescriptions?.[key] ??
+          data.categoryDescriptions?.[upper] ??
+          ''
+        );
       },
       serviceLabelFor: (key = 'base') => data.serviceLabels?.[key] ?? DEFAULTS.serviceLabels[key] ?? '',
     }),

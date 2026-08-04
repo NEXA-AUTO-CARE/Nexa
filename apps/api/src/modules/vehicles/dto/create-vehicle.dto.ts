@@ -1,11 +1,11 @@
 import {
-  IsEnum,
+
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
-import { VehicleType } from '@nexa/shared';
+
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateVehicleDto {
@@ -27,9 +27,10 @@ export class CreateVehicleDto {
   @MaxLength(50)
   model: string;
 
-  @ApiProperty({ enum: VehicleType, example: VehicleType.STANDARD })
-  @IsEnum(VehicleType)
-  vehicleType: VehicleType;
+  @ApiProperty({ example: 'small_car' })
+  @IsString()
+  @IsNotEmpty()
+  vehicleType: string;
 
   @ApiPropertyOptional({ example: 'Black', maxLength: 30 })
   @IsOptional()

@@ -27,11 +27,26 @@ interface TimeSlot {
   hour: number
 }
 
-interface CategoryPricing {
-  standard: string
-  grande: string
-  maxi: string
-  transit: string
+interface CategoryItem {
+  key: string
+  displayName: string
+  price: number
+  scheduledPrice: number | null
+  activeFrom: string | null
+  description: string
+  examples: string
+  seatingCapacity: string
+}
+
+interface Faq {
+  question: string
+  answer: string
+}
+
+interface TimeSlot {
+  key: string
+  label: string
+  hour: number
 }
 
 interface StatusTemplate {
@@ -88,18 +103,46 @@ const DEFAULT_TEMPLATES: MessageTemplates = {
   },
 }
 
+const DEFAULT_CATEGORIES: CategoryItem[] = [
+  {
+    key: 'small_car',
+    displayName: 'Small Car',
+    price: 40.00,
+    scheduledPrice: null,
+    activeFrom: null,
+    description: 'Subcompact hatchbacks, City cars, Small-segment hatchbacks',
+    examples: 'Fiat 500, Toyota Aygo, Toyota Yaris, Mini, VW Polo, VW Golf, Vauxhall Corsa',
+    seatingCapacity: '4 to 5 seats',
+  },
+  {
+    key: 'family_car',
+    displayName: 'Family Car',
+    price: 50.00,
+    scheduledPrice: null,
+    activeFrom: null,
+    description: 'Mid-size sedans, Compact family hatchbacks, Crossover SUVs',
+    examples: 'Ford Focus, Audi A3, Tesla Model 3 / Model Y, Vauxhall Mokka, Mercedes-Benz C-Class / E-Class, Hyundai Tucson, Nissan Qashqai, Kia Sportage, BMW X3, Range Rover Evoque',
+    seatingCapacity: '5 seats',
+  },
+  {
+    key: 'large_suv_van',
+    displayName: 'Large SUV / 7-Seater / Van',
+    price: 60.00,
+    scheduledPrice: null,
+    activeFrom: null,
+    description: 'Full-size luxury SUVs, 7-seater passenger vehicles, Multi-purpose vans',
+    examples: 'Land Rover Discovery, Range Rover Velar, Audi Q7, BMW X5, Kia Sorento, VW Transporter',
+    seatingCapacity: '7+ seats / Van',
+  },
+]
+
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saveLoading, setSaveLoading] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  const [pricing, setPricing] = useState<CategoryPricing>({
-    standard: '25.00',
-    grande: '30.00',
-    maxi: '35.00',
-    transit: '40.00',
-  })
+  const [categories, setCategories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES)
   const [bookingFee, setBookingFee] = useState('1.49')
   const [faqs, setFaqs] = useState<Faq[]>([])
   const [terms, setTerms] = useState('')
@@ -112,7 +155,8 @@ export default function AdminSettingsPage() {
     try {
       setLoading(true)
       const { data } = await api.get<{ key: string; value: string }[]>('/settings')
-      
+
+      const categoriesSetting = data.find((s) => s.key === 'vehicle_categories')
       const pricingSetting = data.find((s) => s.key === 'car_category_pricing')
       const bookingFeeSetting = data.find((s) => s.key === 'booking_fee')
       const faqsSetting = data.find((s) => s.key === 'faqs')
@@ -120,9 +164,39 @@ export default function AdminSettingsPage() {
       const templatesSetting = data.find((s) => s.key === 'notification_templates')
       const timeSlotsSetting = data.find((s) => s.key === 'booking_time_slots')
 
-      if (pricingSetting) {
-        setPricing(JSON.parse(pricingSetting.value))
+      if (categoriesSetting && categoriesSetting.value) {
+        try {
+          const raw = JSON.parse(categoriesSetting.value) as Record<string, any>
+          const items: CategoryItem[] = Object.keys(raw).map((k) => {
+            const item = raw[k]
+            return {
+              key: k,
+              displayName: item.display_name ?? item.displayName ?? k,
+              price: typeof item.price === 'number' ? item.price : parseFloat(String(item.price ?? 0)),
+              scheduledPrice: item.scheduledPrice !== undefined && item.scheduledPrice !== null
+                ? (typeof item.scheduledPrice === 'number' ? item.scheduledPrice : parseFloat(String(item.scheduledPrice)))
+                : null,
+              activeFrom: item.activeFrom ?? null,
+              description: item.description ?? (Array.isArray(item.vehicle_types) ? item.vehicle_types.join(', ') : ''),
+              examples: Array.isArray(item.examples) ? item.examples.join(', ') : (item.examples ?? ''),
+              seatingCapacity: item.metrics?.seating_capacity ?? item.seatingCapacity ?? '',
+            }
+          })
+          if (items.length > 0) {
+            setCategories(items)
+          }
+        } catch { /* ignore parse error */ }
+      } else if (pricingSetting && pricingSetting.value) {
+        try {
+          const rawPricing = JSON.parse(pricingSetting.value) as Record<string, any>
+          const items = DEFAULT_CATEGORIES.map((c) => ({
+            ...c,
+            price: typeof rawPricing[c.key] === 'number' ? rawPricing[c.key] : parseFloat(String(rawPricing[c.key] ?? c.price)),
+          }))
+          setCategories(items)
+        } catch { /* ignore parse error */ }
       }
+
       if (bookingFeeSetting) {
         setBookingFee(bookingFeeSetting.value)
       }
@@ -135,18 +209,13 @@ export default function AdminSettingsPage() {
       if (templatesSetting) {
         try {
           const parsed = JSON.parse(templatesSetting.value) as MessageTemplates
-          // Merge with defaults so new statuses aren't missing
           setTemplates({ ...structuredClone(DEFAULT_TEMPLATES), ...parsed })
-        } catch {
-          // corrupt value — keep defaults
-        }
+        } catch { /* ignore */ }
       }
       if (timeSlotsSetting) {
         try {
           setTimeSlots(JSON.parse(timeSlotsSetting.value))
-        } catch {
-          // fallback if corrupt
-        }
+        } catch { /* ignore */ }
       } else {
         setTimeSlots([
           { key: 'early_morning', label: 'Early Morning (7:00 AM)', hour: 7 },
@@ -187,6 +256,78 @@ export default function AdminSettingsPage() {
     }
   }
 
+  // Save all category configurations & scheduled pricing
+  const handleSaveCategories = async () => {
+    try {
+      setSaveLoading('vehicle_categories')
+      setErrorMsg(null)
+      setSuccessMsg(null)
+
+      const richMap: Record<string, any> = {}
+      const simplePricing: Record<string, number> = {}
+      const simpleLabels: Record<string, string> = {}
+      const simpleDescriptions: Record<string, string> = {}
+
+      categories.forEach((cat) => {
+        const cleanKey = cat.key.toLowerCase().trim().replace(/\s+/g, '_')
+        richMap[cleanKey] = {
+          key: cleanKey,
+          display_name: cat.displayName,
+          displayName: cat.displayName,
+          price: Number(cat.price),
+          scheduledPrice: cat.scheduledPrice !== null && !isNaN(Number(cat.scheduledPrice)) ? Number(cat.scheduledPrice) : null,
+          activeFrom: cat.activeFrom || null,
+          description: cat.description,
+          vehicle_types: cat.description.split(',').map((s) => s.trim()).filter(Boolean),
+          metrics: { seating_capacity: cat.seatingCapacity },
+          examples: cat.examples.split(',').map((s) => s.trim()).filter(Boolean),
+        }
+
+        simplePricing[cleanKey] = Number(cat.price)
+        simpleLabels[cleanKey] = cat.displayName
+        simpleDescriptions[cleanKey] = cat.description
+      })
+
+      await api.post('/settings/vehicle_categories', { value: JSON.stringify(richMap) })
+      await api.post('/settings/car_category_pricing', { value: JSON.stringify(simplePricing) })
+      await api.post('/settings/vehicle_category_labels', { value: JSON.stringify(simpleLabels) })
+      await api.post('/settings/vehicle_category_descriptions', { value: JSON.stringify(simpleDescriptions) })
+
+      setSuccessMsg('Car categories, base rates, and scheduled prices updated successfully.')
+    } catch (err) {
+      console.error(err)
+      setErrorMsg('Failed to save category pricing configurations.')
+    } finally {
+      setSaveLoading(null)
+    }
+  }
+
+  const handleAddCategory = () => {
+    const newKey = `category_${Date.now()}`
+    setCategories([
+      ...categories,
+      {
+        key: newKey,
+        displayName: 'New Car Category',
+        price: 45.00,
+        scheduledPrice: null,
+        activeFrom: null,
+        description: 'Category description...',
+        examples: 'Example Model 1, Example Model 2',
+        seatingCapacity: '5 seats',
+      },
+    ])
+  }
+
+  const handleCategoryChange = (index: number, field: keyof CategoryItem, val: any) => {
+    const updated = categories.map((c, i) => (i === index ? { ...c, [field]: val } : c))
+    setCategories(updated)
+  }
+
+  const handleDeleteCategory = (index: number) => {
+    setCategories(categories.filter((_, i) => i !== index))
+  }
+
   // FAQ Mutations
   const handleAddFaq = () => {
     setFaqs([...faqs, { question: '', answer: '' }])
@@ -221,14 +362,6 @@ export default function AdminSettingsPage() {
 
   const handleDeleteTimeSlot = (index: number) => {
     setTimeSlots(timeSlots.filter((_, i) => i !== index))
-  }
-
-  // Pricing Change
-  const handlePriceChange = (category: keyof CategoryPricing, val: string) => {
-    setPricing({
-      ...pricing,
-      [category]: val,
-    })
   }
 
   // Template mutations
@@ -281,7 +414,7 @@ export default function AdminSettingsPage() {
             Dynamic Settings
           </h1>
           <p className="text-nexa-text-secondary text-sm">
-            Control service pricing, customer legal agreements, and public FAQ landing sections.
+            Manage car categories, base prices, scheduled pricing active dates, customer legal terms, and FAQs.
           </p>
         </div>
       </div>
@@ -313,47 +446,188 @@ export default function AdminSettingsPage() {
       </AnimatePresence>
 
       <div className="space-y-12">
-        {/* CARD 1: DYNAMIC CATEGORY PRICING */}
+        {/* CARD 1: DYNAMIC CATEGORY & SCHEDULED PRICING MANAGER */}
         <div className="glass-card p-6 space-y-6">
-          <div className="flex items-center gap-3 border-b border-nexa-border-subtle/50 pb-4 justify-between">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-3 border-b border-nexa-border-subtle/50 pb-4 justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-nexa-mint/15 flex items-center justify-center text-nexa-mint">
                 <DollarSign className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-display font-bold text-lg text-nexa-text">Car Category Pricing</h3>
-                <p className="text-xs text-nexa-text-secondary">Set base valeting rates by vehicle type</p>
+                <h3 className="font-display font-bold text-lg text-nexa-text">Car Category & Scheduled Pricing</h3>
+                <p className="text-xs text-nexa-text-secondary">Configure categories, decimal base rates, and scheduled active dates</p>
               </div>
             </div>
-            <button
-              onClick={() => handleSaveSetting('car_category_pricing', JSON.stringify(pricing))}
-              disabled={saveLoading === 'car_category_pricing'}
-              className="flex items-center gap-2 py-2 px-4 rounded-xl bg-nexa-mint text-nexa-bg text-xs font-bold hover:bg-nexa-mint/90 transition-all duration-300 disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              <span>{saveLoading === 'car_category_pricing' ? 'Saving...' : 'Save Pricing'}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleAddCategory}
+                className="flex items-center gap-1.5 py-2 px-3 rounded-xl border border-nexa-border-subtle bg-nexa-bg hover:bg-nexa-bg-elevated text-xs font-semibold text-nexa-text transition-all duration-300"
+              >
+                <Plus className="w-4 h-4 text-nexa-mint" />
+                <span>Add Category</span>
+              </button>
+              <button
+                onClick={handleSaveCategories}
+                disabled={saveLoading === 'vehicle_categories'}
+                className="flex items-center gap-2 py-2 px-4 rounded-xl bg-nexa-mint text-nexa-bg text-xs font-bold hover:bg-nexa-mint/90 transition-all duration-300 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                <span>{saveLoading === 'vehicle_categories' ? 'Saving...' : 'Save Categories'}</span>
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {(Object.keys(pricing) as Array<keyof CategoryPricing>).map((category) => (
-              <div key={category} className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-nexa-text-secondary capitalize">
-                  {category}
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-nexa-text-secondary text-sm font-semibold">
-                    £
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={pricing[category]}
-                    onChange={(e) => handlePriceChange(category, e.target.value)}
-                    className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg/40 focus:border-nexa-mint/40 focus:ring-0 text-sm text-nexa-text transition-all duration-300"
-                  />
+          <div className="space-y-6">
+            {categories.map((cat, idx) => (
+              <div
+                key={idx}
+                className="p-5 rounded-2xl border border-nexa-border-subtle/70 bg-nexa-bg/30 space-y-4 relative group"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Category Key */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-nexa-text-secondary">
+                      Internal Key (lowercase)
+                    </label>
+                    <input
+                      type="text"
+                      value={cat.key}
+                      onChange={(e) => handleCategoryChange(idx, 'key', e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+                      className="w-full px-3.5 py-2 rounded-xl border border-nexa-border-subtle bg-nexa-bg/60 text-xs font-mono text-nexa-text focus:border-nexa-mint/40"
+                    />
+                  </div>
+
+                  {/* Display Name */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-nexa-text-secondary">
+                      Display Name
+                    </label>
+                    <input
+                      type="text"
+                      value={cat.displayName}
+                      onChange={(e) => handleCategoryChange(idx, 'displayName', e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-nexa-border-subtle bg-nexa-bg/60 text-xs font-semibold text-nexa-text focus:border-nexa-mint/40"
+                    />
+                  </div>
+
+                  {/* Seating Capacity */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-nexa-text-secondary">
+                      Seating / Capacity
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 5 seats"
+                      value={cat.seatingCapacity}
+                      onChange={(e) => handleCategoryChange(idx, 'seatingCapacity', e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-nexa-border-subtle bg-nexa-bg/60 text-xs text-nexa-text focus:border-nexa-mint/40"
+                    />
+                  </div>
                 </div>
+
+                {/* PRICING & SCHEDULING ROW */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-nexa-border-subtle/40">
+                  {/* Base Price */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-nexa-text-secondary">
+                      Base Rate (£ Decimal)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-nexa-text-secondary text-xs">£</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={cat.price}
+                        onChange={(e) => handleCategoryChange(idx, 'price', parseFloat(e.target.value) || 0)}
+                        className="w-full pl-7 pr-3 py-2 rounded-xl border border-nexa-border-subtle bg-nexa-bg/60 text-xs font-bold text-nexa-mint focus:border-nexa-mint/40"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Scheduled Price */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-nexa-text-secondary">
+                      Scheduled New Rate (£ Decimal)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-nexa-text-secondary text-xs">£</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Optional"
+                        value={cat.scheduledPrice !== null ? cat.scheduledPrice : ''}
+                        onChange={(e) =>
+                          handleCategoryChange(
+                            idx,
+                            'scheduledPrice',
+                            e.target.value !== '' ? parseFloat(e.target.value) : null
+                          )
+                        }
+                        className="w-full pl-7 pr-3 py-2 rounded-xl border border-nexa-border-subtle bg-nexa-bg/60 text-xs text-amber-400 focus:border-amber-400/40"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Active From Date */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-nexa-text-secondary">
+                      Scheduled Active Date &amp; Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={cat.activeFrom ? cat.activeFrom.slice(0, 16) : ''}
+                      onChange={(e) =>
+                        handleCategoryChange(
+                          idx,
+                          'activeFrom',
+                          e.target.value ? new Date(e.target.value).toISOString() : null
+                        )
+                      }
+                      className="w-full px-3.5 py-2 rounded-xl border border-nexa-border-subtle bg-nexa-bg/60 text-xs text-nexa-text focus:border-nexa-mint/40"
+                    />
+                  </div>
+                </div>
+
+                {/* DESCRIPTIONS & EXAMPLES */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-nexa-text-secondary">
+                      Vehicle Types / Description
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Subcompact hatchbacks, City cars"
+                      value={cat.description}
+                      onChange={(e) => handleCategoryChange(idx, 'description', e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-nexa-border-subtle bg-nexa-bg/60 text-xs text-nexa-text-secondary focus:border-nexa-mint/40"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-nexa-text-secondary">
+                      Example Car Models (Comma separated)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Fiat 500, Toyota Aygo, VW Polo"
+                      value={cat.examples}
+                      onChange={(e) => handleCategoryChange(idx, 'examples', e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-nexa-border-subtle bg-nexa-bg/60 text-xs text-nexa-text-secondary focus:border-nexa-mint/40"
+                    />
+                  </div>
+                </div>
+
+                {/* Remove button */}
+                <button
+                  type="button"
+                  onClick={() => handleDeleteCategory(idx)}
+                  className="absolute top-4 right-4 p-2 text-nexa-text-secondary hover:text-nexa-error rounded-xl hover:bg-nexa-error/10 transition-all duration-300"
+                  title="Remove category"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             ))}
           </div>

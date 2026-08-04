@@ -10,7 +10,6 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   BookingStatus,
-  MINI_VALET_PRICING,
   ServiceType,
   BOOKING_FEE,
   PaymentStatus,
@@ -64,22 +63,30 @@ export class BookingsService {
   ) { }
 
   async getBasePriceForCategory(vehicleType: string): Promise<number> {
-    let categoryPricing = MINI_VALET_PRICING;
     try {
-      const setting = await this.settingsService.findOne(
-        'car_category_pricing',
-      );
-      if (setting && setting.value) {
-        categoryPricing = JSON.parse(setting.value);
+      const key = vehicleType?.toLowerCase();
+      // 1. Try rich vehicle_categories setting
+      const categoriesSetting = await this.settingsService.findOne('vehicle_categories');
+      if (categoriesSetting && categoriesSetting.value) {
+        const categories = JSON.parse(categoriesSetting.value);
+        const config = categories[key];
+        if (config) {
+          const { resolveCategoryPrice } = await import('@nexa/shared');
+          return resolveCategoryPrice(config);
+        }
+      }
+      // 2. Fallback to car_category_pricing setting
+      const pricingSetting = await this.settingsService.findOne('car_category_pricing');
+      if (pricingSetting && pricingSetting.value) {
+        const categoryPricing = JSON.parse(pricingSetting.value);
+        const val = categoryPricing[key];
+        const parsed = typeof val === 'number' ? val : parseFloat(String(val ?? 0));
+        return Number.isNaN(parsed) ? 0.0 : parsed;
       }
     } catch {
       // Fallback gracefully
     }
-    const priceString =
-      categoryPricing[vehicleType as any] ??
-      MINI_VALET_PRICING[vehicleType as any];
-    const parsed = parseFloat(priceString);
-    return Number.isNaN(parsed) ? 0.0 : parsed;
+    return 0.0;
   }
 
   async getBookingFee(): Promise<number> {
@@ -284,7 +291,7 @@ export class BookingsService {
     this.logger.log(`Booking ${bookingId} payment status updated from ${previousStatus} to ${newStatus}`);
 
     const full = await this.findByIdWithRelations(bookingId);
-    
+
     // If payment is now captured, emit BookingCreatedEvent
     if (newStatus === PaymentStatus.CAPTURED && previousStatus !== PaymentStatus.CAPTURED) {
       this.events.emit(
@@ -292,7 +299,7 @@ export class BookingsService {
         new BookingCreatedEvent(full),
       );
     }
-    
+
     return full;
   }
 

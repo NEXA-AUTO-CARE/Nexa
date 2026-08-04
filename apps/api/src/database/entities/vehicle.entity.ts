@@ -1,4 +1,4 @@
-import { VehicleType } from '@nexa/shared';
+
 import {
   Column,
   Entity,
@@ -38,8 +38,8 @@ export class Vehicle extends AuditEntity {
   @Column({ type: 'varchar', length: 50 })
   model: string;
 
-  @Column({ type: 'enum', enum: VehicleType })
-  vehicleType: VehicleType;
+  @Column({ type: 'varchar', length: 50 })
+  vehicleType: string;
 
   @Column({ type: 'varchar', length: 30, nullable: true })
   colour: string | null;

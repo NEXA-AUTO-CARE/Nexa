@@ -1,15 +1,4 @@
-import { VehicleType } from './enums/vehicle-type.enum.js';
 
-/**
- * Mini Valet & Spray Polish is the single base service. Price is determined
- * solely by the vehicle category. Add-ons are charged on top.
- * Source of truth shared by the API (price calc) and web (display).
- */
-export const MINI_VALET_PRICING = {} as Record<VehicleType, string>;
-
-export const VEHICLE_CATEGORY_LABELS = {} as Record<VehicleType, string>;
-
-export const VEHICLE_CATEGORY_DESCRIPTIONS = {} as Record<VehicleType, string>;
 
 export const BOOKING_FEE = '0.00';
 
@@ -18,4 +7,58 @@ export const BOOKING_FEE = '0.00';
  * The `base` key is the main service name displayed app-wide.
  */
 export const SERVICE_LABELS = {} as Record<string, string>;
+
+export interface VehicleCategoryConfig {
+  key: string;
+  displayName: string;
+  price: number;
+  scheduledPrice?: number | null;
+  activeFrom?: string | null;
+  description?: string;
+  vehicleTypes?: string[];
+  metrics?: {
+    seatingCapacity?: string;
+    [key: string]: any;
+  };
+  examples?: string[];
+}
+
+/**
+ * Dynamically resolves the effective numeric price for a category,
+ * respecting any scheduled price changes if current date >= activeFrom.
+ */
+export function resolveCategoryPrice(
+  config: Partial<VehicleCategoryConfig> | null | undefined,
+  now: Date = new Date(),
+): number {
+  if (!config) return 0;
+  const basePrice = typeof config.price === 'number' ? config.price : parseFloat(String(config.price || 0));
+  if (
+    config.activeFrom &&
+    config.scheduledPrice !== undefined &&
+    config.scheduledPrice !== null
+  ) {
+    const activeDate = new Date(config.activeFrom);
+    if (!isNaN(activeDate.getTime()) && now >= activeDate) {
+      const scheduled = typeof config.scheduledPrice === 'number'
+        ? config.scheduledPrice
+        : parseFloat(String(config.scheduledPrice));
+      return isNaN(scheduled) ? basePrice : scheduled;
+    }
+  }
+  return isNaN(basePrice) ? 0 : basePrice;
+}
+
+/**
+ * Formats a numeric price into a standard currency string (e.g. £40.00).
+ */
+export function formatCurrency(
+  amount: number | string | null | undefined,
+  currencySymbol = '£',
+): string {
+  const numeric = typeof amount === 'number' ? amount : parseFloat(String(amount ?? 0));
+  if (isNaN(numeric)) return `${currencySymbol}0.00`;
+  return `${currencySymbol}${numeric.toFixed(2)}`;
+}
+
 

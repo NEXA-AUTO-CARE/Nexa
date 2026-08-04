@@ -39,14 +39,14 @@ export default function AdminCorporatePage() {
   const [notes, setNotes] = useState('Standard Nexa Corporate Fleet Wash agreement.')
   const [raisedSuccess, setRaisedSuccess] = useState(false)
 
-  const { bookingFee, priceFor } = useSettings()
+  const { bookingFee, categoryPricing, labelFor, priceFor } = useSettings()
 
-  const standardPrice = Number(priceFor('standard')) || 25
+  const defaultPrice = Number(priceFor('small_car')) || 40
 
-  // Sync category rate when standard price changes
+  // Sync category rate when default price changes
   useEffect(() => {
-    Promise.resolve().then(() => setSelectedCategoryRate(standardPrice))
-  }, [standardPrice])
+    Promise.resolve().then(() => setSelectedCategoryRate(defaultPrice))
+  }, [defaultPrice])
 
   const loadLeads = async () => {
     try {
@@ -317,10 +317,11 @@ export default function AdminCorporatePage() {
                     onChange={(e) => setSelectedCategoryRate(Number(e.target.value))}
                     className="w-full bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl p-2.5 text-xs focus:ring-0 focus:border-nexa-mint/40"
                   >
-                    <option value={Number(priceFor('standard'))}>Standard (£{priceFor('standard')}/veh)</option>
-                    <option value={Number(priceFor('grande'))}>Grande (£{priceFor('grande')}/veh)</option>
-                    <option value={Number(priceFor('maxi'))}>Maxi (£{priceFor('maxi')}/veh)</option>
-                    <option value={Number(priceFor('transit'))}>Transit (£{priceFor('transit')}/veh)</option>
+                    {Object.keys(categoryPricing).map((key) => (
+                      <option key={key} value={Number(priceFor(key))}>
+                        {labelFor(key)} (£{priceFor(key)}/veh)
+                      </option>
+                    ))}
                   </select>
                 </div>
 

@@ -2,7 +2,6 @@ import 'reflect-metadata';
 import * as bcrypt from 'bcrypt';
 import { AppDataSource } from '../../data-source';
 import { User, Role, ServiceAddon, SystemSetting } from '../entities';
-import { VehicleType } from '@nexa/shared';
 
 async function seed() {
   console.log('Initializing database connection...');
@@ -78,39 +77,51 @@ async function seed() {
     addonRepo.create({
       name: 'Seat Shampoo',
       description: 'Deep extract steam shampoo for all car seats',
-      price: '5.00',
+      price: '24.99',
       isActive: true,
     }),
     addonRepo.create({
       name: 'Floor Shampoo',
       description: 'Deep carpet shampoo and stain treatment',
-      price: '5.00',
+      price: '9.99',
       isActive: true,
     }),
     addonRepo.create({
       name: 'Tyre dress',
       description: 'Long-lasting high-gloss tyre shine treatment',
-      price: '2.50',
+      price: '8.99',
       isActive: true,
     }),
     addonRepo.create({
       name: 'Pet hair removal',
       description: 'Complete intensive vacuum pet fur extraction',
-      price: '15.00',
+      price: '19.99',
       isActive: true,
     }),
     addonRepo.create({
       name: 'Polish',
       description: 'High-quality gloss paint polish coating',
-      price: '20.00',
+      price: '29.99',
       isActive: true,
     }),
     addonRepo.create({
       name: 'Tar removal',
       description: 'Safe organic solvent removal of road tar and sap spots',
-      price: '25.00',
+      price: '14.99',
       isActive: true,
     }),
+    addonRepo.create({
+      name: 'Deep Interior Clean',
+      description: 'Comprehensive deep cleaning of all interior surfaces',
+      price: '39.99',
+      isActive: true,
+    }),
+    addonRepo.create({
+      name: 'Polish',
+      description: 'High-quality gloss paint polish coating',
+      price: '29.99',
+      isActive: true,
+    })
   ]);
 
   console.log('Seeding System Settings...');
@@ -118,10 +129,9 @@ async function seed() {
     settingRepo.create({
       key: 'car_category_pricing',
       value: JSON.stringify({
-        [VehicleType.STANDARD]: '25.00',
-        [VehicleType.GRANDE]: '30.00',
-        [VehicleType.MAXI]: '35.00',
-        [VehicleType.TRANSIT]: '40.00',
+        small_car: '40.00',
+        family_car: '50.00',
+        large_suv_van: '60.00',
       }),
     }),
     settingRepo.create({
@@ -164,7 +174,7 @@ async function seed() {
         {
           question: "What is Nexa's vehicle classification?",
           answer:
-            'Nexa operates four simple, transparent vehicle tiers:\n\n• <strong>Standard</strong> – Hatchbacks, Saloons, Coupes, City Cars\n• <strong>Grande</strong> – Estates, MPVs, Crossovers, Mid-size SUVs\n• <strong>Maxi</strong> – Large SUVs, Full-size 4x4s, Minivans\n• <strong>Transit</strong> – Mid commercial vans and equivalent-sized vehicles.',
+            'Nexa operates three simple, transparent vehicle tiers:\n\n• <strong>Small Car</strong> – Subcompact hatchbacks, City cars\n• <strong>Family Car</strong> – Mid-size sedans, Crossover SUVs\n• <strong>Large SUV / Van</strong> – Full-size SUVs, 7-seaters, Multi-purpose vans.',
         },
         {
           question: 'What space do I need to provide for the service?',
@@ -186,21 +196,17 @@ async function seed() {
     settingRepo.create({
       key: 'vehicle_category_labels',
       value: JSON.stringify({
-        STANDARD: 'Standard',
-        GRANDE: 'Grande',
-        MAXI: 'Maxi',
-        TRANSIT: 'Transit',
+        small_car: 'Small Car',
+        family_car: 'Family Car',
+        large_suv_van: 'Large SUV / 7-Seater / Van',
       }),
     }),
     settingRepo.create({
       key: 'vehicle_category_descriptions',
       value: JSON.stringify({
-        STANDARD: 'Hatchbacks, Saloons, Coupes, City Cars',
-        GRANDE:
-          'Estate cars, MPVs, Crossovers, Mid-size SUVs (e.g. Ford Kuga, VW Tiguan, Toyota RAV4, Volvo V60 Estate)',
-        MAXI: 'Large SUVs, Full-size 4x4s, Minivans (e.g. Land Rover Defender, BMW X7, Ford Galaxy, Mercedes V-Class)',
-        TRANSIT:
-          'Mid commercial vans and equivalent-sized vehicles (e.g., Ford Transit Custom, VW Transporter, Vauxhall Vivaro, Renault Trafic, Mercedes Vito)',
+        small_car: 'Subcompact hatchbacks, City cars, Small-segment hatchbacks (e.g., Fiat 500, Toyota Aygo, Toyota Yaris, Mini, VW Polo, VW Golf, Vauxhall Corsa)',
+        family_car: 'Mid-size sedans, Compact family hatchbacks, Crossover SUVs (e.g., Ford Focus, Audi A3, Tesla Model 3 / Model Y, Vauxhall Mokka, Mercedes-Benz C-Class / E-Class, Hyundai Tucson, Nissan Qashqai, Kia Sportage, BMW X3, Range Rover Evoque)',
+        large_suv_van: 'Full-size luxury SUVs, 7-seater passenger vehicles, Multi-purpose vans (e.g., Land Rover Discovery, Range Rover Velar, Audi Q7, BMW X5, Kia Sorento, VW Transporter)',
       }),
     }),
     settingRepo.create({ key: 'booking_fee', value: '1.49' }),
@@ -222,6 +228,73 @@ async function seed() {
     settingRepo.create({
       key: 'customer_type',
       value: '["Individual","Corporate"]',
+    }),
+    settingRepo.create({
+      key: 'vehicle_categories',
+      value: JSON.stringify({
+        small_car: {
+          display_name: 'Small Car',
+          vehicle_types: [
+            'Subcompact hatchbacks',
+            'City cars',
+            'Small-segment hatchbacks',
+          ],
+          metrics: {
+            seating_capacity: '4 to 5 seats',
+          },
+          examples: [
+            'Fiat 500',
+            'Toyota Aygo',
+            'Toyota Yaris',
+            'Mini',
+            'VW Polo',
+            'VW Golf',
+            'Vauxhall Corsa',
+          ],
+        },
+        family_car: {
+          display_name: 'Family Car',
+          vehicle_types: [
+            'Mid-size sedans',
+            'Compact family hatchbacks',
+            'Crossover SUVs',
+          ],
+          metrics: {
+            seating_capacity: '5 seats',
+          },
+          examples: [
+            'Ford Focus',
+            'Audi A3',
+            'Tesla Model 3 / Model Y',
+            'Vauxhall Mokka',
+            'Mercedes-Benz C-Class / E-Class',
+            'Hyundai Tucson',
+            'Nissan Qashqai',
+            'Kia Sportage',
+            'BMW X3',
+            'Range Rover Evoque',
+          ],
+        },
+        large_suv_van: {
+          display_name: 'Large SUV / 7-Seater / Van',
+          vehicle_types: [
+            'Full-size luxury SUVs',
+            '7-seater passenger vehicles',
+            'Multi-purpose vans',
+          ],
+          metrics: {
+            seating_capacity: '7+ seats / Van',
+          },
+          examples: [
+            'Land Rover Discovery',
+            'Range Rover Velar',
+            'Audi Q7',
+            'BMW X5',
+            'Kia Sorento',
+            'VW Transporter',
+          ],
+        },
+      }),
     }),
     settingRepo.create({
       key: 'notification_templates',

@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSettings } from "../contexts/SettingsContext";
-import {
-  VehicleType,
-  type CreateCorporateFleetEnquiryDto,
-  type CreateVehicleDto,
-} from "@nexa/shared";
+import type { CreateCorporateFleetEnquiryDto, CreateVehicleDto } from "@nexa/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,13 +17,7 @@ import { useVehicles } from "../hooks/useVehicles";
 import { api } from "../lib/api-client";
 import { describeError } from "../lib/errors";
 
-// Bridge the prototype's category ids to the shared billable VehicleType.
-const CATEGORY_TO_VEHICLE_TYPE: Record<Exclude<VehicleCategoryId, "corporate_fleet">, VehicleType> = {
-  regular_car: VehicleType.STANDARD,
-  suv_7_seat_4x4: VehicleType.GRANDE,
-  small_van: VehicleType.MAXI,
-  large_van: VehicleType.TRANSIT,
-};
+
 
 const emptyCorporateData: CorporateFleetData = {
   companyName: "",
@@ -49,7 +39,7 @@ const GaragePage = () => {
   const location = useLocation();
   const { vehicles, isLoading, refetch } = useVehicles();
   const { toast } = useToast();
-  const { priceFor, labelFor, descriptionFor } = useSettings();
+  const { categoryPricing, priceFor, labelFor, descriptionFor } = useSettings();
 
   const [showForm, setShowForm] = useState(false);
   const [isGiftMode, setIsGiftMode] = useState(false);
@@ -73,7 +63,7 @@ const GaragePage = () => {
   }, [location.state, location.pathname, navigate]);
 
   const isCorporate = selectedCategory === "corporate_fleet";
-  const allCategories = buildCategories(priceFor, labelFor, descriptionFor);
+  const allCategories = buildCategories(categoryPricing, labelFor, descriptionFor);
   const categoryMeta = selectedCategory
     ? allCategories.find((c) => c.id === selectedCategory)!
     : null;
@@ -134,7 +124,7 @@ const GaragePage = () => {
           registrationNumber: plate,
           make,
           model,
-          vehicleType: CATEGORY_TO_VEHICLE_TYPE[selectedCategory as Exclude<VehicleCategoryId, "corporate_fleet">],
+          vehicleType: selectedCategory as string,
         };
         await api.post("/vehicles", dto);
         await refetch();
@@ -287,10 +277,10 @@ const GaragePage = () => {
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
                   <span className="text-muted-foreground">
-                    {v.vehicleType === VehicleType.STANDARD ? (
-                      <Car className="h-5 w-5" />
-                    ) : (
+                    {v.vehicleType?.toLowerCase().includes("van") ? (
                       <Truck className="h-5 w-5" />
+                    ) : (
+                      <Car className="h-5 w-5" />
                     )}
                   </span>
                 </div>

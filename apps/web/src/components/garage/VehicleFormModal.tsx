@@ -1,8 +1,7 @@
-import { VehicleType } from '@nexa/shared'
 import type { CreateVehicleDto, UpdateVehicleDto, VehicleResponse } from '@nexa/shared'
 import { useEffect, useMemo, useState } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
-import { CATEGORY_DEFS } from '../VehicleCategorySelector'
+import { buildCategories } from '../VehicleCategorySelector'
 
 interface VehicleFormModalProps {
   open: boolean
@@ -20,22 +19,24 @@ export function VehicleFormModal({
   vehicle,
   isSubmitting,
 }: VehicleFormModalProps) {
-  const { priceFor, labelFor } = useSettings()
+  const { categoryPricing, labelFor, descriptionFor } = useSettings()
 
   const VEHICLE_TYPES = useMemo(
-    () =>
-      CATEGORY_DEFS.filter((def) => def.vehicleType !== null).map((def) => ({
-        value: def.vehicleType as VehicleType,
-        label: `${labelFor(def.vehicleType as string)} — £${priceFor(def.vehicleType as string)}`,
-      })),
-    [priceFor, labelFor],
+    () => {
+      const categories = buildCategories(categoryPricing, labelFor, descriptionFor)
+      return categories.filter((c) => c.vehicleType !== null).map((c) => ({
+        value: c.vehicleType as string,
+        label: `${c.label} — ${c.priceLabel}`,
+      }))
+    },
+    [categoryPricing, labelFor, descriptionFor],
   )
 
   const isEdit = !!vehicle
   const [registrationNumber, setRegistrationNumber] = useState('')
   const [make, setMake] = useState('')
   const [model, setModel] = useState('')
-  const [vehicleType, setVehicleType] = useState<VehicleType>(VehicleType.STANDARD)
+  const [vehicleType, setVehicleType] = useState<string>('small_car')
   const [colour, setColour] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -53,7 +54,7 @@ export function VehicleFormModal({
         setRegistrationNumber('')
         setMake('')
         setModel('')
-        setVehicleType(VehicleType.STANDARD)
+        setVehicleType('small_car')
         setColour('')
       }
       setError(null)
@@ -153,7 +154,7 @@ export function VehicleFormModal({
             <select
               className="nexa-select"
               value={vehicleType}
-              onChange={(e) => setVehicleType(e.target.value as VehicleType)}
+              onChange={(e) => setVehicleType(e.target.value)}
             >
               {VEHICLE_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
