@@ -76,3 +76,7 @@ task-definition.json
 docs/Updated VEHICLE RE-CLASSIFICATION TIER & PRICE.xlsx
 read_xlsx_tmp/*
 .pnpm-store
+.pnpm-lock.yaml
+.agent/
+.antigravity/
+.vibe/
