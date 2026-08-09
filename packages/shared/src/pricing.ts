@@ -8,6 +8,12 @@ export const BOOKING_FEE = '0.00';
  */
 export const SERVICE_LABELS = {} as Record<string, string>;
 
+export const DEFAULT_CATEGORY_PRICES: Record<string, number> = {
+  small_car: 40.0,
+  family_car: 50.0,
+  large_suv_van: 60.0,
+};
+
 export interface VehicleCategoryConfig {
   key: string;
   displayName: string;

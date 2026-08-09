@@ -62,30 +62,26 @@ export class BookingsService {
     private readonly promotionsService: PromotionsService,
   ) { }
 
-  // resolve price based on vehicle category. No more hardcode defaulted prices here
+  // resolve price based on vehicle category with fallback defaults
   async getBasePriceForCategory(vehicleType: string): Promise<number> {
-    let price: number = 0.0;
+    const { normalizeVehicleCategoryKey, resolveCategoryPrice, DEFAULT_CATEGORY_PRICES } = await import('@nexa/shared');
+    const key = normalizeVehicleCategoryKey(vehicleType);
+    const fallbackPrice = DEFAULT_CATEGORY_PRICES[key] ?? 0.0;
+
     try {
-      const { normalizeVehicleCategoryKey, resolveCategoryPrice } = await import('@nexa/shared');
-      const key = normalizeVehicleCategoryKey(vehicleType);
-
-      console.log(key);
-
       const categoriesSetting = await this.settingsService.findOne('vehicle_categories');
       if (categoriesSetting && categoriesSetting.value) {
         const categories = JSON.parse(categoriesSetting.value);
         const config = categories[key];
         if (config) {
-          price = resolveCategoryPrice(config);
+          const price = resolveCategoryPrice(config);
           if (price > 0) return price;
         }
       }
-
-      return price;
+      return fallbackPrice;
     } catch {
-      // Fallback gracefully
+      return fallbackPrice;
     }
-    return price;
   }
 
   async getBookingFee(): Promise<number> {
