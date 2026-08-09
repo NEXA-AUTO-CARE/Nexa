@@ -39,7 +39,7 @@ const GaragePage = () => {
   const location = useLocation();
   const { vehicles, isLoading, refetch } = useVehicles();
   const { toast } = useToast();
-  const { categoryPricing, priceFor, labelFor, descriptionFor } = useSettings();
+  const { vehicleCategories, priceFor, labelFor, descriptionFor, numericPriceFor } = useSettings();
 
   const [showForm, setShowForm] = useState(false);
   const [isGiftMode, setIsGiftMode] = useState(false);
@@ -63,7 +63,7 @@ const GaragePage = () => {
   }, [location.state, location.pathname, navigate]);
 
   const isCorporate = selectedCategory === "corporate_fleet";
-  const allCategories = buildCategories(categoryPricing, labelFor, descriptionFor);
+  const allCategories = buildCategories(vehicleCategories, labelFor, descriptionFor, priceFor, numericPriceFor);
   const categoryMeta = selectedCategory
     ? allCategories.find((c) => c.id === selectedCategory)!
     : null;

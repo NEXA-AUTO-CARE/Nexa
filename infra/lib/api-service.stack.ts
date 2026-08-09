@@ -46,6 +46,11 @@ export class ApiServiceStack extends cdk.Stack {
       });
     }
 
+    // Add FREE S3 Gateway Endpoint to bypass NAT Gateway data processing fees ($0.045/GB)
+    vpc.addGatewayEndpoint('S3GatewayEndpoint', {
+      service: ec2.GatewayVpcEndpointAwsService.S3,
+    });
+
     // 2. Create an ECS Cluster
     const cluster = new ecs.Cluster(this, 'EcsCluster', {
       vpc,

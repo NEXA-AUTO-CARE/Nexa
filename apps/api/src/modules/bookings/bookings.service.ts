@@ -62,31 +62,30 @@ export class BookingsService {
     private readonly promotionsService: PromotionsService,
   ) { }
 
+  // resolve price based on vehicle category. No more hardcode defaulted prices here
   async getBasePriceForCategory(vehicleType: string): Promise<number> {
+    let price: number = 0.0;
     try {
-      const key = vehicleType?.toLowerCase();
-      // 1. Try rich vehicle_categories setting
+      const { normalizeVehicleCategoryKey, resolveCategoryPrice } = await import('@nexa/shared');
+      const key = normalizeVehicleCategoryKey(vehicleType);
+
+      console.log(key);
+
       const categoriesSetting = await this.settingsService.findOne('vehicle_categories');
       if (categoriesSetting && categoriesSetting.value) {
         const categories = JSON.parse(categoriesSetting.value);
         const config = categories[key];
         if (config) {
-          const { resolveCategoryPrice } = await import('@nexa/shared');
-          return resolveCategoryPrice(config);
+          price = resolveCategoryPrice(config);
+          if (price > 0) return price;
         }
       }
-      // 2. Fallback to car_category_pricing setting
-      const pricingSetting = await this.settingsService.findOne('car_category_pricing');
-      if (pricingSetting && pricingSetting.value) {
-        const categoryPricing = JSON.parse(pricingSetting.value);
-        const val = categoryPricing[key];
-        const parsed = typeof val === 'number' ? val : parseFloat(String(val ?? 0));
-        return Number.isNaN(parsed) ? 0.0 : parsed;
-      }
+
+      return price;
     } catch {
       // Fallback gracefully
     }
-    return 0.0;
+    return price;
   }
 
   async getBookingFee(): Promise<number> {

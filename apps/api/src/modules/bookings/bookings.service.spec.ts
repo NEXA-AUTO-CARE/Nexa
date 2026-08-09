@@ -339,4 +339,40 @@ describe('BookingsService', () => {
       expect(res.vehicleSummary).toBe('v1');
     });
   });
+
+  describe('getBasePriceForCategory', () => {
+    it('should resolve base price for SEDAN to family_car price (50.00)', async () => {
+      settingsService.findOne.mockResolvedValue({
+        key: 'vehicle_categories',
+        value: JSON.stringify({
+          small_car: { display_name: 'Small Car', price: 40.0 },
+          family_car: { display_name: 'Family Car', price: 50.0 },
+          large_suv_van: { display_name: 'Large SUV', price: 60.0 },
+        }),
+      });
+
+      const price = await service.getBasePriceForCategory('SEDAN');
+      expect(price).toBe(50.0);
+    });
+
+    it('should resolve base price for small_car (40.00)', async () => {
+      settingsService.findOne.mockResolvedValue({
+        key: 'vehicle_categories',
+        value: JSON.stringify({
+          small_car: { display_name: 'Small Car', price: 40.0 },
+          family_car: { display_name: 'Family Car', price: 50.0 },
+        }),
+      });
+
+      const price = await service.getBasePriceForCategory('small_car');
+      expect(price).toBe(40.0);
+    });
+
+    it('should fallback to default rate when setting is missing', async () => {
+      settingsService.findOne.mockResolvedValue(null);
+
+      const price = await service.getBasePriceForCategory('sedan');
+      expect(price).toBe(50.0);
+    });
+  });
 });

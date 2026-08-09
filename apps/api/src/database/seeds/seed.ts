@@ -115,25 +115,11 @@ async function seed() {
       description: 'Comprehensive deep cleaning of all interior surfaces',
       price: '39.99',
       isActive: true,
-    }),
-    addonRepo.create({
-      name: 'Polish',
-      description: 'High-quality gloss paint polish coating',
-      price: '29.99',
-      isActive: true,
     })
   ]);
 
   console.log('Seeding System Settings...');
   await settingRepo.save([
-    settingRepo.create({
-      key: 'car_category_pricing',
-      value: JSON.stringify({
-        small_car: '40.00',
-        family_car: '50.00',
-        large_suv_van: '60.00',
-      }),
-    }),
     settingRepo.create({
       key: 'terms_and_conditions',
       value: `Before you confirm your booking, please confirm:\n\n- I confirm that the vehicle details I have provided are accurate. I understand that if my vehicle does not match the tier I have selected, I may be asked to pay an additional amount in line with the correct NEXA rate. See [NEXA Vehicle Classification Guide](/docs/nexa-vehicle-classification-guide.pdf).\n- I confirm that I have a suitable and safe space available for the service to be carried out at the address provided. I understand that if the space is deemed unsuitable on arrival, my booking may be cancelled and a 70% refund will be issued.\n- I confirm that I am the registered owner of the vehicle or have the permission of the registered owner to book this service.\n- I agree to the [Nexa Terms of Service](/docs/nexa-terms-of-service.pdf) and [Privacy Policy](/docs/nexa-privacy-policy.pdf).\n- I confirm that I have read the Cancellation Policy: full refund 24h prior, 70% refund if cancelled within 24h of booking slot.`,
@@ -234,6 +220,7 @@ async function seed() {
       value: JSON.stringify({
         small_car: {
           display_name: 'Small Car',
+          price: 40.0,
           vehicle_types: [
             'Subcompact hatchbacks',
             'City cars',
@@ -254,6 +241,7 @@ async function seed() {
         },
         family_car: {
           display_name: 'Family Car',
+          price: 50.0,
           vehicle_types: [
             'Mid-size sedans',
             'Compact family hatchbacks',
@@ -277,6 +265,7 @@ async function seed() {
         },
         large_suv_van: {
           display_name: 'Large SUV / 7-Seater / Van',
+          price: 60.0,
           vehicle_types: [
             'Full-size luxury SUVs',
             '7-seater passenger vehicles',

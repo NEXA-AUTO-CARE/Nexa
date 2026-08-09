@@ -39,7 +39,7 @@ export default function AdminCorporatePage() {
   const [notes, setNotes] = useState('Standard Nexa Corporate Fleet Wash agreement.')
   const [raisedSuccess, setRaisedSuccess] = useState(false)
 
-  const { bookingFee, categoryPricing, labelFor, priceFor } = useSettings()
+  const { bookingFee, vehicleCategories, labelFor, priceFor } = useSettings()
 
   const defaultPrice = Number(priceFor('small_car')) || 40
 
@@ -317,7 +317,7 @@ export default function AdminCorporatePage() {
                     onChange={(e) => setSelectedCategoryRate(Number(e.target.value))}
                     className="w-full bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl p-2.5 text-xs focus:ring-0 focus:border-nexa-mint/40"
                   >
-                    {Object.keys(categoryPricing).map((key) => (
+                    {Object.keys(vehicleCategories).map((key) => (
                       <option key={key} value={Number(priceFor(key))}>
                         {labelFor(key)} (£{priceFor(key)}/veh)
                       </option>

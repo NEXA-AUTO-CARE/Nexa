@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { Car, Truck, Building2, Check } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
 
+import { type VehicleCategoryConfig } from "@nexa/shared";
+
 export type VehicleCategoryId = string;
 
 export type PricingMode = "fixed_price" | "invoice_only";
@@ -25,18 +27,18 @@ export interface VehicleCategory {
  * Build the full VehicleCategory list from the live settings.
  */
 function buildCategories(
-  categoryPricing: Record<string, number | string>,
+  vehicleCategories: Record<string, VehicleCategoryConfig>,
   labelFor: (vt: string) => string,
   descriptionFor: (vt: string) => string,
   priceFor?: (vt: string) => string,
+  numericPriceFor?: (vt: string) => number,
 ): VehicleCategory[] {
-  const keys = Object.keys(categoryPricing);
+  const keys = Object.keys(vehicleCategories || {});
 
-  // Map dynamic categories based on the pricing keys provided in settings
+  // Map dynamic categories based on the vehicle_categories provided in settings
   const dynamicCategories: VehicleCategory[] = keys.map((key) => {
-    const rawVal = categoryPricing[key];
-    const numericPrice = typeof rawVal === "number" ? rawVal : parseFloat(String(rawVal || 0));
-    const formattedPrice = priceFor ? priceFor(key) : (isNaN(numericPrice) ? "0.00" : numericPrice.toFixed(2));
+    const formattedPrice = priceFor ? priceFor(key) : "0.00";
+    const numericPrice = numericPriceFor ? numericPriceFor(key) : parseFloat(formattedPrice);
     const isVan = key.toLowerCase().includes("van");
     return {
       id: key,
@@ -74,8 +76,8 @@ interface VehicleCategorySelectorProps {
 }
 
 const VehicleCategorySelector = ({ selected, onSelect }: VehicleCategorySelectorProps) => {
-  const { categoryPricing, labelFor, descriptionFor, priceFor } = useSettings();
-  const categories = buildCategories(categoryPricing, labelFor, descriptionFor, priceFor);
+  const { vehicleCategories, labelFor, descriptionFor, priceFor, numericPriceFor } = useSettings();
+  const categories = buildCategories(vehicleCategories, labelFor, descriptionFor, priceFor, numericPriceFor);
 
   return (
     <div className="space-y-2">

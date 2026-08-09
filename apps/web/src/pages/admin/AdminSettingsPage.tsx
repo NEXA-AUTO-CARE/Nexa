@@ -157,7 +157,6 @@ export default function AdminSettingsPage() {
       const { data } = await api.get<{ key: string; value: string }[]>('/settings')
 
       const categoriesSetting = data.find((s) => s.key === 'vehicle_categories')
-      const pricingSetting = data.find((s) => s.key === 'car_category_pricing')
       const bookingFeeSetting = data.find((s) => s.key === 'booking_fee')
       const faqsSetting = data.find((s) => s.key === 'faqs')
       const termsSetting = data.find((s) => s.key === 'terms_and_conditions')
@@ -185,15 +184,6 @@ export default function AdminSettingsPage() {
           if (items.length > 0) {
             setCategories(items)
           }
-        } catch { /* ignore parse error */ }
-      } else if (pricingSetting && pricingSetting.value) {
-        try {
-          const rawPricing = JSON.parse(pricingSetting.value) as Record<string, any>
-          const items = DEFAULT_CATEGORIES.map((c) => ({
-            ...c,
-            price: typeof rawPricing[c.key] === 'number' ? rawPricing[c.key] : parseFloat(String(rawPricing[c.key] ?? c.price)),
-          }))
-          setCategories(items)
         } catch { /* ignore parse error */ }
       }
 
@@ -264,7 +254,6 @@ export default function AdminSettingsPage() {
       setSuccessMsg(null)
 
       const richMap: Record<string, any> = {}
-      const simplePricing: Record<string, number> = {}
       const simpleLabels: Record<string, string> = {}
       const simpleDescriptions: Record<string, string> = {}
 
@@ -283,13 +272,11 @@ export default function AdminSettingsPage() {
           examples: cat.examples.split(',').map((s) => s.trim()).filter(Boolean),
         }
 
-        simplePricing[cleanKey] = Number(cat.price)
         simpleLabels[cleanKey] = cat.displayName
         simpleDescriptions[cleanKey] = cat.description
       })
 
       await api.post('/settings/vehicle_categories', { value: JSON.stringify(richMap) })
-      await api.post('/settings/car_category_pricing', { value: JSON.stringify(simplePricing) })
       await api.post('/settings/vehicle_category_labels', { value: JSON.stringify(simpleLabels) })
       await api.post('/settings/vehicle_category_descriptions', { value: JSON.stringify(simpleDescriptions) })
 

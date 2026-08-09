@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import {
   BOOKING_FEE,
   SERVICE_LABELS,
+  normalizeVehicleCategoryKey,
   resolveCategoryPrice,
   type VehicleCategoryConfig,
 } from '@nexa/shared'
@@ -18,8 +19,6 @@ export interface TimeSlot {
 interface SettingsData {
   /** Rich categories config */
   vehicleCategories: Record<string, VehicleCategoryConfig>
-  /** e.g. { small_car: 40.00, family_car: 50.00, ... } */
-  categoryPricing: Record<string, number | string>
   /** e.g. { small_car: "Small Car", ... } */
   categoryLabels: Record<string, string>
   /** e.g. { small_car: "Subcompact hatchbacks...", ... } */
@@ -77,11 +76,6 @@ const DEFAULTS: SettingsData = {
       description: 'Full-size luxury SUVs, 7-seater passenger vehicles, Multi-purpose vans',
     },
   },
-  categoryPricing: {
-    small_car: 40.00,
-    family_car: 50.00,
-    large_suv_van: 60.00,
-  },
   categoryLabels: {
     small_car: 'Small Car',
     family_car: 'Family Car',
@@ -131,11 +125,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const cached = localStorage.getItem(CACHE_KEY)
       if (cached) {
         const parsed = JSON.parse(cached)
-        // If cache only contains legacy categories ('standard'), purge stale cache to load new defaults
-        if (parsed.categoryPricing?.standard && !parsed.categoryPricing?.small_car) {
-          localStorage.removeItem(CACHE_KEY)
-          return DEFAULTS
-        }
         return {
           ...DEFAULTS,
           ...parsed,
@@ -153,16 +142,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const map = new Map(raw.map((s) => [s.key, s.value]))
 
       const parsedCategories = tryParseJson<Record<string, VehicleCategoryConfig>>(map.get('vehicle_categories'), DEFAULTS.vehicleCategories)
-      let parsedPricing = tryParseJson<Record<string, number | string>>(map.get('car_category_pricing'), DEFAULTS.categoryPricing)
-
-      // Purge legacy pricing if only old keys exist
-      if (parsedPricing.standard && !parsedPricing.small_car) {
-        parsedPricing = DEFAULTS.categoryPricing
-      }
 
       const next: SettingsData = {
         vehicleCategories: parsedCategories,
-        categoryPricing: parsedPricing,
         categoryLabels: tryParseJson(map.get('vehicle_category_labels'), DEFAULTS.categoryLabels),
         categoryDescriptions: tryParseJson(map.get('vehicle_category_descriptions'), DEFAULTS.categoryDescriptions),
         bookingFee: map.get('booking_fee') ?? DEFAULTS.bookingFee,
@@ -187,58 +169,51 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     fetchSettings()
   }, [fetchSettings])
 
+  const defaultPrices: Record<string, number> = {
+    small_car: 40.0,
+    family_car: 50.0,
+    large_suv_van: 60.0,
+  }
+
   const value = useMemo<SettingsContextValue>(
     () => ({
       ...data,
       loading,
       refresh: fetchSettings,
       numericPriceFor: (vt) => {
-        if (!vt) return 0;
-        const key = vt.toLowerCase();
-
-        // 1. Check rich vehicleCategories with schedule support
+        const key = normalizeVehicleCategoryKey(vt)
         if (data.vehicleCategories?.[key]) {
-          return resolveCategoryPrice(data.vehicleCategories[key]);
+          const resolved = resolveCategoryPrice(data.vehicleCategories[key])
+          if (resolved > 0) return resolved
         }
-        // 2. Fallback to categoryPricing
-        const raw = data.categoryPricing?.[key] ?? data.categoryPricing?.[vt.toUpperCase()];
-        const num = typeof raw === 'number' ? raw : parseFloat(String(raw ?? 0));
-        return isNaN(num) ? 0 : num;
+        return defaultPrices[key] ?? 40.0
       },
       priceFor: (vt) => {
-        if (!vt) return '0.00';
-        const key = vt.toLowerCase();
-
-        let num = 0;
+        const key = normalizeVehicleCategoryKey(vt)
+        let num = 0
         if (data.vehicleCategories?.[key]) {
-          num = resolveCategoryPrice(data.vehicleCategories[key]);
-        } else {
-          const raw = data.categoryPricing?.[key] ?? data.categoryPricing?.[vt.toUpperCase()];
-          num = typeof raw === 'number' ? raw : parseFloat(String(raw ?? 0));
+          num = resolveCategoryPrice(data.vehicleCategories[key])
         }
-        return isNaN(num) ? '0.00' : num.toFixed(2);
+        if (num <= 0) num = defaultPrices[key] ?? 40.0
+        return num.toFixed(2)
       },
       labelFor: (vt) => {
-        if (!vt) return '';
-        const key = vt.toLowerCase();
-        const upper = key.toUpperCase();
+        const key = normalizeVehicleCategoryKey(vt)
         return (
           data.vehicleCategories?.[key]?.displayName ??
           data.categoryLabels?.[key] ??
-          data.categoryLabels?.[upper] ??
+          DEFAULTS.categoryLabels[key] ??
           vt
-        );
+        )
       },
       descriptionFor: (vt) => {
-        if (!vt) return '';
-        const key = vt.toLowerCase();
-        const upper = key.toUpperCase();
+        const key = normalizeVehicleCategoryKey(vt)
         return (
           data.vehicleCategories?.[key]?.description ??
           data.categoryDescriptions?.[key] ??
-          data.categoryDescriptions?.[upper] ??
+          DEFAULTS.categoryDescriptions[key] ??
           ''
-        );
+        )
       },
       serviceLabelFor: (key = 'base') => data.serviceLabels?.[key] ?? DEFAULTS.serviceLabels[key] ?? '',
     }),

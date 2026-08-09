@@ -19,17 +19,17 @@ export function VehicleFormModal({
   vehicle,
   isSubmitting,
 }: VehicleFormModalProps) {
-  const { categoryPricing, labelFor, descriptionFor } = useSettings()
+  const { vehicleCategories, labelFor, descriptionFor, priceFor, numericPriceFor } = useSettings()
 
   const VEHICLE_TYPES = useMemo(
     () => {
-      const categories = buildCategories(categoryPricing, labelFor, descriptionFor)
+      const categories = buildCategories(vehicleCategories, labelFor, descriptionFor, priceFor, numericPriceFor)
       return categories.filter((c) => c.vehicleType !== null).map((c) => ({
         value: c.vehicleType as string,
         label: `${c.label} — ${c.priceLabel}`,
       }))
     },
-    [categoryPricing, labelFor, descriptionFor],
+    [vehicleCategories, labelFor, descriptionFor, priceFor, numericPriceFor],
   )
 
   const isEdit = !!vehicle

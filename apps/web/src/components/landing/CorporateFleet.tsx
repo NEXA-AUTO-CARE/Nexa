@@ -5,16 +5,16 @@ import { describeError } from '../../lib/errors'
 import { useSettings } from '../../contexts/SettingsContext'
 
 export function CorporateFleet() {
-  const { categoryPricing, priceFor, labelFor, serviceLabelFor } = useSettings()
+  const { vehicleCategories, priceFor, labelFor, serviceLabelFor } = useSettings()
   const serviceLabel = serviceLabelFor()
 
   const CATEGORIES = useMemo(
     () =>
-      Object.keys(categoryPricing).map((key) => ({
+      Object.keys(vehicleCategories).map((key) => ({
         label: labelFor(key),
         price: priceFor(key),
       })),
-    [categoryPricing, priceFor, labelFor],
+    [vehicleCategories, priceFor, labelFor],
   )
   const [form, setForm] = useState<CreateCorporateFleetEnquiryDto>({
     companyName: '',
