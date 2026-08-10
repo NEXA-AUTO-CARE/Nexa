@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { normalizeVehicleCategoryKey } from '@nexa/shared'
 import { api } from '../../lib/api-client'
 import {
   DollarSign,
@@ -168,17 +169,24 @@ export default function AdminSettingsPage() {
           const raw = JSON.parse(categoriesSetting.value) as Record<string, any>
           const items: CategoryItem[] = Object.keys(raw).map((k) => {
             const item = raw[k]
+            const canonicalKey = normalizeVehicleCategoryKey(k)
+            const defaultItem = DEFAULT_CATEGORIES.find((d) => d.key === canonicalKey) || DEFAULT_CATEGORIES.find((d) => d.key === k)
+            const fallbackName = defaultItem?.displayName || (canonicalKey === 'small_car' ? 'Small Car' : canonicalKey === 'family_car' ? 'Family Car' : 'Large SUV / 7-Seater / Van')
+            const rawName = item.display_name ?? item.displayName
+            const isLegacyName = !rawName || rawName === 'Standard' || rawName === 'Grande' || rawName === 'Maxi' || rawName === 'Transit'
+            const displayName = isLegacyName ? fallbackName : rawName
+
             return {
-              key: k,
-              displayName: item.display_name ?? item.displayName ?? k,
+              key: canonicalKey,
+              displayName,
               price: typeof item.price === 'number' ? item.price : parseFloat(String(item.price ?? 0)),
               scheduledPrice: item.scheduledPrice !== undefined && item.scheduledPrice !== null
                 ? (typeof item.scheduledPrice === 'number' ? item.scheduledPrice : parseFloat(String(item.scheduledPrice)))
                 : null,
               activeFrom: item.activeFrom ?? null,
-              description: item.description ?? (Array.isArray(item.vehicle_types) ? item.vehicle_types.join(', ') : ''),
-              examples: Array.isArray(item.examples) ? item.examples.join(', ') : (item.examples ?? ''),
-              seatingCapacity: item.metrics?.seating_capacity ?? item.seatingCapacity ?? '',
+              description: item.description || defaultItem?.description || (Array.isArray(item.vehicle_types) ? item.vehicle_types.join(', ') : ''),
+              examples: Array.isArray(item.examples) ? item.examples.join(', ') : (item.examples || defaultItem?.examples || ''),
+              seatingCapacity: item.metrics?.seating_capacity ?? item.seatingCapacity ?? defaultItem?.seatingCapacity ?? '',
             }
           })
           if (items.length > 0) {

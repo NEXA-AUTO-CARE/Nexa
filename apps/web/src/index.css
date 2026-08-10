@@ -229,6 +229,13 @@
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
 
+  @media (max-width: 768px) {
+    .nexa-input,
+    .nexa-select {
+      font-size: 16px !important;
+    }
+  }
+
   input[type="date"],
   input[type="time"] {
     min-width: 0;

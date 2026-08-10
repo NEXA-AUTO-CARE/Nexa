@@ -14,7 +14,10 @@ import {
   AlertCircle,
   ArrowLeft,
   Settings,
-  Trash2
+  Trash2,
+  Edit,
+  X,
+  Clock
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -69,6 +72,12 @@ export default function AdminBookingDetailsPage() {
   const [newStatus, setNewStatus] = useState('')
   const [newPaymentStatus, setNewPaymentStatus] = useState('')
 
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editBookingTime, setEditBookingTime] = useState('')
+  const [editAddress, setEditAddress] = useState('')
+  const [editAddonIds, setEditAddonIds] = useState<string[]>([])
+  const [allAddons, setAllAddons] = useState<Addon[]>([])
+
   type RawBooking = {
     customer?: { firstName?: string; lastName?: string; displayName?: string; email?: string; phoneNumber?: string }
     vendor?: { firstName?: string; lastName?: string; displayName?: string }
@@ -79,9 +88,10 @@ export default function AdminBookingDetailsPage() {
     if (!id) return
     try {
       setLoading(true)
-      const [bookingRes, vendorsRes] = await Promise.all([
+      const [bookingRes, vendorsRes, addonsRes] = await Promise.all([
         api.get<RawBooking>(`/admin/bookings/${id}`),
         api.get<any[]>('/admin/vendors'),
+        api.get<any[]>('/addons'),
       ])
 
       const b = bookingRes.data as any
@@ -116,6 +126,7 @@ export default function AdminBookingDetailsPage() {
         });
         
       setVendors(activeVendors)
+      setAllAddons(addonsRes.data || [])
     } catch (err) {
       console.error('Failed to load booking data', err)
       setActionError('Could not fetch booking details. Please check authorization or if the booking exists.')
@@ -123,6 +134,31 @@ export default function AdminBookingDetailsPage() {
       setLoading(false)
     }
   }
+
+  const openEditModal = () => {
+    if (!booking) return
+    const dt = booking.bookingTime ? new Date(booking.bookingTime) : new Date()
+    // format as YYYY-MM-DDTHH:mm
+    const tzOffset = dt.getTimezoneOffset() * 60000
+    const localIso = new Date(dt.getTime() - tzOffset).toISOString().slice(0, 16)
+    setEditBookingTime(localIso)
+    setEditAddress(booking.serviceAddress || '')
+    setEditAddonIds((booking.addons || []).map((a) => a.addonId))
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = () => handleAction(async () => {
+    if (!editBookingTime) throw new Error('Please specify a date and time')
+    if (!editAddress.trim()) throw new Error('Please specify a service address')
+
+    await api.patch(`/admin/bookings/${id}/edit`, {
+      bookingTime: new Date(editBookingTime).toISOString(),
+      serviceAddress: editAddress.trim(),
+      addonIds: editAddonIds,
+    })
+    setActionSuccess('Booking updated successfully.')
+    setShowEditModal(false)
+  })
 
   useEffect(() => {
     loadData()
@@ -263,14 +299,24 @@ export default function AdminBookingDetailsPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={loadData}
-          disabled={processing}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg hover:bg-nexa-bg-elevated text-nexa-text text-sm transition-all duration-300"
-        >
-          <RefreshCw className={`w-4 h-4 ${processing ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={openEditModal}
+            disabled={processing || isCompleted || isCancelled}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-nexa-mint/30 bg-nexa-mint/10 hover:bg-nexa-mint/20 text-nexa-mint text-sm font-semibold transition-all duration-300 disabled:opacity-50"
+          >
+            <Edit className="w-4 h-4" />
+            <span>Edit Booking</span>
+          </button>
+          <button
+            onClick={loadData}
+            disabled={processing}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg hover:bg-nexa-bg-elevated text-nexa-text text-sm transition-all duration-300"
+          >
+            <RefreshCw className={`w-4 h-4 ${processing ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {/* STATUS NOTIFICATIONS */}
@@ -333,6 +379,20 @@ export default function AdminBookingDetailsPage() {
                       {booking.customerPhone} {booking.customerEmail ? `| ${booking.customerEmail}` : ''}
                     </p>
                   )}
+                </div>
+                <div>
+                  <p className="text-nexa-text-secondary text-xs uppercase tracking-wider mb-1">Booking Placed On</p>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-nexa-text-muted" />
+                    <span className="text-nexa-text">
+                      {booking.createdAt
+                        ? new Date(booking.createdAt).toLocaleString(undefined, {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          })
+                        : 'N/A'}
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <p className="text-nexa-text-secondary text-xs uppercase tracking-wider mb-1">Service Date & Time</p>
@@ -586,6 +646,115 @@ export default function AdminBookingDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* EDIT BOOKING MODAL */}
+      <AnimatePresence>
+        {showEditModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="glass-card w-full max-w-lg p-6 space-y-6 border border-nexa-border-subtle bg-nexa-bg-card-solid"
+            >
+              <div className="flex items-center justify-between border-b border-nexa-border-subtle pb-3">
+                <h3 className="text-lg font-bold text-nexa-text flex items-center gap-2">
+                  <Edit className="w-5 h-5 text-nexa-mint" />
+                  Edit Booking
+                </h3>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="p-1.5 rounded-lg text-nexa-text-secondary hover:text-nexa-text hover:bg-nexa-bg-elevated transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-nexa-text-secondary mb-1.5">
+                    Service Date & Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={editBookingTime}
+                    onChange={(e) => setEditBookingTime(e.target.value)}
+                    className="w-full bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl p-3 text-sm focus:border-nexa-mint/40 focus:ring-0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-nexa-text-secondary mb-1.5">
+                    Service Address
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                    className="w-full bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl p-3 text-sm focus:border-nexa-mint/40 focus:ring-0 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-nexa-text-secondary mb-2">
+                    Service Add-ons
+                  </label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {allAddons.map((addon) => {
+                      const isChecked = editAddonIds.includes(addon.addonId)
+                      return (
+                        <label
+                          key={addon.addonId}
+                          className={`flex items-center justify-between p-3 rounded-xl border text-sm cursor-pointer transition-all ${
+                            isChecked
+                              ? 'border-nexa-mint/40 bg-nexa-mint/10 text-nexa-text'
+                              : 'border-nexa-border-subtle bg-nexa-bg hover:bg-nexa-bg-elevated text-nexa-text-secondary'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEditAddonIds([...editAddonIds, addon.addonId])
+                                } else {
+                                  setEditAddonIds(editAddonIds.filter((id) => id !== addon.addonId))
+                                }
+                              }}
+                              className="accent-nexa-mint h-4 w-4 rounded"
+                            />
+                            <span className="font-medium text-nexa-text">{addon.name}</span>
+                          </div>
+                          <span className="text-xs text-nexa-mint font-semibold">+£{parseFloat(addon.price).toFixed(2)}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-nexa-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg hover:bg-nexa-bg-elevated text-nexa-text text-sm transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={processing}
+                  onClick={handleSaveEdit}
+                  className="px-5 py-2.5 rounded-xl bg-nexa-mint text-nexa-text-dark font-semibold text-sm hover:bg-nexa-mint-hover transition-all disabled:opacity-50"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

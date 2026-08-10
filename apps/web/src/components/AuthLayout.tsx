@@ -10,15 +10,15 @@ interface Props {
 
 export function AuthLayout({ title, subtitle, children, footer }: Props) {
   return (
-    <div className="nexa-bg-pattern flex min-h-full flex-col bg-nexa-bg">
+    <div className="nexa-bg-pattern flex min-h-screen flex-col bg-nexa-bg w-full max-w-full overflow-x-hidden">
       {/* Mini navbar */}
-      <nav className="px-6 py-4">
+      <nav className="px-4 sm:px-6 py-4 max-w-full">
         <Logo />
       </nav>
 
       {/* Auth card */}
-      <div className="flex flex-1 items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-6 rounded-2xl border border-nexa-border-card bg-nexa-bg-card-solid p-8 shadow-card animate-fade-in-up">
+      <div className="flex flex-1 items-center justify-center p-4 max-w-full">
+        <div className="w-full max-w-md space-y-6 rounded-2xl border border-nexa-border-card bg-nexa-bg-card-solid p-5 sm:p-8 shadow-card animate-fade-in-up">
           <div>
             <h1 className="text-2xl font-semibold text-white">{title}</h1>
             {subtitle && (

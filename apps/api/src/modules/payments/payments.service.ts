@@ -303,30 +303,37 @@ export class PaymentsService {
   }
 
   async refundBookingPayment(bookingId: string): Promise<Payment> {
-    const payment = await this.paymentRepo.findOne({ where: { bookingId } });
-    if (!payment) throw new NotFoundException('Payment record not found');
-    if (payment.status !== PaymentStatus.CAPTURED) {
-      throw new BadRequestException('Only captured payments can be refunded');
-    }
+    let payment = await this.paymentRepo.findOne({ where: { bookingId } });
 
-    try {
-      if (!payment.stripePaymentIntentId.startsWith('pi_mock_')) {
-        await this.stripe.refunds.create({
-          payment_intent: payment.stripePaymentIntentId,
-        });
+    if (payment) {
+      if (
+        payment.status !== PaymentStatus.CAPTURED &&
+        payment.status !== PaymentStatus.PENDING
+      ) {
+        throw new BadRequestException('Only captured or pending payments can be refunded');
       }
-    } catch (e) {
-      this.logger.error('Failed to trigger Stripe refund', e);
+
+      try {
+        if (payment.stripePaymentIntentId && !payment.stripePaymentIntentId.startsWith('pi_mock_')) {
+          await this.stripe.refunds.create({
+            payment_intent: payment.stripePaymentIntentId,
+          });
+        }
+      } catch (e) {
+        this.logger.error('Failed to trigger Stripe refund', e);
+      }
+
+      payment.status = PaymentStatus.REFUNDED;
+      await this.paymentRepo.save(payment);
     }
 
-    payment.status = PaymentStatus.REFUNDED;
-    await this.paymentRepo.save(payment);
     this.logger.log(`Refunded payment for booking ${bookingId}`);
+    await this.bookingsService.updatePaymentStatus(bookingId, PaymentStatus.REFUNDED);
 
     // Also update booking status to cancelled
     try {
       const booking = await this.bookingsService.findById(bookingId);
-      if (booking) {
+      if (booking && booking.status !== BookingStatus.CANCELLED) {
         await this.bookingsService.updateStatus(
           bookingId,
           booking.userId,
@@ -340,7 +347,7 @@ export class PaymentsService {
       );
     }
 
-    return payment;
+    return payment || ({ bookingId, status: PaymentStatus.REFUNDED } as Payment);
   }
 
   async payoutVendor(bookingId: string): Promise<Payment> {

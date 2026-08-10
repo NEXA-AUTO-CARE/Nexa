@@ -32,6 +32,7 @@ import {
 } from './dto/create-booking.dto';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
+import { UpdateCustomerBookingDto } from './dto/update-booking.dto';
 
 @ApiTags('bookings')
 @ApiBearerAuth('jwt')
@@ -125,6 +126,22 @@ export class BookingsController {
       id,
       user.userId,
       dto.status,
+    );
+    return this.bookings.toResponse(booking);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Customer: Update booking time or address' })
+  @ApiOkResponse({ description: 'Updated booking' })
+  async updateBooking(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateCustomerBookingDto,
+  ): Promise<BookingResponse> {
+    const booking = await this.bookings.updateCustomerBooking(
+      id,
+      user.userId,
+      dto,
     );
     return this.bookings.toResponse(booking);
   }

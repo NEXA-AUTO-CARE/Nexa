@@ -25,6 +25,10 @@ import {
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { CreateReviewDto } from './dto/create-review.dto';
 import {
+  UpdateCustomerBookingDto,
+  AdminUpdateBookingDto,
+} from './dto/update-booking.dto';
+import {
   BookingCancelledEvent,
   BookingCreatedEvent,
   BookingStatusChangedEvent,
@@ -576,5 +580,99 @@ export class BookingsService {
     });
 
     return await this.reviewRepo.save(review);
+  }
+
+  async updateCustomerBooking(
+    bookingId: string,
+    userId: string,
+    dto: UpdateCustomerBookingDto,
+  ): Promise<Booking> {
+    const booking = await this.verifyMyBooking(bookingId, userId);
+
+    if (
+      booking.status === BookingStatus.COMPLETED ||
+      booking.status === BookingStatus.CANCELLED
+    ) {
+      throw new BadRequestException('Cannot edit a completed or cancelled booking');
+    }
+
+    if (dto.bookingTime) {
+      const newBookingTime = new Date(dto.bookingTime);
+      if (newBookingTime.getTime() - Date.now() < 48 * 60 * 60 * 1000 - 60000) {
+        throw new BadRequestException('Booking must be at least 48 hours in advance');
+      }
+      booking.bookingTime = newBookingTime;
+    }
+
+    if (dto.serviceAddress !== undefined) booking.serviceAddress = dto.serviceAddress.trim();
+    if (dto.servicePhone !== undefined) booking.servicePhone = dto.servicePhone ? dto.servicePhone.trim() : null;
+    if (dto.latitude !== undefined) booking.latitude = dto.latitude?.toString() ?? null;
+    if (dto.longitude !== undefined) booking.longitude = dto.longitude?.toString() ?? null;
+    if (dto.addressLine1 !== undefined) booking.addressLine1 = dto.addressLine1 ?? null;
+    if (dto.addressLine2 !== undefined) booking.addressLine2 = dto.addressLine2 ?? null;
+    if (dto.addressLine3 !== undefined) booking.addressLine3 = dto.addressLine3 ?? null;
+    if (dto.postTown !== undefined) booking.postTown = dto.postTown ?? null;
+    if (dto.postcode !== undefined) booking.postcode = dto.postcode ?? null;
+    if (dto.uprn !== undefined) booking.uprn = dto.uprn ?? null;
+
+    return await this.bookingRepo.save(booking);
+  }
+
+  async adminUpdateBooking(
+    bookingId: string,
+    dto: AdminUpdateBookingDto,
+  ): Promise<Booking> {
+    const booking = await this.findByIdWithRelations(bookingId);
+
+    if (
+      booking.status === BookingStatus.COMPLETED ||
+      booking.status === BookingStatus.CANCELLED
+    ) {
+      throw new BadRequestException('Cannot edit a completed or cancelled booking');
+    }
+
+    if (dto.bookingTime) {
+      booking.bookingTime = new Date(dto.bookingTime);
+    }
+
+    if (dto.serviceAddress !== undefined) booking.serviceAddress = dto.serviceAddress.trim();
+    if (dto.servicePhone !== undefined) booking.servicePhone = dto.servicePhone ? dto.servicePhone.trim() : null;
+    if (dto.latitude !== undefined) booking.latitude = dto.latitude?.toString() ?? null;
+    if (dto.longitude !== undefined) booking.longitude = dto.longitude?.toString() ?? null;
+    if (dto.addressLine1 !== undefined) booking.addressLine1 = dto.addressLine1 ?? null;
+    if (dto.addressLine2 !== undefined) booking.addressLine2 = dto.addressLine2 ?? null;
+    if (dto.addressLine3 !== undefined) booking.addressLine3 = dto.addressLine3 ?? null;
+    if (dto.postTown !== undefined) booking.postTown = dto.postTown ?? null;
+    if (dto.postcode !== undefined) booking.postcode = dto.postcode ?? null;
+    if (dto.uprn !== undefined) booking.uprn = dto.uprn ?? null;
+
+    if (dto.addonIds !== undefined) {
+      let addonsSnapshot: { addonId: string; name: string; price: string }[] = [];
+      let addonsTotal = 0;
+
+      if (dto.addonIds.length > 0) {
+        const addons = await this.addonRepo.find({
+          where: { addonId: In(dto.addonIds), isActive: true },
+        });
+        addonsSnapshot = addons.map((a) => ({
+          addonId: a.addonId,
+          name: a.name,
+          price: a.price,
+        }));
+        addonsTotal = addons.reduce((sum, a) => sum + parseFloat(a.price), 0);
+      }
+
+      booking.addons = addonsSnapshot;
+
+      // Recalculate price: base price + addons + booking fee - discount
+      const vehicle = booking.vehicle || (await this.vehicleRepo.findOne({ where: { vehicleId: booking.vehicleId } }));
+      const baseServicePrice = await this.getBasePriceForCategory(vehicle?.vehicleType ?? 'small_car');
+      const bookingFee = await this.getBookingFee();
+      const discount = booking.discountAmount ? parseFloat(booking.discountAmount) : 0;
+      const newPrice = Math.max(0, baseServicePrice + addonsTotal + bookingFee - discount);
+      booking.price = newPrice.toFixed(2);
+    }
+
+    return await this.bookingRepo.save(booking);
   }
 }

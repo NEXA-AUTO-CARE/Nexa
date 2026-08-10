@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Check, Clock, User, MapPin, Camera, Star, XCircle } from "lucide-react";
+import { Check, Clock, User, MapPin, Camera, Star, XCircle, Edit, X } from "lucide-react";
 import { api } from "../lib/api-client";
 import { describeError } from "../lib/errors";
 const STEP_ORDER: BookingStatus[] = [
@@ -51,11 +51,50 @@ const BookingStatusPage = () => {
   const currentIndex = booking ? STEP_ORDER.indexOf(booking.status as BookingStatus) : -1;
   const cancelled = booking?.status === BookingStatus.CANCELLED;
   const canCancel = booking?.status === BookingStatus.BOOKED || booking?.status === BookingStatus.ACCEPTED;
+  const canEdit = booking?.status === BookingStatus.BOOKED || booking?.status === BookingStatus.ACCEPTED;
 
   const queryClient = useQueryClient();
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editBookingTime, setEditBookingTime] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
+  const openEditModal = () => {
+    if (!booking) return;
+    const dt = booking.bookingTime ? new Date(booking.bookingTime) : new Date();
+    const tzOffset = dt.getTimezoneOffset() * 60000;
+    const localIso = new Date(dt.getTime() - tzOffset).toISOString().slice(0, 16);
+    setEditBookingTime(localIso);
+    setEditAddress(booking.serviceAddress || "");
+    setUpdateError(null);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!booking) return;
+    setUpdating(true);
+    setUpdateError(null);
+    try {
+      if (!editBookingTime) throw new Error("Please select a date and time");
+      if (!editAddress.trim()) throw new Error("Please enter a service address");
+
+      await api.patch(`/bookings/${booking.bookingId}`, {
+        bookingTime: new Date(editBookingTime).toISOString(),
+        serviceAddress: editAddress.trim(),
+      });
+      setShowEditModal(false);
+      queryClient.invalidateQueries({ queryKey: ["booking", id] });
+    } catch (err) {
+      setUpdateError(describeError(err));
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const handleCancel = async () => {
     if (!booking) return;
@@ -184,6 +223,15 @@ const BookingStatusPage = () => {
 
           {/* Actions */}
           <div className="flex gap-3">
+            {canEdit && (
+              <Button
+                variant="outline"
+                className="flex-1 gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                onClick={openEditModal}
+              >
+                <Edit className="h-4 w-4" /> Edit Booking
+              </Button>
+            )}
             <Button
               variant="secondary"
               className="flex-1 gap-1.5"
@@ -250,6 +298,80 @@ const BookingStatusPage = () => {
             </motion.div>
           )}
         </>
+      )}
+
+      {/* CUSTOMER EDIT BOOKING MODAL */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card w-full max-w-md p-6 space-y-5 bg-card border border-border"
+          >
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="font-heading font-bold text-lg text-foreground flex items-center gap-2">
+                <Edit className="w-5 h-5 text-primary" />
+                Edit Booking Details
+              </h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  New Wash Date & Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={editBookingTime}
+                  onChange={(e) => setEditBookingTime(e.target.value)}
+                  className="w-full bg-secondary border border-border text-foreground rounded-xl p-3 text-sm focus:border-primary focus:ring-0"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Must be scheduled at least 48 hours in advance.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Service Address
+                </label>
+                <textarea
+                  rows={3}
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  className="w-full bg-secondary border border-border text-foreground rounded-xl p-3 text-sm focus:border-primary focus:ring-0 resize-none"
+                />
+              </div>
+
+              {updateError && (
+                <p className="text-xs text-destructive">{updateError}</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-border">
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => setShowEditModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={updating}
+                onClick={handleSaveEdit}
+              >
+                {updating ? "Saving…" : "Save Changes"}
+              </Button>
+            </div>
+          </motion.div>
+        </div>
       )}
     </div>
   );

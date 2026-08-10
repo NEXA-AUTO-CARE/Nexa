@@ -27,6 +27,7 @@ import type { BookingResponse } from '@nexa/shared';
 import { BadRequestException } from '@nestjs/common';
 import { UpdateBookingStatusDto } from '../bookings/dto/update-booking-status.dto';
 import { UpdatePaymentStatusDto } from '../bookings/dto/update-payment-status.dto';
+import { AdminUpdateBookingDto } from '../bookings/dto/update-booking.dto';
 import { AuditTrailService } from '../../common/audit/audit-trail.service';
 
 @ApiTags('admin')
@@ -164,5 +165,27 @@ export class AdminBookingsController {
   ): Promise<BookingResponse> {
     await this.paymentsService.syncPaymentStatusByBookingId(id);
     return this.getBooking(id);
+  }
+
+  @Patch(':id/edit')
+  @ApiOperation({ summary: 'Admin: edit booking (addons, time, address)' })
+  @ApiOkResponse({ description: 'Updated booking' })
+  async editBooking(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AdminUpdateBookingDto,
+  ): Promise<BookingResponse> {
+    const booking = await this.bookingsService.adminUpdateBooking(id, dto);
+
+    await this.auditTrail.record(
+      'BOOKING',
+      id,
+      'UPDATE_BOOKING_DETAILS',
+      null,
+      { ...dto },
+      user.userId,
+    );
+
+    return this.bookingsService.toResponse(booking);
   }
 }
