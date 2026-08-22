@@ -19,6 +19,7 @@ import {
   X,
   Clock
 } from 'lucide-react'
+import { BookingStatus, PaymentStatus } from '@nexa/shared'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface Addon {
@@ -228,11 +229,20 @@ export default function AdminBookingDetailsPage() {
   })
 
   const handleRefund = () => handleAction(async () => {
-    if (!window.confirm('Are you sure you want to refund this booking in full? This will also cancel the job.')) {
+    if (!booking) return
+    if (booking.paymentStatus.toLowerCase() !== 'captured') {
+      throw new Error(`Only confirmed paid bookings (Captured) can be refunded. Current payment status is "${booking.paymentStatus}".`)
+    }
+    const isAlreadyCompleted = booking.status.toLowerCase() === 'completed'
+    const promptMessage = isAlreadyCompleted
+      ? 'This booking is marked as Completed. Refunding will issue a full refund via Stripe and cancel the booking. Are you sure you want to proceed?'
+      : 'Are you sure you want to refund this booking in full via Stripe? This will issue a full refund and cancel the job.'
+
+    if (!window.confirm(promptMessage)) {
       return
     }
     await api.post(`/payments/bookings/${id}/refund`)
-    setActionSuccess('Customer refund successfully processed.')
+    setActionSuccess('Customer refund successfully processed in Stripe and booking marked as cancelled.')
   })
 
   const handleDeleteBooking = async () => {
@@ -504,9 +514,9 @@ export default function AdminBookingDetailsPage() {
             <div className="mb-4">
               <span
                 className={`inline-block text-xs px-3 py-1 rounded-full font-semibold capitalize ${
-                  booking.status === 'COMPLETED'
+                  booking.status === BookingStatus.COMPLETED
                     ? 'bg-nexa-mint/10 text-nexa-mint border border-nexa-mint/20'
-                    : booking.status === 'CANCELLED'
+                    : booking.status === BookingStatus.CANCELLED
                     ? 'bg-nexa-error/10 text-nexa-error border border-nexa-error/20'
                     : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                 }`}
@@ -522,11 +532,12 @@ export default function AdminBookingDetailsPage() {
                 onChange={(e) => setNewStatus(e.target.value)}
                 className="w-full text-sm bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl px-3 py-2.5 focus:border-nexa-mint/40 focus:ring-0"
               >
-                <option value="BOOKED">Booked (Pending Match)</option>
-                <option value="ACCEPTED">Accepted (Matched)</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
+                <option value={BookingStatus.BOOKED}>Booked (Pending Match)</option>
+                <option value={BookingStatus.ASSIGNED}>Assigned (Detailer Linked)</option>
+                <option value={BookingStatus.ACCEPTED}>Accepted (Confirmed by Detailer)</option>
+                <option value={BookingStatus.IN_PROGRESS}>In Progress</option>
+                <option value={BookingStatus.COMPLETED}>Completed</option>
+                <option value={BookingStatus.CANCELLED}>Cancelled</option>
               </select>
               <button
                 disabled={processing || newStatus === booking.status}
@@ -548,9 +559,11 @@ export default function AdminBookingDetailsPage() {
             <div className="mb-4 flex items-center justify-between">
               <span
                 className={`inline-block text-xs px-3 py-1 rounded-full font-semibold capitalize ${
-                  booking.paymentStatus === 'CAPTURED'
+                  booking.paymentStatus === PaymentStatus.CAPTURED
                     ? 'bg-nexa-mint/10 text-nexa-mint border border-nexa-mint/20'
-                    : booking.paymentStatus === 'FAILED'
+                    : booking.paymentStatus === PaymentStatus.REFUNDED
+                    ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                    : booking.paymentStatus === PaymentStatus.FAILED
                     ? 'bg-nexa-error/10 text-nexa-error border border-nexa-error/20'
                     : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                 }`}
@@ -578,11 +591,11 @@ export default function AdminBookingDetailsPage() {
                 onChange={(e) => setNewPaymentStatus(e.target.value)}
                 className="w-full text-sm bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl px-3 py-2.5 focus:border-nexa-mint/40 focus:ring-0"
               >
-                <option value="PENDING">Pending</option>
-                <option value="AUTHORIZED">Authorized</option>
-                <option value="CAPTURED">Captured</option>
-                <option value="FAILED">Failed</option>
-                <option value="REFUNDED">Refunded</option>
+                <option value={PaymentStatus.PENDING}>Pending (Unpaid)</option>
+                <option value={PaymentStatus.PROCESSING}>Processing</option>
+                <option value={PaymentStatus.CAPTURED}>Captured (Paid)</option>
+                <option value={PaymentStatus.FAILED}>Failed</option>
+                <option value={PaymentStatus.REFUNDED}>Refunded</option>
               </select>
               <button
                 disabled={processing || newPaymentStatus === booking.paymentStatus}
@@ -597,9 +610,18 @@ export default function AdminBookingDetailsPage() {
             <div className="space-y-3">
               <p className="text-xs text-nexa-text-secondary">Financial Actions:</p>
               <button
-                disabled={processing}
+                disabled={processing || booking.paymentStatus !== PaymentStatus.CAPTURED}
                 onClick={handleRefund}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-nexa-error/25 bg-nexa-error/5 hover:bg-nexa-error/10 text-nexa-error text-sm font-semibold transition-all"
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+                  booking.paymentStatus === PaymentStatus.CAPTURED
+                    ? 'border-nexa-error/25 bg-nexa-error/5 hover:bg-nexa-error/10 text-nexa-error'
+                    : 'border-nexa-border-subtle bg-nexa-bg-deep/50 text-nexa-text-muted cursor-not-allowed opacity-60'
+                }`}
+                title={
+                  booking.paymentStatus !== PaymentStatus.CAPTURED
+                    ? 'Only confirmed paid bookings (Captured) can be refunded'
+                    : 'Initiate full customer refund in Stripe'
+                }
               >
                 <XCircle className="w-4 h-4" />
                 Initiate Refund
@@ -732,6 +754,30 @@ export default function AdminBookingDetailsPage() {
                     })}
                   </div>
                 </div>
+
+                {/* Live price preview */}
+                {booking && (
+                  <div className="p-3 rounded-xl bg-nexa-bg border border-nexa-border-subtle flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-nexa-text-secondary">Estimated Total</p>
+                      <p className="text-[11px] text-nexa-text-muted">
+                        Base service + {editAddonIds.length} add-on(s)
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-nexa-mint text-base">
+                        £{(() => {
+                          const currentAddonsSum = (booking.addons || []).reduce((sum, a) => sum + parseFloat(a.price || '0'), 0)
+                          const basePrice = Math.max(0, parseFloat(booking.price || '0') - currentAddonsSum)
+                          const newAddonsSum = allAddons
+                            .filter((a) => editAddonIds.includes(a.addonId))
+                            .reduce((sum, a) => sum + parseFloat(a.price || '0'), 0)
+                          return (basePrice + newAddonsSum).toFixed(2)
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2 border-t border-nexa-border-subtle">
@@ -748,7 +794,7 @@ export default function AdminBookingDetailsPage() {
                   onClick={handleSaveEdit}
                   className="px-5 py-2.5 rounded-xl bg-nexa-mint text-nexa-text-dark font-semibold text-sm hover:bg-nexa-mint-hover transition-all disabled:opacity-50"
                 >
-                  Save Changes
+                  {processing ? 'Saving…' : 'Save Changes'}
                 </button>
               </div>
             </motion.div>

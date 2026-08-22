@@ -113,7 +113,7 @@ export function SignupPage() {
       }
     >
       <form className="space-y-4" onSubmit={onSubmit}>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="First name" error={errors.firstName?.message}>
             <input className={inputCls} autoComplete="given-name" {...register('firstName')} />
           </Field>

@@ -59,18 +59,22 @@ export default function AdminDashboard() {
     loadData()
   }, [])
 
-  // Calculations
-  const totalRevenue = bookings
-    .filter((b) => b.paymentStatus?.toLowerCase() === 'captured' && b.status.toLowerCase() !== 'cancelled')
-    .reduce((sum, b) => {
-      const parsed = parseFloat(b.price || '0')
-      return sum + (Number.isNaN(parsed) ? 0 : parsed)
-    }, 0)
+  // Calculations - Confirmed Paid Bookings
+  const paidBookings = bookings.filter(
+    (b) => b.paymentStatus?.toLowerCase() === 'captured' && b.status.toLowerCase() !== 'cancelled'
+  )
+
+  const unpaidBookings = bookings.filter(
+    (b) => b.paymentStatus?.toLowerCase() !== 'captured' && b.paymentStatus?.toLowerCase() !== 'refunded' && b.status.toLowerCase() !== 'cancelled'
+  )
+
+  const totalRevenue = paidBookings.reduce((sum, b) => {
+    const parsed = parseFloat(b.price || '0')
+    return sum + (Number.isNaN(parsed) ? 0 : parsed)
+  }, 0)
 
   const activeLeads = corporateLeads.filter((lead) => lead.status === 'new')
-  const unassignedJobs = bookings.filter(
-    (b) => !b.vendorId && b.paymentStatus?.toLowerCase() === 'captured' && b.status.toLowerCase() !== 'cancelled'
-  )
+  const unassignedJobs = paidBookings.filter((b) => !b.vendorId)
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -155,19 +159,19 @@ export default function AdminDashboard() {
               £{totalRevenue.toFixed(2)}
             </h3>
             <p className="text-[11px] text-nexa-text-secondary">
-              From completed customer washes
+              From {paidBookings.length} confirmed paid washes
             </p>
           </div>
         </motion.div>
 
-        {/* TOTAL BOOKINGS */}
+        {/* CONFIRMED PAID BOOKINGS */}
         <motion.div
           variants={itemVariants}
           className="glass-card p-6 flex flex-col justify-between group hover:border-nexa-mint/20 transition-all duration-300"
         >
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs font-bold text-nexa-text-secondary uppercase tracking-widest">
-              Total Bookings
+              Paid Bookings
             </span>
             <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center text-blue-400">
               <Calendar className="w-5 h-5" />
@@ -175,10 +179,10 @@ export default function AdminDashboard() {
           </div>
           <div>
             <h3 className="font-display font-extrabold text-3xl tracking-tight text-nexa-text mb-1">
-              {bookings.length}
+              {paidBookings.length}
             </h3>
             <p className="text-[11px] text-nexa-text-secondary">
-              Lifetime requests received
+              {unpaidBookings.length} unpaid / pending checkout
             </p>
           </div>
         </motion.div>
@@ -201,19 +205,19 @@ export default function AdminDashboard() {
               {unassignedJobs.length}
             </h3>
             <p className="text-[11px] text-nexa-text-secondary">
-              Bookings awaiting detailer match
+              Paid bookings awaiting detailer match
             </p>
           </div>
         </motion.div>
 
-        {/* ACTIVE CORP LEADS */}
+        {/* UNPAID / FOLLOW-UP LEADS */}
         <motion.div
           variants={itemVariants}
           className="glass-card p-6 flex flex-col justify-between group hover:border-purple-500/30 transition-all duration-300"
         >
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs font-bold text-nexa-text-secondary uppercase tracking-widest">
-              Active Corporate Leads
+              Unpaid Follow-ups
             </span>
             <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center text-purple-400">
               <Building className="w-5 h-5" />
@@ -221,10 +225,10 @@ export default function AdminDashboard() {
           </div>
           <div>
             <h3 className="font-display font-extrabold text-3xl tracking-tight text-nexa-text mb-1">
-              {activeLeads.length}
+              {unpaidBookings.length}
             </h3>
             <p className="text-[11px] text-nexa-text-secondary">
-              Out of {corporateLeads.length} total company requests
+              {activeLeads.length} corporate leads active
             </p>
           </div>
         </motion.div>
@@ -252,32 +256,47 @@ export default function AdminDashboard() {
             {[...bookings]
               .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
               .slice(0, 5)
-              .map((b) => (
-              <div key={b.bookingId} className="py-4 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm truncate block">
-                      {b.vehicleSummary || 'Wash Request'}
-                    </span>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full capitalize font-semibold bg-nexa-bg-elevated border border-nexa-border-subtle text-nexa-text-secondary">
-                      {b.status}
-                    </span>
+              .map((b) => {
+                const isPaid = b.paymentStatus?.toLowerCase() === 'captured'
+                const isRefunded = b.paymentStatus?.toLowerCase() === 'refunded'
+                return (
+                  <div key={b.bookingId} className="py-4 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm truncate block text-nexa-text">
+                          {b.vehicleSummary || 'Wash Request'}
+                        </span>
+                        <span className="text-[11px] px-2 py-0.5 rounded-full capitalize font-semibold bg-nexa-bg-elevated border border-nexa-border-subtle text-nexa-text-secondary">
+                          {b.status.replace('_', ' ')}
+                        </span>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            isPaid
+                              ? 'bg-nexa-mint/15 text-nexa-mint border border-nexa-mint/30'
+                              : isRefunded
+                              ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                              : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                          }`}
+                        >
+                          {isPaid ? 'Paid' : isRefunded ? 'Refunded' : 'Unpaid'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-nexa-text-secondary">
+                        {new Date(b.bookingTime).toLocaleString(undefined, {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="block font-bold text-sm text-nexa-text">£{parseFloat(b.price).toFixed(2)}</span>
+                      <span className="text-[10px] text-nexa-text-muted">
+                        {b.vendorId ? 'Assigned' : 'Unassigned'}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-xs text-nexa-text-secondary">
-                    {new Date(b.bookingTime).toLocaleString(undefined, {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                    })}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="block font-bold text-sm text-nexa-text">£{parseFloat(b.price).toFixed(2)}</span>
-                  <span className="text-[10px] text-nexa-text-muted">
-                    {b.vendorId ? 'Assigned' : 'Unassigned'}
-                  </span>
-                </div>
-              </div>
-            ))}
+                )
+              })}
             {bookings.length === 0 && (
               <div className="text-center py-12 text-nexa-text-secondary text-sm">
                 No bookings registered in the system yet.
@@ -295,13 +314,33 @@ export default function AdminDashboard() {
             </div>
 
             <div className="space-y-4">
+              {/* Unpaid Bookings Follow-up Action Card */}
+              {unpaidBookings.length > 0 && (
+                <div className="p-4 rounded-xl border border-purple-500/20 bg-purple-500/5 flex gap-3">
+                  <AlertTriangle className="w-5 h-5 text-purple-400 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-semibold text-purple-300">Unpaid Bookings Follow-up</h4>
+                    <p className="text-xs text-nexa-text-secondary mt-1">
+                      {unpaidBookings.length} customer booking(s) pending payment. Sales team can follow up to assist checkout.
+                    </p>
+                    <Link
+                      to="/admin/bookings?payment=pending"
+                      className="inline-flex items-center gap-1 text-xs text-purple-300 font-semibold hover:underline mt-2"
+                    >
+                      <span>View Unpaid Bookings</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               {unassignedJobs.length > 0 ? (
                 <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 flex gap-3">
                   <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                   <div>
                     <h4 className="text-sm font-semibold text-amber-300">Assign Detailers</h4>
                     <p className="text-xs text-nexa-text-secondary mt-1">
-                      {unassignedJobs.length} booking(s) require detailer assignment to ensure service delivery.
+                      {unassignedJobs.length} confirmed paid booking(s) require detailer assignment.
                     </p>
                     <Link
                       to="/admin/bookings"
@@ -316,25 +355,25 @@ export default function AdminDashboard() {
                 <div className="p-4 rounded-xl border border-nexa-mint/20 bg-nexa-mint/5 flex gap-3">
                   <CheckCircle className="w-5 h-5 text-nexa-mint shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-sm font-semibold text-nexa-mint">All Jobs Matched</h4>
+                    <h4 className="text-sm font-semibold text-nexa-mint">All Paid Jobs Matched</h4>
                     <p className="text-xs text-nexa-text-secondary mt-1">
-                      All currently scheduled customer bookings have been matched with certified detailers.
+                      All confirmed paid customer bookings have been matched with certified detailers.
                     </p>
                   </div>
                 </div>
               )}
 
               {activeLeads.length > 0 && (
-                <div className="p-4 rounded-xl border border-purple-500/20 bg-purple-500/5 flex gap-3">
-                  <Building className="w-5 h-5 text-purple-400 shrink-0 mt-0.5" />
+                <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 flex gap-3">
+                  <Building className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-sm font-semibold text-purple-300">Corporate Billings</h4>
+                    <h4 className="text-sm font-semibold text-blue-300">Corporate Billings</h4>
                     <p className="text-xs text-nexa-text-secondary mt-1">
                       You have {activeLeads.length} active fleet pipeline leads waiting for custom invoice generation.
                     </p>
                     <Link
                       to="/admin/corporate"
-                      className="inline-flex items-center gap-1 text-xs text-purple-300 font-semibold hover:underline mt-2"
+                      className="inline-flex items-center gap-1 text-xs text-blue-300 font-semibold hover:underline mt-2"
                     >
                       <span>Generate Invoices</span>
                       <ArrowRight className="w-3 h-3" />
@@ -349,7 +388,7 @@ export default function AdminDashboard() {
             <span className="text-[10px] uppercase font-bold tracking-widest text-nexa-text-secondary block mb-1">
               Version controls
             </span>
-            <span className="text-xs text-nexa-text-muted">Nexa MVP v1.1.0-alpha</span>
+            <span className="text-xs text-nexa-text-muted">Nexa Operations Platform v1.1.0</span>
           </div>
         </motion.div>
       </div>

@@ -77,8 +77,9 @@ function parseInlineElements(text: string): ReactNode {
 
 const PaymentPage = () => {
   const navigate = useNavigate();
-  const location = useLocation() as { state?: { bookingId?: string } };
-  const bookingId = location.state?.bookingId;
+  const location = useLocation() as { state?: { bookingId?: string }; search?: string };
+  const searchParams = new URLSearchParams(location.search);
+  const bookingId = location.state?.bookingId || searchParams.get('bookingId');
   const settings = useSettings();
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);

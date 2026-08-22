@@ -285,8 +285,8 @@ export class PaymentsService {
         newStatus = PaymentStatus.FAILED;
       } else if (processingEvents.includes(event.type)) {
         newStatus = PaymentStatus.PROCESSING;
-      } else if (event.type.startsWith('refund.')) {
-        if (obj.status === 'succeeded') {
+      } else if (event.type.startsWith('refund.') || event.type === 'charge.refunded') {
+        if (obj.status === 'succeeded' || event.type === 'charge.refunded') {
           newStatus = PaymentStatus.REFUNDED;
         } else if (obj.status === 'failed') {
           newStatus = PaymentStatus.CAPTURED;
@@ -303,40 +303,56 @@ export class PaymentsService {
   }
 
   async refundBookingPayment(bookingId: string): Promise<Payment> {
-    let payment = await this.paymentRepo.findOne({ where: { bookingId } });
+    const payment = await this.paymentRepo.findOne({ where: { bookingId } });
 
-    if (payment) {
-      if (
-        payment.status !== PaymentStatus.CAPTURED &&
-        payment.status !== PaymentStatus.PENDING
-      ) {
-        throw new BadRequestException('Only captured or pending payments can be refunded');
-      }
-
-      try {
-        if (payment.stripePaymentIntentId && !payment.stripePaymentIntentId.startsWith('pi_mock_')) {
-          await this.stripe.refunds.create({
-            payment_intent: payment.stripePaymentIntentId,
-          });
-        }
-      } catch (e) {
-        this.logger.error('Failed to trigger Stripe refund', e);
-      }
-
-      payment.status = PaymentStatus.REFUNDED;
-      await this.paymentRepo.save(payment);
+    if (!payment) {
+      throw new BadRequestException(
+        'No payment record found for this booking. Only confirmed paid bookings can be refunded.',
+      );
     }
 
-    this.logger.log(`Refunded payment for booking ${bookingId}`);
-    await this.bookingsService.updatePaymentStatus(bookingId, PaymentStatus.REFUNDED);
+    if (payment.status !== PaymentStatus.CAPTURED) {
+      throw new BadRequestException(
+        `Only confirmed paid bookings (Captured) can be refunded. Current payment status is "${payment.status}".`,
+      );
+    }
 
-    // Also update booking status to cancelled
+    const booking = await this.bookingsService.findById(bookingId);
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (
+      payment.stripePaymentIntentId &&
+      !payment.stripePaymentIntentId.startsWith('pi_mock_')
+    ) {
+      try {
+        await this.stripe.refunds.create({
+          payment_intent: payment.stripePaymentIntentId,
+        });
+      } catch (e: any) {
+        this.logger.error('Failed to trigger Stripe refund', e);
+        if (e?.code !== 'charge_already_refunded') {
+          throw new BadRequestException(
+            `Stripe refund failed: ${e?.message || 'Gateway error'}`,
+          );
+        }
+      }
+    }
+
+    payment.status = PaymentStatus.REFUNDED;
+    const savedPayment = await this.paymentRepo.save(payment);
+
+    this.logger.log(`Refunded payment for booking ${bookingId}`);
+    await this.bookingsService.updatePaymentStatus(
+      bookingId,
+      PaymentStatus.REFUNDED,
+    );
+
     try {
-      const booking = await this.bookingsService.findById(bookingId);
-      if (booking && booking.status !== BookingStatus.CANCELLED) {
-        await this.bookingsService.updateStatus(
+      if (booking.status !== BookingStatus.CANCELLED) {
+        await this.bookingsService.adminUpdateStatus(
           bookingId,
-          booking.userId,
           BookingStatus.CANCELLED,
         );
       }
@@ -347,7 +363,7 @@ export class PaymentsService {
       );
     }
 
-    return payment || ({ bookingId, status: PaymentStatus.REFUNDED } as Payment);
+    return savedPayment;
   }
 
   async payoutVendor(bookingId: string): Promise<Payment> {

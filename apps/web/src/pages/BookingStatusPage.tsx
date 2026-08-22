@@ -221,6 +221,41 @@ const BookingStatusPage = () => {
             </div>
           </motion.div>
 
+          {/* Payment Status Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28 }}
+            className={`glass-card p-4 flex items-center justify-between gap-3 border ${
+              booking.paymentStatus === 'captured'
+                ? 'border-success/30 bg-success/5'
+                : booking.paymentStatus === 'refunded'
+                ? 'border-purple-500/30 bg-purple-500/5'
+                : 'border-warning/30 bg-warning/5'
+            }`}
+          >
+            <div className="space-y-0.5">
+              <p className="text-xs text-muted-foreground">Payment Status</p>
+              <p className="text-sm font-semibold">
+                {booking.paymentStatus === 'captured'
+                  ? `Paid in Full · £${booking.price}`
+                  : booking.paymentStatus === 'refunded'
+                  ? `Refunded · £${booking.price}`
+                  : `Payment Pending · £${booking.price}`}
+              </p>
+            </div>
+
+            {booking.paymentStatus !== 'captured' && booking.paymentStatus !== 'refunded' && !cancelled && (
+              <Button
+                size="sm"
+                className="bg-primary text-primary-foreground font-semibold shadow-md"
+                onClick={() => navigate('/payment', { state: { bookingId: booking.bookingId } })}
+              >
+                Pay Now
+              </Button>
+            )}
+          </motion.div>
+
           {/* Actions */}
           <div className="flex gap-3">
             {canEdit && (

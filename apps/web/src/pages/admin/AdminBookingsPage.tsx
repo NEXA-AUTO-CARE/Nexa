@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../../lib/api-client'
 import {
   CalendarDays,
@@ -60,11 +60,15 @@ interface SystemUser {
 
 export default function AdminBookingsPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const initialPaymentParam = searchParams.get('payment') || 'all'
+
   const [bookings, setBookings] = useState<Booking[]>([])
   const [vendors, setVendors] = useState<SystemUser[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [paymentFilter, setPaymentFilter] = useState(initialPaymentParam)
   const [assigningId, setAssigningId] = useState<string | null>(null)
   const [selectedVendorId, setSelectedVendorId] = useState('')
   const [actionSuccess, setActionSuccess] = useState<string | null>(null)
@@ -173,17 +177,28 @@ export default function AdminBookingsPage() {
     }
   }
 
-  const handleRefund = async (bookingId: string) => {
-    if (!window.confirm('Are you sure you want to refund this booking in full? This will also cancel the job.')) {
+  const handleRefund = async (booking: Booking) => {
+    if (booking.paymentStatus?.toLowerCase() !== 'captured') {
+      setActionError(`Only confirmed paid bookings (Captured) can be refunded. Current payment status is "${booking.paymentStatus}".`)
       return
     }
+
+    const isAlreadyCompleted = booking.status.toLowerCase() === 'completed'
+    const promptMessage = isAlreadyCompleted
+      ? 'This booking is marked as Completed. Refunding will issue a full refund via Stripe and cancel the booking. Are you sure you want to proceed?'
+      : 'Are you sure you want to refund this booking in full via Stripe? This will issue a full refund and cancel the job.'
+
+    if (!window.confirm(promptMessage)) {
+      return
+    }
+
     try {
-      setProcessingId(bookingId)
+      setProcessingId(booking.bookingId)
       setActionError(null)
       setActionSuccess(null)
 
-      await api.post(`/payments/bookings/${bookingId}/refund`)
-      setActionSuccess('Customer refund successfully processed.')
+      await api.post(`/payments/bookings/${booking.bookingId}/refund`)
+      setActionSuccess('Customer refund successfully processed in Stripe.')
       await loadData()
     } catch (err: unknown) {
       console.error(err)
@@ -200,12 +215,16 @@ export default function AdminBookingsPage() {
       b.vehicleSummary?.toLowerCase().includes(search.toLowerCase()) ||
       b.customerName?.toLowerCase().includes(search.toLowerCase()) ||
       b.serviceAddress?.toLowerCase().includes(search.toLowerCase()) ||
-      b.bookingId.toLowerCase().includes(search.toLowerCase())
+      b.bookingId.toLowerCase().includes(search.toLowerCase()) ||
+      (b.bookingReference && b.bookingReference.toLowerCase().includes(search.toLowerCase()))
 
     const matchesStatus =
       statusFilter === 'all' || b.status.toLowerCase() === statusFilter.toLowerCase()
 
-    return matchesSearch && matchesStatus
+    const matchesPayment =
+      paymentFilter === 'all' || b.paymentStatus?.toLowerCase() === paymentFilter.toLowerCase()
+
+    return matchesSearch && matchesStatus && matchesPayment
   }).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
 
   // Close notifications after a delay
@@ -228,7 +247,7 @@ export default function AdminBookingsPage() {
             Bookings & Matching
           </h1>
           <p className="text-nexa-text-secondary text-sm">
-            Match customers with detailers, manage payouts, and issue refunds.
+            Match customers with detailers, track payments, follow up unpaid checkouts, and issue refunds.
           </p>
         </div>
         <button
@@ -267,20 +286,20 @@ export default function AdminBookingsPage() {
       </AnimatePresence>
 
       {/* FILTER & SEARCH BAR */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Search */}
-        <div className="relative md:col-span-2">
+        <div className="relative sm:col-span-2 lg:col-span-2">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-nexa-text-muted" />
           <input
             type="text"
-            placeholder="Search by vehicle make, plate, customer name, address, or ID..."
+            placeholder="Search by vehicle, plate, customer, address, or Ref..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-11 pr-4 py-3 rounded-xl border border-nexa-border-subtle bg-nexa-bg/40 backdrop-blur-sm focus:border-nexa-mint/40 focus:ring-0 text-sm text-nexa-text placeholder-nexa-text-muted transition-all duration-300"
           />
         </div>
 
-        {/* Status Filter */}
+        {/* Booking Status Filter */}
         <div className="relative">
           <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-nexa-text-muted" />
           <select
@@ -288,12 +307,29 @@ export default function AdminBookingsPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="w-full pl-11 pr-4 py-3 rounded-xl border border-nexa-border-subtle bg-nexa-bg/40 backdrop-blur-sm focus:border-nexa-mint/40 focus:ring-0 text-sm text-nexa-text transition-all duration-300 appearance-none cursor-pointer"
           >
-            <option value="all">All Bookings</option>
+            <option value="all">All Booking Statuses</option>
             <option value="booked">Booked (Pending Match)</option>
+            <option value="assigned">Assigned (Detailer Linked)</option>
             <option value="accepted">Accepted (Matched)</option>
             <option value="in_progress">In Progress</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+
+        {/* Payment Status Filter */}
+        <div className="relative">
+          <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-nexa-text-muted" />
+          <select
+            value={paymentFilter}
+            onChange={(e) => setPaymentFilter(e.target.value)}
+            className="w-full pl-11 pr-4 py-3 rounded-xl border border-nexa-border-subtle bg-nexa-bg/40 backdrop-blur-sm focus:border-nexa-mint/40 focus:ring-0 text-sm text-nexa-text transition-all duration-300 appearance-none cursor-pointer"
+          >
+            <option value="all">All Payments</option>
+            <option value="captured">Paid / Captured</option>
+            <option value="pending">Unpaid / Pending</option>
+            <option value="failed">Failed Payment</option>
+            <option value="refunded">Refunded</option>
           </select>
         </div>
       </div>
@@ -308,13 +344,16 @@ export default function AdminBookingsPage() {
         <div className="glass-card p-12 text-center text-nexa-text-secondary">
           <CalendarDays className="w-12 h-12 mx-auto text-nexa-text-muted mb-4" />
           <h3 className="font-display font-bold text-lg mb-1">No Bookings Found</h3>
-          <p className="text-sm">No wash bookings matched your current filters.</p>
+          <p className="text-sm">No wash bookings matched your current filter criteria.</p>
         </div>
       ) : (
         <div className="space-y-6">
           {filteredBookings.map((booking) => {
             const isCompleted = booking.status.toLowerCase() === 'completed'
             const isCancelled = booking.status.toLowerCase() === 'cancelled'
+            const isPaid = booking.paymentStatus?.toLowerCase() === 'captured'
+            const isRefunded = booking.paymentStatus?.toLowerCase() === 'refunded'
+            const isFailed = booking.paymentStatus?.toLowerCase() === 'failed'
             const isProcessing = processingId === booking.bookingId
 
             return (
@@ -344,12 +383,31 @@ export default function AdminBookingsPage() {
                     >
                       {booking.status.replace('_', ' ')}
                     </span>
+                    <span
+                      className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase ${
+                        isPaid
+                          ? 'bg-nexa-mint/15 text-nexa-mint border border-nexa-mint/30'
+                          : isRefunded
+                          ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                          : isFailed
+                          ? 'bg-nexa-error/15 text-nexa-error border border-nexa-error/30'
+                          : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                      }`}
+                    >
+                      {isPaid
+                        ? 'Paid'
+                        : isRefunded
+                        ? 'Refunded'
+                        : isFailed
+                        ? 'Payment Failed'
+                        : 'Unpaid / Pending'}
+                    </span>
                   </div>
 
                   {/* Core Details Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs">
                     <div className="flex items-center gap-2 text-nexa-text-secondary">
-                      <CalendarDays className="w-4 h-4 text-nexa-mint" />
+                      <CalendarDays className="w-4 h-4 text-nexa-mint shrink-0" />
                       <span>
                         {new Date(booking.bookingTime).toLocaleString(undefined, {
                           dateStyle: 'medium',
@@ -358,19 +416,12 @@ export default function AdminBookingsPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-nexa-text-secondary">
-                      <User className="w-4 h-4 text-nexa-mint" />
-                      <div className="flex flex-col gap-1">
-                        <span className="text-nexa-text-secondary">{booking.customerName}</span>
-                        {booking.customerPhone && (
-                          <span className="flex items-center gap-1.5 text-[11px] text-nexa-text-muted">
-                            <Phone className="w-3 h-3" />
-                            {booking.customerPhone}
-                          </span>
-                        )}
-                        {booking.customerEmail && (
-                          <span className="flex items-center gap-1.5 text-[11px] text-nexa-text-muted">
-                            <Mail className="w-3 h-3" />
-                            {booking.customerEmail}
+                      <User className="w-4 h-4 text-nexa-mint shrink-0" />
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-nexa-text font-medium">{booking.customerName}</span>
+                        {(booking.customerPhone || booking.customerEmail) && (
+                          <span className="text-[11px] text-nexa-text-muted">
+                            {booking.customerPhone} {booking.customerEmail ? `· ${booking.customerEmail}` : ''}
                           </span>
                         )}
                       </div>
@@ -400,6 +451,41 @@ export default function AdminBookingsPage() {
                     </div>
                   )}
 
+                  {/* Sales Follow-up Box for Unpaid/Pending Checkouts */}
+                  {!isPaid && !isRefunded && !isCancelled && (
+                    <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-purple-300 flex items-center gap-1.5">
+                          <AlertCircle className="w-4 h-4" />
+                          <span>Customer Pending Payment: Sales Follow-up</span>
+                        </p>
+                        <p className="text-nexa-text-muted text-[11px] mt-0.5">
+                          Booking placed but payment not completed. Reach out to assist with completion.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {booking.customerPhone && (
+                          <a
+                            href={`tel:${booking.customerPhone}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 text-xs font-semibold transition-colors"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            Call
+                          </a>
+                        )}
+                        {booking.customerEmail && (
+                          <a
+                            href={`mailto:${booking.customerEmail}?subject=Your%20Nexa%20Car%20Detailing%20Booking`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 text-xs font-semibold transition-colors"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                            Email
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Detailer Matching Status */}
                   <div className="pt-2">
                     {booking.vendorId ? (
@@ -423,10 +509,7 @@ export default function AdminBookingsPage() {
                   {/* Price */}
                   <div className="text-right">
                     <span className="block text-[10px] text-nexa-text-secondary uppercase tracking-widest">
-                      Total Paid
-                    </span>
-                    <span className="font-display font-bold text-nexa-text text-sm">
-                      Ref: {booking.bookingReference || booking.bookingId.slice(0, 8).toUpperCase()}
+                      {isPaid ? 'Total Paid' : isRefunded ? 'Refunded' : 'Amount Due (Unpaid)'}
                     </span>
                     <span className="font-display font-extrabold text-2xl text-nexa-text block">
                       £{parseFloat(booking.price).toFixed(2)}
@@ -440,7 +523,7 @@ export default function AdminBookingsPage() {
                       className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-nexa-mint hover:bg-nexa-mint/90 text-nexa-bg text-sm font-bold transition-all duration-300"
                     >
                       <Settings className="w-4 h-4" />
-                      Manage Booking
+                      Manage & Edit
                     </button>
 
                     {/* Assign Matching Controls */}
@@ -496,12 +579,20 @@ export default function AdminBookingsPage() {
                     {/* Payout & Refund Buttons */}
                     {!isCancelled && (
                       <div className="grid grid-cols-2 gap-2">
-                        {/* Refund Booking */}
+                        {/* Refund Booking (Only allowed if paid) */}
                         <button
-                          disabled={isProcessing}
-                          onClick={() => handleRefund(booking.bookingId)}
-                          className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-nexa-error/25 bg-nexa-error/5 hover:bg-nexa-error/10 text-xs font-semibold text-nexa-error transition-all duration-300"
-                          title="Issue Full Refund & Cancel"
+                          disabled={isProcessing || !isPaid}
+                          onClick={() => handleRefund(booking)}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-semibold transition-all duration-300 ${
+                            isPaid
+                              ? 'border-nexa-error/25 bg-nexa-error/5 hover:bg-nexa-error/10 text-nexa-error'
+                              : 'border-nexa-border-subtle bg-nexa-bg-deep/50 text-nexa-text-muted cursor-not-allowed opacity-50'
+                          }`}
+                          title={
+                            !isPaid
+                              ? 'Only confirmed paid bookings can be refunded'
+                              : 'Issue Full Refund & Cancel in Stripe'
+                          }
                         >
                           <XCircle className="w-3.5 h-3.5" />
                           <span>Refund</span>

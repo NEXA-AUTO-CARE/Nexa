@@ -231,7 +231,10 @@
 
   @media (max-width: 768px) {
     .nexa-input,
-    .nexa-select {
+    .nexa-select,
+    input,
+    select,
+    textarea {
       font-size: 16px !important;
     }
   }

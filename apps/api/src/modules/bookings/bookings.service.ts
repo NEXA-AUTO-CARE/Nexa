@@ -38,12 +38,21 @@ import { PromotionsService } from '../promotions/promotions.service';
 
 /** Valid status transitions */
 const TRANSITIONS: Record<string, string[]> = {
-  [BookingStatus.BOOKED]: [BookingStatus.ACCEPTED, BookingStatus.CANCELLED],
+  [BookingStatus.BOOKED]: [
+    BookingStatus.ASSIGNED,
+    BookingStatus.ACCEPTED,
+    BookingStatus.CANCELLED,
+  ],
+  [BookingStatus.ASSIGNED]: [
+    BookingStatus.BOOKED,
+    BookingStatus.ACCEPTED,
+    BookingStatus.CANCELLED,
+  ],
   [BookingStatus.ACCEPTED]: [
     BookingStatus.IN_PROGRESS,
     BookingStatus.CANCELLED,
   ],
-  [BookingStatus.IN_PROGRESS]: [BookingStatus.COMPLETED],
+  [BookingStatus.IN_PROGRESS]: [BookingStatus.COMPLETED, BookingStatus.CANCELLED],
   [BookingStatus.COMPLETED]: [],
   [BookingStatus.CANCELLED]: [],
 };
