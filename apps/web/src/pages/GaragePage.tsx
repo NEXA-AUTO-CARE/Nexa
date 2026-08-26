@@ -21,7 +21,7 @@ import { describeError } from "../lib/errors";
 
 const emptyCorporateData: CorporateFleetData = {
   companyName: "",
-  fleetSize: "",
+  fleetSize: "1",
   contactPerson: "",
   businessEmail: "",
   businessPhone: "",

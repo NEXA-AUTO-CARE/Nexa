@@ -157,10 +157,10 @@ export default function AdminCorporatePage() {
             </div>
             <div className="glass-card p-4 border border-nexa-border-subtle flex items-center justify-between">
               <div>
-                <p className="text-xs text-nexa-text-secondary uppercase tracking-wider mb-1">Active (Pending)</p>
-                <p className="text-2xl font-bold text-amber-400">{leads.filter((l) => l.status === 'new').length}</p>
+                <p className="text-xs text-nexa-text-secondary uppercase tracking-wider mb-1">Active (Booked)</p>
+                <p className="text-2xl font-bold text-nexa-mint">{leads.filter((l) => l.status === 'new').length}</p>
               </div>
-              <AlertTriangle className="w-8 h-8 text-amber-400 opacity-50" />
+              <CheckCircle className="w-8 h-8 text-nexa-mint opacity-50" />
             </div>
             <div className="glass-card p-4 border border-nexa-border-subtle flex items-center justify-between">
               <div>
@@ -179,7 +179,7 @@ export default function AdminCorporatePage() {
               className="bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl px-4 py-2 text-sm focus:ring-0 focus:border-nexa-mint/40"
             >
               <option value="all">All Leads</option>
-              <option value="new">Pending Invoice</option>
+              <option value="new">Booked</option>
               <option value="invoiced">Invoiced</option>
             </select>
           </div>
@@ -203,10 +203,10 @@ export default function AdminCorporatePage() {
                     className={`text-xs px-2.5 py-0.5 rounded-full font-semibold capitalize ${
                       lead.status === 'invoiced'
                         ? 'bg-nexa-mint/10 text-nexa-mint border border-nexa-mint/20'
-                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                     }`}
                   >
-                    {lead.status === 'invoiced' ? 'Invoiced' : 'Pending Invoice'}
+                    {lead.status === 'invoiced' ? 'Invoiced' : 'Booked'}
                   </span>
                 </div>
 
@@ -228,7 +228,9 @@ export default function AdminCorporatePage() {
 
                 <div className="text-xs font-semibold text-nexa-mint/90">
                   <span>Requested Fleet Size: </span>
-                  <strong className="text-sm font-extrabold text-nexa-text">{lead.fleetSize} vehicles</strong>
+                  <strong className="text-sm font-extrabold text-nexa-text">
+                    {lead.fleetSize} {lead.fleetSize === 1 ? 'vehicle' : 'vehicles'}
+                  </strong>
                 </div>
               </div>
 
@@ -385,8 +387,8 @@ export default function AdminCorporatePage() {
                       <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">NEXA AUTO CARE</h2>
                       <p className="text-xs text-slate-500">Professional Valeting & Fleet Care</p>
                       <p className="text-xs text-slate-500 mt-1">
-                        77 Union St, Aberdeen, AB11 6BD<br />
-                        billing@nexa-autocare.co.uk
+                        Schoolhill, Aberdeen AB10 1JQ<br />
+                        Finance@nexaautocare.com
                       </p>
                     </div>
                     <div className="text-right">
@@ -415,9 +417,9 @@ export default function AdminCorporatePage() {
                       <span className={`inline-block text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full ${
                         selectedLead.status === 'invoiced'
                           ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-amber-100 text-amber-800'
+                          : 'bg-emerald-100 text-emerald-800'
                       }`}>
-                        {selectedLead.status === 'invoiced' ? 'Issued' : 'Draft'}
+                        {selectedLead.status === 'invoiced' ? 'Invoiced' : 'Booked'}
                       </span>
                     </div>
                   </div>
