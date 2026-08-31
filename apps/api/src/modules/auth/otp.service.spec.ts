@@ -106,10 +106,20 @@ describe('OtpService', () => {
       await service.issue('carol@example.com');
       expect(logSpy).not.toHaveBeenCalled();
     });
+
+    it('normalizes uppercase email identifier on issue', async () => {
+      repo.save.mockImplementation(async (entity) => entity);
+      await service.issue('Alice@Example.com');
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifier: 'alice@example.com',
+        }),
+      );
+    });
   });
 
   describe('verify', () => {
-    it('marks the row consumed and returns void on success', async () => {
+    it('marks the row consumed and returns void on success with normalized identifier and trimmed code', async () => {
       const row: Partial<OtpCode> = {
         identifier: 'a@b.com',
         code: '123456',
@@ -119,8 +129,16 @@ describe('OtpService', () => {
       repo.findOne.mockResolvedValue(row);
       repo.save.mockResolvedValue(row);
 
-      await service.verify('a@b.com', '123456');
+      await service.verify('  A@B.COM  ', ' 123456 ');
 
+      expect(repo.findOne).toHaveBeenCalledWith({
+        where: {
+          identifier: 'a@b.com',
+          code: '123456',
+          consumedAt: expect.anything(),
+        },
+        order: { createdOn: 'DESC' },
+      });
       expect(row.consumedAt).toBeInstanceOf(Date);
       expect(repo.save).toHaveBeenCalledWith(row);
     });

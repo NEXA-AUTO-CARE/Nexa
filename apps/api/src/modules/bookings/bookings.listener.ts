@@ -2,9 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { MessageTemplateService } from '../notifications/message-template.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import {
-  NOTIFICATION_TEMPLATES_KEY,
-} from '../notifications/templates/booking.templates';
+import { NOTIFICATION_TEMPLATES_KEY } from '../notifications/templates/booking.templates';
 import type { BookingNotificationContext } from '../notifications/templates/booking.templates';
 import {
   BookingCreatedEvent,
@@ -80,8 +78,7 @@ export class BookingsListener {
       title: 'Booking Update',
       emailBody:
         'Your booking (Ref: {{bookingRef}}) has been updated to: {{status}}.',
-      smsBody:
-        'NEXA: Your booking (Ref: {{bookingRef}}) has been updated.',
+      smsBody: 'NEXA: Your booking (Ref: {{bookingRef}}) has been updated.',
     };
 
     const tpl = dbTemplates?.[ctx.status] ?? genericFallback;
@@ -126,7 +123,9 @@ export class BookingsListener {
     return {
       customerName: booking.customer?.displayName ?? 'Customer',
       bookingId: booking.bookingId,
-      bookingRef: booking.bookingReference ?? booking.bookingId.split('-')[0].toUpperCase(),
+      bookingRef:
+        booking.bookingReference ??
+        booking.bookingId.split('-')[0].toUpperCase(),
       vehicleSummary: v
         ? `${v.make} ${v.model} (${v.registrationNumber})`
         : 'Your vehicle',
