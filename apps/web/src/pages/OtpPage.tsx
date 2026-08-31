@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { normalizeIdentifier } from '@nexa/shared'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
@@ -18,7 +19,8 @@ export function OtpPage() {
   const { verifyOtp } = useAuth()
   const navigate = useNavigate()
   const location = useLocation() as { state?: { identifier?: string } }
-  const identifier = location.state?.identifier
+  const rawIdentifier = location.state?.identifier
+  const identifier = rawIdentifier ? normalizeIdentifier(rawIdentifier) : undefined
   const [serverError, setServerError] = useState<string | null>(null)
 
   const {
@@ -34,12 +36,13 @@ export function OtpPage() {
   const onSubmit = handleSubmit(async ({ code }) => {
     setServerError(null)
     try {
-      const { setupToken } = await verifyOtp({ identifier, code })
+      const { setupToken } = await verifyOtp({ identifier, code: code.trim() })
       navigate('/set-password', { state: { setupToken } })
     } catch (err) {
       setServerError(describeError(err))
     }
   })
+
 
   return (
     <AuthLayout

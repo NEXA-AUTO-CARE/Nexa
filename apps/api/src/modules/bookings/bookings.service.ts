@@ -52,7 +52,10 @@ const TRANSITIONS: Record<string, string[]> = {
     BookingStatus.IN_PROGRESS,
     BookingStatus.CANCELLED,
   ],
-  [BookingStatus.IN_PROGRESS]: [BookingStatus.COMPLETED, BookingStatus.CANCELLED],
+  [BookingStatus.IN_PROGRESS]: [
+    BookingStatus.COMPLETED,
+    BookingStatus.CANCELLED,
+  ],
   [BookingStatus.COMPLETED]: [],
   [BookingStatus.CANCELLED]: [],
 };
@@ -73,16 +76,21 @@ export class BookingsService {
     private readonly events: EventEmitter2,
     private readonly settingsService: SettingsService,
     private readonly promotionsService: PromotionsService,
-  ) { }
+  ) {}
 
   // resolve price based on vehicle category with fallback defaults
   async getBasePriceForCategory(vehicleType: string): Promise<number> {
-    const { normalizeVehicleCategoryKey, resolveCategoryPrice, DEFAULT_CATEGORY_PRICES } = await import('@nexa/shared');
+    const {
+      normalizeVehicleCategoryKey,
+      resolveCategoryPrice,
+      DEFAULT_CATEGORY_PRICES,
+    } = await import('@nexa/shared');
     const key = normalizeVehicleCategoryKey(vehicleType);
     const fallbackPrice = DEFAULT_CATEGORY_PRICES[key] ?? 0.0;
 
     try {
-      const categoriesSetting = await this.settingsService.findOne('vehicle_categories');
+      const categoriesSetting =
+        await this.settingsService.findOne('vehicle_categories');
       if (categoriesSetting && categoriesSetting.value) {
         const categories = JSON.parse(categoriesSetting.value);
         const config = categories[key];
@@ -122,7 +130,9 @@ export class BookingsService {
 
     const bookingTime = new Date(dto.bookingTime);
     if (bookingTime.getTime() - Date.now() < 48 * 60 * 60 * 1000 - 60000) {
-      throw new BadRequestException('Booking must be at least 48 hours in advance');
+      throw new BadRequestException(
+        'Booking must be at least 48 hours in advance',
+      );
     }
 
     // Mini Valet is the single base service; price is driven by vehicle category.
@@ -179,7 +189,8 @@ export class BookingsService {
 
     const finalPrice = Math.max(0, basePrice - discountAmount);
 
-    const bookingReference = 'BKG-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const bookingReference =
+      'BKG-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
     const booking = this.bookingRepo.create({
       userId,
@@ -288,7 +299,10 @@ export class BookingsService {
     return full;
   }
 
-  async updatePaymentStatus(bookingId: string, newStatus: PaymentStatus): Promise<Booking> {
+  async updatePaymentStatus(
+    bookingId: string,
+    newStatus: PaymentStatus,
+  ): Promise<Booking> {
     const booking = await this.bookingRepo.findOne({ where: { bookingId } });
     if (!booking) throw new NotFoundException('Booking not found');
 
@@ -296,12 +310,17 @@ export class BookingsService {
     booking.paymentStatus = newStatus;
     await this.bookingRepo.save(booking);
 
-    this.logger.log(`Booking ${bookingId} payment status updated from ${previousStatus} to ${newStatus}`);
+    this.logger.log(
+      `Booking ${bookingId} payment status updated from ${previousStatus} to ${newStatus}`,
+    );
 
     const full = await this.findByIdWithRelations(bookingId);
 
     // If payment is now captured, emit BookingCreatedEvent
-    if (newStatus === PaymentStatus.CAPTURED && previousStatus !== PaymentStatus.CAPTURED) {
+    if (
+      newStatus === PaymentStatus.CAPTURED &&
+      previousStatus !== PaymentStatus.CAPTURED
+    ) {
       this.events.emit(
         BookingCreatedEvent.EVENT_NAME,
         new BookingCreatedEvent(full),
@@ -390,7 +409,8 @@ export class BookingsService {
 
     const finalPrice = Math.max(0, basePrice - discountAmount);
 
-    const bookingReference = 'BKG-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const bookingReference =
+      'BKG-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
     const booking = this.bookingRepo.create({
       userId,
@@ -535,7 +555,8 @@ export class BookingsService {
         : undefined,
       customerEmail: cust?.email ?? undefined,
       customerPhone: cust?.phoneNumber ?? undefined,
-      stripePaymentIntentId: booking.payment?.stripePaymentIntentId ?? undefined,
+      stripePaymentIntentId:
+        booking.payment?.stripePaymentIntentId ?? undefined,
     };
   }
 
@@ -602,24 +623,35 @@ export class BookingsService {
       booking.status === BookingStatus.COMPLETED ||
       booking.status === BookingStatus.CANCELLED
     ) {
-      throw new BadRequestException('Cannot edit a completed or cancelled booking');
+      throw new BadRequestException(
+        'Cannot edit a completed or cancelled booking',
+      );
     }
 
     if (dto.bookingTime) {
       const newBookingTime = new Date(dto.bookingTime);
       if (newBookingTime.getTime() - Date.now() < 48 * 60 * 60 * 1000 - 60000) {
-        throw new BadRequestException('Booking must be at least 48 hours in advance');
+        throw new BadRequestException(
+          'Booking must be at least 48 hours in advance',
+        );
       }
       booking.bookingTime = newBookingTime;
     }
 
-    if (dto.serviceAddress !== undefined) booking.serviceAddress = dto.serviceAddress.trim();
-    if (dto.servicePhone !== undefined) booking.servicePhone = dto.servicePhone ? dto.servicePhone.trim() : null;
-    if (dto.latitude !== undefined) booking.latitude = dto.latitude?.toString() ?? null;
-    if (dto.longitude !== undefined) booking.longitude = dto.longitude?.toString() ?? null;
-    if (dto.addressLine1 !== undefined) booking.addressLine1 = dto.addressLine1 ?? null;
-    if (dto.addressLine2 !== undefined) booking.addressLine2 = dto.addressLine2 ?? null;
-    if (dto.addressLine3 !== undefined) booking.addressLine3 = dto.addressLine3 ?? null;
+    if (dto.serviceAddress !== undefined)
+      booking.serviceAddress = dto.serviceAddress.trim();
+    if (dto.servicePhone !== undefined)
+      booking.servicePhone = dto.servicePhone ? dto.servicePhone.trim() : null;
+    if (dto.latitude !== undefined)
+      booking.latitude = dto.latitude?.toString() ?? null;
+    if (dto.longitude !== undefined)
+      booking.longitude = dto.longitude?.toString() ?? null;
+    if (dto.addressLine1 !== undefined)
+      booking.addressLine1 = dto.addressLine1 ?? null;
+    if (dto.addressLine2 !== undefined)
+      booking.addressLine2 = dto.addressLine2 ?? null;
+    if (dto.addressLine3 !== undefined)
+      booking.addressLine3 = dto.addressLine3 ?? null;
     if (dto.postTown !== undefined) booking.postTown = dto.postTown ?? null;
     if (dto.postcode !== undefined) booking.postcode = dto.postcode ?? null;
     if (dto.uprn !== undefined) booking.uprn = dto.uprn ?? null;
@@ -637,26 +669,36 @@ export class BookingsService {
       booking.status === BookingStatus.COMPLETED ||
       booking.status === BookingStatus.CANCELLED
     ) {
-      throw new BadRequestException('Cannot edit a completed or cancelled booking');
+      throw new BadRequestException(
+        'Cannot edit a completed or cancelled booking',
+      );
     }
 
     if (dto.bookingTime) {
       booking.bookingTime = new Date(dto.bookingTime);
     }
 
-    if (dto.serviceAddress !== undefined) booking.serviceAddress = dto.serviceAddress.trim();
-    if (dto.servicePhone !== undefined) booking.servicePhone = dto.servicePhone ? dto.servicePhone.trim() : null;
-    if (dto.latitude !== undefined) booking.latitude = dto.latitude?.toString() ?? null;
-    if (dto.longitude !== undefined) booking.longitude = dto.longitude?.toString() ?? null;
-    if (dto.addressLine1 !== undefined) booking.addressLine1 = dto.addressLine1 ?? null;
-    if (dto.addressLine2 !== undefined) booking.addressLine2 = dto.addressLine2 ?? null;
-    if (dto.addressLine3 !== undefined) booking.addressLine3 = dto.addressLine3 ?? null;
+    if (dto.serviceAddress !== undefined)
+      booking.serviceAddress = dto.serviceAddress.trim();
+    if (dto.servicePhone !== undefined)
+      booking.servicePhone = dto.servicePhone ? dto.servicePhone.trim() : null;
+    if (dto.latitude !== undefined)
+      booking.latitude = dto.latitude?.toString() ?? null;
+    if (dto.longitude !== undefined)
+      booking.longitude = dto.longitude?.toString() ?? null;
+    if (dto.addressLine1 !== undefined)
+      booking.addressLine1 = dto.addressLine1 ?? null;
+    if (dto.addressLine2 !== undefined)
+      booking.addressLine2 = dto.addressLine2 ?? null;
+    if (dto.addressLine3 !== undefined)
+      booking.addressLine3 = dto.addressLine3 ?? null;
     if (dto.postTown !== undefined) booking.postTown = dto.postTown ?? null;
     if (dto.postcode !== undefined) booking.postcode = dto.postcode ?? null;
     if (dto.uprn !== undefined) booking.uprn = dto.uprn ?? null;
 
     if (dto.addonIds !== undefined) {
-      let addonsSnapshot: { addonId: string; name: string; price: string }[] = [];
+      let addonsSnapshot: { addonId: string; name: string; price: string }[] =
+        [];
       let addonsTotal = 0;
 
       if (dto.addonIds.length > 0) {
@@ -674,11 +716,22 @@ export class BookingsService {
       booking.addons = addonsSnapshot;
 
       // Recalculate price: base price + addons + booking fee - discount
-      const vehicle = booking.vehicle || (await this.vehicleRepo.findOne({ where: { vehicleId: booking.vehicleId } }));
-      const baseServicePrice = await this.getBasePriceForCategory(vehicle?.vehicleType ?? 'small_car');
+      const vehicle =
+        booking.vehicle ||
+        (await this.vehicleRepo.findOne({
+          where: { vehicleId: booking.vehicleId },
+        }));
+      const baseServicePrice = await this.getBasePriceForCategory(
+        vehicle?.vehicleType ?? 'small_car',
+      );
       const bookingFee = await this.getBookingFee();
-      const discount = booking.discountAmount ? parseFloat(booking.discountAmount) : 0;
-      const newPrice = Math.max(0, baseServicePrice + addonsTotal + bookingFee - discount);
+      const discount = booking.discountAmount
+        ? parseFloat(booking.discountAmount)
+        : 0;
+      const newPrice = Math.max(
+        0,
+        baseServicePrice + addonsTotal + bookingFee - discount,
+      );
       booking.price = newPrice.toFixed(2);
     }
 
