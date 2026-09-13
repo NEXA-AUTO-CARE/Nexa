@@ -32,6 +32,12 @@ export interface AppConfig {
     region?: string;
     topicArn?: string;
     smsProvider?: string;
+    senderId?: string;
+    smsType?: string;
+  };
+  whatsapp: {
+    provider?: string;
+    from?: string;
   };
   smtp: {
     host?: string;
@@ -85,6 +91,12 @@ export default (): { app: AppConfig } => {
         region: env.AWS_SNS_REGION,
         topicArn: env.AWS_SNS_TOPIC_ARN,
         smsProvider: env.NOTIFICATION_SMS_PROVIDER,
+        senderId: env.AWS_SNS_SENDER_ID || 'NEXA',
+        smsType: env.AWS_SNS_SMS_TYPE || 'Transactional',
+      },
+      whatsapp: {
+        provider: env.WHATSAPP_PROVIDER || 'twilio',
+        from: env.TWILIO_WHATSAPP_FROM,
       },
       smtp: {
         host: env.SMTP_HOST,
