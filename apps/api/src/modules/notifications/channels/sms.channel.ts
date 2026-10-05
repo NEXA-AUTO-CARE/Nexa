@@ -35,17 +35,28 @@ export class SmsChannel {
     }
   }
 
-  async send(to: string, body: string): Promise<void> {
+  async send(
+    to: string,
+    body: string,
+  ): Promise<{ messageId?: string; success: boolean; error?: string }> {
     if (!this.client || !this.from) {
+      const mockId = `mock-sms-${Date.now()}`;
       this.logger.log(`[SMS-DEV] To: ${to} | Body: ${body}`);
-      return;
+      return { messageId: mockId, success: true };
     }
 
     try {
-      await this.client.messages.create({ to, from: this.from, body });
-      this.logger.log(`SMS sent to ${to}`);
+      const res = (await this.client.messages.create({
+        to,
+        from: this.from,
+        body,
+      })) as { sid?: string };
+      this.logger.log(`SMS sent to ${to} (SID: ${res?.sid})`);
+      return { messageId: res?.sid, success: true };
     } catch (err) {
-      this.logger.error(`Failed to send SMS to ${to}`, (err as Error).stack);
+      const errorMsg = (err as Error).message;
+      this.logger.error(`Failed to send SMS to ${to}: ${errorMsg}`, (err as Error).stack);
+      return { success: false, error: errorMsg };
     }
   }
 }

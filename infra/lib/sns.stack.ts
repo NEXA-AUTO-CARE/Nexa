@@ -1,6 +1,8 @@
 import * as cdk from 'aws-cdk-lib';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as kms from 'aws-cdk-lib/aws-kms';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 import { AppConfig } from './config';
 
@@ -39,6 +41,43 @@ export class SnsStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'TopicName', {
       value: this.topic.topicName,
       description: 'The name of the SNS notification topic',
+    });
+
+    // 3. Create CloudWatch Log Group for SNS SMS Delivery Feedback
+    const smsDeliveryLogGroup = new logs.LogGroup(this, 'SmsDeliveryLogGroup', {
+      logGroupName: `/aws/sns/${config.awsRegion}/${config.awsAccount}/DirectPublishToPhoneNumber`,
+      retention: logs.RetentionDays.ONE_MONTH,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    // 4. Create IAM Role for SNS SMS Delivery Feedback
+    const smsDeliveryFeedbackRole = new iam.Role(this, 'SmsDeliveryFeedbackRole', {
+      roleName: `nexa-${config.envName}-sns-sms-feedback-role`,
+      assumedBy: new iam.ServicePrincipal('sns.amazonaws.com'),
+      description: 'Allows SNS to write SMS delivery status logs to CloudWatch',
+    });
+
+    smsDeliveryFeedbackRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          'logs:CreateLogGroup',
+          'logs:CreateLogStream',
+          'logs:PutLogEvents',
+          'logs:PutMetricFilter',
+          'logs:PutRetentionPolicy',
+        ],
+        resources: [smsDeliveryLogGroup.logGroupArn, `${smsDeliveryLogGroup.logGroupArn}:*`],
+      }),
+    );
+
+    new cdk.CfnOutput(this, 'SmsDeliveryFeedbackRoleArn', {
+      value: smsDeliveryFeedbackRole.roleArn,
+      description: 'IAM Role ARN for AWS SNS SMS Delivery Status Feedback',
+    });
+
+    new cdk.CfnOutput(this, 'SmsDeliveryLogGroupName', {
+      value: smsDeliveryLogGroup.logGroupName,
+      description: 'CloudWatch Log Group for SNS SMS delivery tracking',
     });
   }
 }
