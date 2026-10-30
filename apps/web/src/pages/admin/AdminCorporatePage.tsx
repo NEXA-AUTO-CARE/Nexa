@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { api } from '../../lib/api-client'
 import {
   Building2,
@@ -17,16 +17,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useAddons } from '../../hooks/useAddons'
 
-interface VehicleLine {
-  id: string
-  categoryKey: string
-  quantity: number
-}
-
 interface AddonLine {
   id: string
   addonId: string
   quantity: number
+}
+
+interface VehicleLine {
+  id: string
+  categoryKey: string
+  quantity: number
+  addons: AddonLine[]
 }
 
 let lineSeq = 0
@@ -52,7 +53,6 @@ export default function AdminCorporatePage() {
   // Invoice state
   const [selectedLead, setSelectedLead] = useState<CorporateLead | null>(null)
   const [vehicleLines, setVehicleLines] = useState<VehicleLine[]>([])
-  const [addonLines, setAddonLines] = useState<AddonLine[]>([])
   const [discountPercent, setDiscountPercent] = useState(10) // 10% default corp discount
   const [notes, setNotes] = useState('Standard Nexa Corporate Fleet Wash agreement.')
   const [raisedSuccess, setRaisedSuccess] = useState(false)
@@ -67,25 +67,48 @@ export default function AdminCorporatePage() {
   const openInvoice = (lead: CorporateLead) => {
     setSelectedLead(lead)
     setRaisedSuccess(false)
-    setVehicleLines([{ id: nextLineId(), categoryKey: defaultCategoryKey, quantity: Math.max(1, lead.fleetSize) }])
-    setAddonLines([])
+    setVehicleLines([
+      { id: nextLineId(), categoryKey: defaultCategoryKey, quantity: Math.max(1, lead.fleetSize), addons: [] },
+    ])
   }
 
-  const updateVehicleLine = (id: string, patch: Partial<VehicleLine>) =>
+  const updateVehicleLine = (id: string, patch: Partial<Omit<VehicleLine, 'addons'>>) =>
     setVehicleLines((lines) => lines.map((l) => (l.id === id ? { ...l, ...patch } : l)))
   const removeVehicleLine = (id: string) =>
     setVehicleLines((lines) => lines.filter((l) => l.id !== id))
   const addVehicleLine = () =>
-    setVehicleLines((lines) => [...lines, { id: nextLineId(), categoryKey: defaultCategoryKey, quantity: 1 }])
+    setVehicleLines((lines) => [
+      ...lines,
+      { id: nextLineId(), categoryKey: defaultCategoryKey, quantity: 1, addons: [] },
+    ])
 
-  const updateAddonLine = (id: string, patch: Partial<AddonLine>) =>
-    setAddonLines((lines) => lines.map((l) => (l.id === id ? { ...l, ...patch } : l)))
-  const removeAddonLine = (id: string) =>
-    setAddonLines((lines) => lines.filter((l) => l.id !== id))
-  const addAddonLine = () => {
+  const addAddonToVehicle = (vehicleId: string) => {
     if (activeAddons.length === 0) return
-    setAddonLines((lines) => [...lines, { id: nextLineId(), addonId: activeAddons[0].addonId, quantity: 1 }])
+    setVehicleLines((lines) =>
+      lines.map((l) =>
+        l.id === vehicleId
+          ? {
+              ...l,
+              addons: [...l.addons, { id: nextLineId(), addonId: activeAddons[0].addonId, quantity: l.quantity }],
+            }
+          : l,
+      ),
+    )
   }
+  const updateVehicleAddon = (vehicleId: string, addonLineId: string, patch: Partial<AddonLine>) =>
+    setVehicleLines((lines) =>
+      lines.map((l) =>
+        l.id === vehicleId
+          ? { ...l, addons: l.addons.map((a) => (a.id === addonLineId ? { ...a, ...patch } : a)) }
+          : l,
+      ),
+    )
+  const removeVehicleAddon = (vehicleId: string, addonLineId: string) =>
+    setVehicleLines((lines) =>
+      lines.map((l) =>
+        l.id === vehicleId ? { ...l, addons: l.addons.filter((a) => a.id !== addonLineId) } : l,
+      ),
+    )
 
   const loadLeads = async () => {
     try {
@@ -138,17 +161,23 @@ export default function AdminCorporatePage() {
   // Cost calculations
   const pricedVehicleLines = vehicleLines.map((l) => {
     const unitRate = numericPriceFor(l.categoryKey)
-    return { ...l, unitRate, total: unitRate * l.quantity }
-  })
-  const pricedAddonLines = addonLines.flatMap((l) => {
-    const addon = allAddons.find((a) => a.addonId === l.addonId)
-    if (!addon) return []
-    const unitRate = parseFloat(addon.price) || 0
-    return [{ ...l, addon, unitRate, total: unitRate * l.quantity }]
+    const pricedAddons = l.addons.flatMap((a) => {
+      const addon = allAddons.find((x) => x.addonId === a.addonId)
+      if (!addon) return []
+      const addonUnit = parseFloat(addon.price) || 0
+      return [{ ...a, addon, unitRate: addonUnit, total: addonUnit * a.quantity }]
+    })
+    return {
+      ...l,
+      unitRate,
+      vehicleTotal: unitRate * l.quantity,
+      pricedAddons,
+      addonsTotal: pricedAddons.reduce((s, a) => s + a.total, 0),
+    }
   })
   const totalVehicles = vehicleLines.reduce((sum, l) => sum + l.quantity, 0)
-  const vehicleSubtotal = pricedVehicleLines.reduce((sum, l) => sum + l.total, 0)
-  const addonsSubtotal = pricedAddonLines.reduce((sum, l) => sum + l.total, 0)
+  const vehicleSubtotal = pricedVehicleLines.reduce((sum, l) => sum + l.vehicleTotal, 0)
+  const addonsSubtotal = pricedVehicleLines.reduce((sum, l) => sum + l.addonsTotal, 0)
   const rawSubtotal = vehicleSubtotal + addonsSubtotal
   const discountAmount = (rawSubtotal * discountPercent) / 100
   const bookingFees = (parseFloat(bookingFee) || 0) * totalVehicles
@@ -358,41 +387,98 @@ export default function AdminCorporatePage() {
                   </button>
                 </div>
 
-                {/* Vehicles (mixed sizes) */}
-                <div className="space-y-2">
+                {/* Vehicles (mixed sizes, each with its own add-ons) */}
+                <div className="space-y-3">
                   <label className="block text-xs font-bold uppercase tracking-wider text-nexa-text-secondary">
-                    Vehicles
+                    Vehicles & Add-ons
                   </label>
                   {vehicleLines.map((line) => (
-                    <div key={line.id} className="flex items-center gap-2">
-                      <select
-                        value={line.categoryKey}
-                        onChange={(e) => updateVehicleLine(line.id, { categoryKey: e.target.value })}
-                        className="flex-1 min-w-0 bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl p-2.5 text-xs focus:ring-0 focus:border-nexa-mint/40"
-                      >
-                        {categoryKeys.map((key) => (
-                          <option key={key} value={key}>
-                            {labelFor(key)} (£{numericPriceFor(key).toFixed(2)})
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        min="1"
-                        aria-label="Vehicle quantity"
-                        value={line.quantity}
-                        onChange={(e) => updateVehicleLine(line.id, { quantity: Math.max(1, Number(e.target.value) || 1) })}
-                        className="w-14 bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl p-2.5 text-xs text-center focus:ring-0 focus:border-nexa-mint/40"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeVehicleLine(line.id)}
-                        disabled={vehicleLines.length === 1}
-                        title="Remove vehicle line"
-                        className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                    <div
+                      key={line.id}
+                      className="space-y-2 rounded-xl border border-nexa-border-subtle/70 bg-nexa-bg/60 p-2.5"
+                    >
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={line.categoryKey}
+                          onChange={(e) => updateVehicleLine(line.id, { categoryKey: e.target.value })}
+                          className="flex-1 min-w-0 bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl p-2.5 text-xs focus:ring-0 focus:border-nexa-mint/40"
+                        >
+                          {categoryKeys.map((key) => (
+                            <option key={key} value={key}>
+                              {labelFor(key)} (£{numericPriceFor(key).toFixed(2)})
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          min="1"
+                          aria-label="Vehicle quantity"
+                          value={line.quantity}
+                          onChange={(e) => updateVehicleLine(line.id, { quantity: Math.max(1, Number(e.target.value) || 1) })}
+                          className="w-14 bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl p-2.5 text-xs text-center focus:ring-0 focus:border-nexa-mint/40"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeVehicleLine(line.id)}
+                          disabled={vehicleLines.length === 1}
+                          title="Remove vehicle line"
+                          className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Per-vehicle add-ons */}
+                      {line.addons.length > 0 && (
+                        <div className="space-y-1.5 pl-3 border-l border-nexa-mint/20">
+                          {line.addons.map((a) => (
+                            <div key={a.id} className="flex items-center gap-2">
+                              <select
+                                value={a.addonId}
+                                onChange={(e) => updateVehicleAddon(line.id, a.id, { addonId: e.target.value })}
+                                className="flex-1 min-w-0 bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl p-2 text-[11px] focus:ring-0 focus:border-nexa-mint/40"
+                              >
+                                {activeAddons.map((addon) => (
+                                  <option key={addon.addonId} value={addon.addonId}>
+                                    {addon.name} (£{(parseFloat(addon.price) || 0).toFixed(2)})
+                                  </option>
+                                ))}
+                              </select>
+                              <input
+                                type="number"
+                                min="1"
+                                aria-label="Add-on quantity"
+                                value={a.quantity}
+                                onChange={(e) =>
+                                  updateVehicleAddon(line.id, a.id, {
+                                    quantity: Math.max(1, Number(e.target.value) || 1),
+                                  })
+                                }
+                                className="w-12 bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl p-2 text-[11px] text-center focus:ring-0 focus:border-nexa-mint/40"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeVehicleAddon(line.id, a.id)}
+                                title="Remove add-on"
+                                className="p-1 text-red-400 hover:bg-red-400/10 rounded-lg"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {activeAddons.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => addAddonToVehicle(line.id)}
+                          className="flex items-center gap-1 text-[11px] font-semibold text-nexa-mint hover:text-nexa-mint/80"
+                        >
+                          <Plus className="w-3 h-3" /> Add add-on for this vehicle
+                        </button>
+                      ) : (
+                        <p className="text-[11px] text-nexa-text-muted">No active add-ons configured.</p>
+                      )}
                     </div>
                   ))}
                   <button
@@ -406,55 +492,6 @@ export default function AdminCorporatePage() {
                     <p className="text-[11px] text-amber-400">
                       {totalVehicles} vehicle{totalVehicles === 1 ? '' : 's'} on invoice; enquiry requested {selectedLead.fleetSize}.
                     </p>
-                  )}
-                </div>
-
-                {/* Add-ons */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-nexa-text-secondary">
-                    Add-ons
-                  </label>
-                  {addonLines.map((line) => (
-                    <div key={line.id} className="flex items-center gap-2">
-                      <select
-                        value={line.addonId}
-                        onChange={(e) => updateAddonLine(line.id, { addonId: e.target.value })}
-                        className="flex-1 min-w-0 bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl p-2.5 text-xs focus:ring-0 focus:border-nexa-mint/40"
-                      >
-                        {activeAddons.map((addon) => (
-                          <option key={addon.addonId} value={addon.addonId}>
-                            {addon.name} (£{(parseFloat(addon.price) || 0).toFixed(2)})
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        min="1"
-                        aria-label="Add-on quantity"
-                        value={line.quantity}
-                        onChange={(e) => updateAddonLine(line.id, { quantity: Math.max(1, Number(e.target.value) || 1) })}
-                        className="w-14 bg-nexa-bg border border-nexa-border-subtle text-nexa-text rounded-xl p-2.5 text-xs text-center focus:ring-0 focus:border-nexa-mint/40"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeAddonLine(line.id)}
-                        title="Remove add-on"
-                        className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-lg"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                  {activeAddons.length > 0 ? (
-                    <button
-                      type="button"
-                      onClick={addAddonLine}
-                      className="flex items-center gap-1 text-xs font-semibold text-nexa-mint hover:text-nexa-mint/80"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Add add-on
-                    </button>
-                  ) : (
-                    <p className="text-[11px] text-nexa-text-muted">No active add-ons configured.</p>
                   )}
                 </div>
 
@@ -567,28 +604,36 @@ export default function AdminCorporatePage() {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {pricedVehicleLines.map((line) => (
-                        <tr key={line.id}>
-                          <td className="py-4">
-                            <strong className="font-semibold text-slate-800">Nexa Valet Package: {labelFor(line.categoryKey)}</strong>
-                            <p className="text-[10px] text-slate-500 mt-0.5">Professional mobile wash and detail package</p>
-                          </td>
-                          <td className="py-4 text-center font-mono">£{line.unitRate.toFixed(2)}</td>
-                          <td className="py-4 text-center">{line.quantity}</td>
-                          <td className="py-4 text-right font-mono font-semibold">£{line.total.toFixed(2)}</td>
-                        </tr>
-                      ))}
-                      {pricedAddonLines.map((line) => (
-                        <tr key={line.id}>
-                          <td className="py-4">
-                            <strong className="font-semibold text-slate-800">Add-on: {line.addon.name}</strong>
-                            {line.addon.description && (
-                              <p className="text-[10px] text-slate-500 mt-0.5">{line.addon.description}</p>
-                            )}
-                          </td>
-                          <td className="py-4 text-center font-mono">£{line.unitRate.toFixed(2)}</td>
-                          <td className="py-4 text-center">{line.quantity}</td>
-                          <td className="py-4 text-right font-mono font-semibold">£{line.total.toFixed(2)}</td>
-                        </tr>
+                        <Fragment key={line.id}>
+                          <tr>
+                            <td className="py-4">
+                              <strong className="font-semibold text-slate-800">Nexa Valet Package: {labelFor(line.categoryKey)}</strong>
+                              <p className="text-[10px] text-slate-500 mt-0.5">Professional mobile wash and detail package</p>
+                            </td>
+                            <td className="py-4 text-center font-mono">£{line.unitRate.toFixed(2)}</td>
+                            <td className="py-4 text-center">{line.quantity}</td>
+                            <td className="py-4 text-right font-mono font-semibold">£{line.vehicleTotal.toFixed(2)}</td>
+                          </tr>
+                          {line.pricedAddons.map((a) => (
+                            <tr key={a.id} className="bg-slate-50/50">
+                              <td className="py-3 pl-6">
+                                <span className="text-slate-700">
+                                  <span className="text-slate-400">↳</span>{' '}
+                                  <strong className="font-semibold">Add-on: {a.addon.name}</strong>
+                                  <span className="text-[10px] text-slate-500 ml-1">
+                                    (for {labelFor(line.categoryKey)})
+                                  </span>
+                                </span>
+                                {a.addon.description && (
+                                  <p className="text-[10px] text-slate-500 mt-0.5 pl-3">{a.addon.description}</p>
+                                )}
+                              </td>
+                              <td className="py-3 text-center font-mono">£{a.unitRate.toFixed(2)}</td>
+                              <td className="py-3 text-center">{a.quantity}</td>
+                              <td className="py-3 text-right font-mono font-semibold">£{a.total.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </Fragment>
                       ))}
                       <tr>
                         <td className="py-4">
