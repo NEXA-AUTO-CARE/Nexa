@@ -1,9 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
+  BLOCKED_BOOKING_DATES_KEY,
   BOOKING_FEE,
   SERVICE_LABELS,
   normalizeVehicleCategoryKey,
+  parseBlockedBookingDates,
   resolveCategoryPrice,
+  type BlockedBookingDate,
   type VehicleCategoryConfig,
 } from '@nexa/shared'
 import { api } from '../lib/api-client'
@@ -33,6 +36,8 @@ interface SettingsData {
   customerTypes: string[]
   /** Configurable booking time slots */
   timeSlots: TimeSlot[]
+  /** Admin-blocked booking days (YYYY-MM-DD, Europe/London) */
+  blockedDates: BlockedBookingDate[]
 }
 
 interface SettingsContextValue extends SettingsData {
@@ -98,6 +103,7 @@ const DEFAULTS: SettingsData = {
     { key: 'evening', label: 'Evening (4:00 PM)', hour: 16 },
     { key: 'late_evening', label: 'Late Evening (6:00 PM)', hour: 18 }
   ],
+  blockedDates: [],
 }
 
 const CACHE_KEY = 'nexa_settings_cache'
@@ -152,6 +158,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         serviceLabels: tryParseJson(map.get('service_labels'), DEFAULTS.serviceLabels),
         customerTypes: parseStringArray(map.get('customer_type'), DEFAULTS.customerTypes),
         timeSlots: tryParseJson(map.get('booking_time_slots'), DEFAULTS.timeSlots),
+        blockedDates: parseBlockedBookingDates(map.get(BLOCKED_BOOKING_DATES_KEY)),
       }
       setData(next)
       // Persist to localStorage for cache-on-load

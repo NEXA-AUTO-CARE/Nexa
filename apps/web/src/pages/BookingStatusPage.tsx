@@ -1,4 +1,4 @@
-import { BookingStatus, type BookingResponse } from "@nexa/shared";
+import { BookingStatus, toBusinessDateKey, type BookingResponse } from "@nexa/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Check, Clock, User, MapPin, Camera, Star, XCircle, Edit, X } from "lucide-react";
 import { api } from "../lib/api-client";
 import { describeError } from "../lib/errors";
+import { useSettings } from "../contexts/SettingsContext";
 const STEP_ORDER: BookingStatus[] = [
   BookingStatus.BOOKED,
   BookingStatus.ASSIGNED,
@@ -38,6 +39,7 @@ function formatWhen(iso?: string) {
 const BookingStatusPage = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { blockedDates } = useSettings();
 
   const { data: booking, isLoading } = useQuery<BookingResponse>({
     queryKey: ["booking", id],
@@ -82,6 +84,11 @@ const BookingStatusPage = () => {
     try {
       if (!editBookingTime) throw new Error("Please select a date and time");
       if (!editAddress.trim()) throw new Error("Please enter a service address");
+      const newDateKey = editBookingTime.slice(0, 10);
+      const currentDateKey = booking.bookingTime ? toBusinessDateKey(new Date(booking.bookingTime)) : "";
+      if (newDateKey !== currentDateKey && blockedDates.some((b) => b.date === newDateKey)) {
+        throw new Error("We're not taking bookings on this date. Please choose another day.");
+      }
 
       await api.patch(`/bookings/${booking.bookingId}`, {
         bookingTime: new Date(editBookingTime).toISOString(),

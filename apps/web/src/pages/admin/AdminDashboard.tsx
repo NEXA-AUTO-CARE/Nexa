@@ -12,6 +12,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import AdminScheduleCalendar from '../../components/admin/AdminScheduleCalendar'
 
 interface Booking {
   bookingId: string
@@ -233,6 +234,11 @@ export default function AdminDashboard() {
           </div>
         </motion.div>
       </div>
+
+      {/* SCHEDULE CALENDAR & BLOCKED DAYS */}
+      <motion.div variants={itemVariants}>
+        <AdminScheduleCalendar bookings={bookings} />
+      </motion.div>
 
       {/* OPERATIONS INSIGHTS & RECENT ACTIVITIES */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
