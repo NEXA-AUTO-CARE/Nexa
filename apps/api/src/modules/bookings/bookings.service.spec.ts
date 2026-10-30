@@ -133,6 +133,35 @@ describe('BookingsService', () => {
       );
       expect(bookingRepo.save).not.toHaveBeenCalled();
     });
+
+    it('should reject a booking on an admin-blocked day', async () => {
+      vehicleRepo.findOne.mockResolvedValue({ vehicleId: 'v1' });
+      const bookingTime = new Date(Date.now() + 72 * 60 * 60 * 1000);
+      const dateKey = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/London',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(bookingTime);
+      settingsService.findOne.mockImplementation(async (key: string) =>
+        key === 'blocked_booking_dates'
+          ? { key, value: JSON.stringify([{ date: dateKey }]) }
+          : null,
+      );
+
+      await expect(
+        service.create('u1', {
+          vehicleId: 'v1',
+          serviceType: ServiceType.BASIC,
+          bookingTime: bookingTime.toISOString(),
+          serviceAddress: '123 Test St',
+          servicePhone: '+447700900000',
+          agreedSafeSpace: true,
+          agreedDetailsCorrect: true,
+        }),
+      ).rejects.toThrow(/not available on the selected date/);
+      expect(bookingRepo.save).not.toHaveBeenCalled();
+    });
   });
 
   describe('verifyMyBooking', () => {

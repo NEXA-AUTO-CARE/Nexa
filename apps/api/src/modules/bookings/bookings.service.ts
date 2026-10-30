@@ -13,6 +13,10 @@ import {
   ServiceType,
   BOOKING_FEE,
   PaymentStatus,
+  BLOCKED_BOOKING_DATES_KEY,
+  findBlockedDate,
+  parseBlockedBookingDates,
+  toBusinessDateKey,
 } from '@nexa/shared';
 import type { BookingResponse } from '@nexa/shared';
 import { In, Repository } from 'typeorm';
@@ -119,6 +123,22 @@ export class BookingsService {
     return Number.isNaN(parsed) ? 0.0 : parsed;
   }
 
+  /** Reject bookings that fall on an admin-blocked day (Europe/London calendar day). */
+  async assertBookingDateNotBlocked(bookingTime: Date): Promise<void> {
+    const setting = await this.settingsService.findOne(
+      BLOCKED_BOOKING_DATES_KEY,
+    );
+    const blocked = findBlockedDate(
+      toBusinessDateKey(bookingTime),
+      parseBlockedBookingDates(setting?.value),
+    );
+    if (blocked) {
+      throw new BadRequestException(
+        'Bookings are not available on the selected date. Please choose another day.',
+      );
+    }
+  }
+
   async create(userId: string, dto: CreateBookingDto): Promise<Booking> {
     // Verify the vehicle belongs to the user
     const vehicle = await this.verifyMyVehicle(dto, userId);
@@ -134,6 +154,7 @@ export class BookingsService {
         'Booking must be at least 48 hours in advance',
       );
     }
+    await this.assertBookingDateNotBlocked(bookingTime);
 
     // Mini Valet is the single base service; price is driven by vehicle category.
     const servicePriceOnly = await this.getBasePriceForCategory(
@@ -376,6 +397,8 @@ export class BookingsService {
     const when = bookingTime
       ? new Date(bookingTime)
       : new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await this.assertBookingDateNotBlocked(when);
 
     const addonsTotal = (previous.addons ?? []).reduce(
       (sum, a) => sum + parseFloat(a.price),
@@ -634,6 +657,14 @@ export class BookingsService {
         throw new BadRequestException(
           'Booking must be at least 48 hours in advance',
         );
+      }
+      // Only check when moving to a different day, so customers can still edit
+      // other details of a booking whose day was blocked after it was placed.
+      if (
+        toBusinessDateKey(newBookingTime) !==
+        toBusinessDateKey(booking.bookingTime)
+      ) {
+        await this.assertBookingDateNotBlocked(newBookingTime);
       }
       booking.bookingTime = newBookingTime;
     }

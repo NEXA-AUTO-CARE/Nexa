@@ -6,6 +6,11 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { SettingsService } from './settings.service';
 import type { SystemSettingResponse, SaveSystemSettingDto } from '@nexa/shared';
+import {
+  BLOCKED_BOOKING_DATES_KEY,
+  parseBlockedBookingDates,
+  serializeBlockedBookingDates,
+} from '@nexa/shared';
 
 @ApiTags('settings')
 @Controller('settings')
@@ -43,7 +48,11 @@ export class SettingsController {
     @Param('key') key: string,
     @Body() dto: SaveSystemSettingDto,
   ): Promise<SystemSettingResponse> {
-    const saved = await this.settingsService.saveSetting(key, dto.value);
+    const value =
+      key === BLOCKED_BOOKING_DATES_KEY
+        ? serializeBlockedBookingDates(parseBlockedBookingDates(dto.value))
+        : dto.value;
+    const saved = await this.settingsService.saveSetting(key, value);
     return {
       key: saved.key,
       value: saved.value,

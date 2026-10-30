@@ -25,7 +25,7 @@ const BookingPage = () => {
   const { vehicles, isLoading } = useVehicles();
   const { addons } = useAddons();
   const { toast } = useToast();
-  const { priceFor, serviceLabelFor, customerTypes = ["Individual", "Corporate"], timeSlots = [] } = useSettings();
+  const { priceFor, serviceLabelFor, customerTypes = ["Individual", "Corporate"], timeSlots = [], blockedDates = [] } = useSettings();
 
   const serviceLabel = serviceLabelFor();
 
@@ -80,14 +80,17 @@ const BookingPage = () => {
     return (base + addonsPrice).toFixed(2);
   }, [hasPrice, basePriceStr, addons, selectedAddons]);
 
+  const isSelectedDateBlocked = !!date && blockedDates.some((b) => b.date === date);
+
   const availableTimeSlots = useMemo(() => {
     if (!date) return timeSlots;
+    if (isSelectedDateBlocked) return [];
     const nowPlus48Hours = Date.now() + 48 * 60 * 60 * 1000 - 60000;
     return timeSlots.filter((slot) => {
       const slotTime = new Date(`${date}T${String(slot.hour).padStart(2, "0")}:00:00`).getTime();
       return slotTime >= nowPlus48Hours;
     });
-  }, [date, timeSlots]);
+  }, [date, timeSlots, isSelectedDateBlocked]);
 
   const minDateString = useMemo(() => {
     const now = new Date();
@@ -101,12 +104,14 @@ const BookingPage = () => {
 
   // Clear time if it's no longer valid for the selected date
   useEffect(() => {
-    if (time && availableTimeSlots.length > 0 && !availableTimeSlots.find((s) => s.key === time)) {
+    if (time && !availableTimeSlots.find((s) => s.key === time)) {
       setTime("");
     }
   }, [time, availableTimeSlots]);
 
-  const canSubmit = isCorporateFlow
+  const canSubmit = isSelectedDateBlocked
+    ? false
+    : isCorporateFlow
     ? !!(corporateData.companyName && corporateData.contactPerson && corporateData.businessEmail && date && time && address.trim() && addressConfirmed) && !submitting
     : !!effectiveVehicleId &&
       hasPrice &&
@@ -378,6 +383,11 @@ const BookingPage = () => {
               </SelectContent>
             </Select>
           </div>
+          {isSelectedDateBlocked && (
+            <p className="mt-2 text-xs text-destructive">
+              We&apos;re not taking bookings on this date. Please choose another day.
+            </p>
+          )}
         </div>
 
         <div>
