@@ -92,7 +92,9 @@ describe('BookingsService', () => {
         customer: {},
       });
 
-      const futureDate = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+      const futureDate = new Date(
+        Date.now() + 48 * 60 * 60 * 1000,
+      ).toISOString();
       const dto = {
         vehicleId: 'v1',
         serviceType: ServiceType.BASIC,
@@ -114,7 +116,9 @@ describe('BookingsService', () => {
     it('should throw BadRequestException if vehicle not found or not owned', async () => {
       vehicleRepo.findOne.mockResolvedValue(null);
 
-      const futureDate = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+      const futureDate = new Date(
+        Date.now() + 48 * 60 * 60 * 1000,
+      ).toISOString();
       const dto = {
         vehicleId: 'v1',
         serviceType: ServiceType.BASIC,

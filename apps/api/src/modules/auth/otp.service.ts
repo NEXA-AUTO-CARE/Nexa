@@ -1,6 +1,7 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
+import { normalizeIdentifier } from '@nexa/shared';
 import { randomInt } from 'node:crypto';
 import { IsNull, LessThan, Repository } from 'typeorm';
 import { OtpCode } from '../../database/entities';
@@ -24,7 +25,11 @@ export class OtpService {
     private readonly templateService: MessageTemplateService,
   ) {}
 
-  async issue(identifier: string, userName: string = 'User'): Promise<string> {
+  async issue(
+    rawIdentifier: string,
+    userName: string = 'User',
+  ): Promise<string> {
+    const identifier = normalizeIdentifier(rawIdentifier);
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
     const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60_000);
     await this.otpRepo.save(
@@ -58,7 +63,9 @@ export class OtpService {
     return code;
   }
 
-  async verify(identifier: string, code: string): Promise<void> {
+  async verify(rawIdentifier: string, rawCode: string): Promise<void> {
+    const identifier = normalizeIdentifier(rawIdentifier);
+    const code = rawCode.trim();
     const row = await this.otpRepo.findOne({
       where: { identifier, code, consumedAt: IsNull() },
       order: { createdOn: 'DESC' },

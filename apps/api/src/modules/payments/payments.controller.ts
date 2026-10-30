@@ -52,13 +52,19 @@ export class PaymentsController {
 
   @Get('intent/:id/status')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Sync and get the latest payment status for a payment intent' })
+  @ApiOperation({
+    summary: 'Sync and get the latest payment status for a payment intent',
+  })
   @ApiOkResponse({ description: 'Latest payment status' })
   async getPaymentStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ): Promise<PaymentResponse> {
-    return this.payments.syncPaymentStatusByIntentId(id, user.userId, user.role);
+    return this.payments.syncPaymentStatusByIntentId(
+      id,
+      user.userId,
+      user.role,
+    );
   }
 
   @Post('bookings/:id/refund')

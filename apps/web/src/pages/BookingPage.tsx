@@ -44,7 +44,7 @@ const BookingPage = () => {
   const [phone, setPhone] = useState(user?.phoneNumber ?? "");
   const [corporateData, setCorporateData] = useState<CorporateFleetData>({
     companyName: "",
-    fleetSize: "",
+    fleetSize: "1",
     contactPerson: "",
     businessEmail: "",
     businessPhone: "",

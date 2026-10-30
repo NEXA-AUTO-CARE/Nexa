@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { UserRole } from '@nexa/shared'
+import { UserRole, normalizeEmail, normalizePhone } from '@nexa/shared'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
@@ -81,8 +81,8 @@ export function SignupPage() {
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null)
     try {
-      const email = values.email.trim() || null
-      const phoneNumber = values.phoneNumber.trim() || null
+      const email = values.email.trim() ? normalizeEmail(values.email) : null
+      const phoneNumber = values.phoneNumber.trim() ? normalizePhone(values.phoneNumber) : null
       await signup({
         firstName: values.firstName.trim(),
         lastName: values.lastName.trim(),
@@ -127,6 +127,9 @@ export function SignupPage() {
             type="email"
             placeholder="you@example.com"
             autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             {...register('email')}
           />
         </Field>

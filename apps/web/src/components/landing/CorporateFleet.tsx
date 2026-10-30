@@ -78,7 +78,7 @@ export function CorporateFleet() {
         <div className="nexa-card p-8">
           <h3 className="text-xl font-semibold text-white">Corporate fleet</h3>
           <p className="mt-2 text-sm text-nexa-text-secondary">
-            Multiple vehicles? Tell us about your fleet and our team will get in
+            Book for 1 or more company vehicles. Tell us about your company and our finance team will get in
             touch to arrange invoicing.
           </p>
 
@@ -101,14 +101,14 @@ export function CorporateFleet() {
                 />
               </label>
               <label className="block space-y-1">
-                <span className="text-sm font-medium text-nexa-text-secondary">Fleet size</span>
+                <span className="text-sm font-medium text-nexa-text-secondary">Number of vehicles (1 or more)</span>
                 <input
                   className="nexa-input"
                   type="number"
                   min={1}
                   required
                   value={form.fleetSize}
-                  onChange={(e) => update('fleetSize', e.target.value)}
+                  onChange={(e) => update('fleetSize', Math.max(1, parseInt(e.target.value, 10) || 1))}
                 />
               </label>
               <label className="block space-y-1">

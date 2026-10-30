@@ -4,44 +4,23 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Permission, UpdateUserAdminDto } from '@nexa/shared';
+import {
+  IdentifierParts,
+  Permission,
+  UpdateUserAdminDto,
+  UserIdentifierKind,
+  normalizeEmail,
+  normalizeIdentifier,
+  normalizePhone,
+  parseIdentifier,
+} from '@nexa/shared';
 import { Repository } from 'typeorm';
 import { Role, User } from '../../database/entities';
 import { PublicUserDto } from './dto/public-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
-export type UserIdentifierKind = 'email' | 'phone';
-
-export interface IdentifierParts {
-  kind: UserIdentifierKind;
-  email: string | null;
-  phoneNumber: string | null;
-}
-
-const EMAIL_RX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RX = /^\+?[1-9]\d{6,14}$/;
-
-export function parseIdentifier(identifier: string): IdentifierParts {
-  const trimmed = identifier.trim();
-  if (EMAIL_RX.test(trimmed)) {
-    return { kind: 'email', email: trimmed.toLowerCase(), phoneNumber: null };
-  }
-  const phoneCandidate = trimmed.replace(/\s/g, '');
-  if (PHONE_RX.test(phoneCandidate)) {
-    return { kind: 'phone', email: null, phoneNumber: phoneCandidate };
-  }
-  throw new Error(
-    'Identifier must be a valid email or E.164-style phone number',
-  );
-}
-
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
-export function normalizePhone(phone: string): string {
-  return phone.replace(/\s/g, '');
-}
+export type { IdentifierParts, UserIdentifierKind };
+export { normalizeEmail, normalizeIdentifier, normalizePhone, parseIdentifier };
 
 @Injectable()
 export class UsersService {
@@ -167,17 +146,20 @@ export class UsersService {
     };
   }
 
-  async findAllForAdmin(status: 'all' | 'active' | 'inactive' = 'active'): Promise<User[]> {
-    const query = this.userRepo.createQueryBuilder('user')
+  async findAllForAdmin(
+    status: 'all' | 'active' | 'inactive' = 'active',
+  ): Promise<User[]> {
+    const query = this.userRepo
+      .createQueryBuilder('user')
       .leftJoinAndSelect('user.role', 'role')
       .orderBy('user.createdOn', 'DESC');
-      
+
     if (status === 'active') {
       query.andWhere('user.isActive = :isActive', { isActive: true });
     } else if (status === 'inactive') {
       query.andWhere('user.isActive = :isActive', { isActive: false });
     }
-    
+
     return query.getMany();
   }
 

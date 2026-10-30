@@ -113,7 +113,8 @@ export class PaymentsService {
 
         // 4. Save Payment record to database
         const split = splitPayout(booking.price);
-        const transactionReference = 'TXN-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+        const transactionReference =
+          'TXN-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
         payment = this.paymentRepo.create({
           bookingId: booking.bookingId,
@@ -139,7 +140,8 @@ export class PaymentsService {
         ) {
           this.logger.warn('Mocking payment intent for development');
           const split = splitPayout(booking.price);
-          const transactionReference = 'TXN-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+          const transactionReference =
+            'TXN-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
           payment = this.paymentRepo.create({
             bookingId: booking.bookingId,
@@ -164,7 +166,11 @@ export class PaymentsService {
     return this.toResponse(payment, clientSecret ?? undefined);
   }
 
-  async syncPaymentStatusByIntentId(paymentIntentId: string, userId: string, userRole?: string): Promise<PaymentResponse> {
+  async syncPaymentStatusByIntentId(
+    paymentIntentId: string,
+    userId: string,
+    userRole?: string,
+  ): Promise<PaymentResponse> {
     const payment = await this.paymentRepo.findOne({
       where: { stripePaymentIntentId: paymentIntentId },
     });
@@ -180,40 +186,58 @@ export class PaymentsService {
 
     if (!payment.stripePaymentIntentId.startsWith('pi_mock_')) {
       try {
-        const intent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+        const intent =
+          await this.stripe.paymentIntents.retrieve(paymentIntentId);
         let newStatus = payment.status;
 
         if (intent.status === 'succeeded') {
           newStatus = PaymentStatus.CAPTURED;
         } else if (intent.status === 'processing') {
           newStatus = PaymentStatus.PROCESSING;
-        } else if (intent.status === 'requires_payment_method' || intent.status === 'requires_action') {
+        } else if (
+          intent.status === 'requires_payment_method' ||
+          intent.status === 'requires_action'
+        ) {
           newStatus = PaymentStatus.PENDING;
         } else if (intent.status === 'canceled') {
           newStatus = PaymentStatus.FAILED;
         }
 
         if (payment.status !== newStatus) {
-           payment.status = newStatus;
-           await this.paymentRepo.save(payment);
-           this.logger.log(`Payment status synced to ${newStatus} for intent ${paymentIntentId}`);
-           await this.bookingsService.updatePaymentStatus(payment.bookingId, newStatus);
+          payment.status = newStatus;
+          await this.paymentRepo.save(payment);
+          this.logger.log(
+            `Payment status synced to ${newStatus} for intent ${paymentIntentId}`,
+          );
+          await this.bookingsService.updatePaymentStatus(
+            payment.bookingId,
+            newStatus,
+          );
         }
       } catch (e) {
-        this.logger.error(`Failed to retrieve payment intent ${paymentIntentId} from Stripe`, e);
+        this.logger.error(
+          `Failed to retrieve payment intent ${paymentIntentId} from Stripe`,
+          e,
+        );
       }
     }
 
     return this.toResponse(payment);
   }
 
-  async syncPaymentStatusByBookingId(bookingId: string): Promise<PaymentResponse> {
+  async syncPaymentStatusByBookingId(
+    bookingId: string,
+  ): Promise<PaymentResponse> {
     const payment = await this.paymentRepo.findOne({ where: { bookingId } });
     if (!payment) {
       throw new NotFoundException('Payment record not found');
     }
     // We pass 'admin' role to bypass the ownership check
-    return this.syncPaymentStatusByIntentId(payment.stripePaymentIntentId, 'system', 'admin');
+    return this.syncPaymentStatusByIntentId(
+      payment.stripePaymentIntentId,
+      'system',
+      'admin',
+    );
   }
 
   async handleStripeWebhook(signature: string, payload: Buffer): Promise<void> {
@@ -254,9 +278,7 @@ export class PaymentsService {
       'payment_intent.payment_failed',
     ];
 
-    const processingEvents = [
-      'payment_intent.processing',
-    ];
+    const processingEvents = ['payment_intent.processing'];
 
     const obj = event.data.object;
     let paymentIntentId = null;
@@ -264,7 +286,10 @@ export class PaymentsService {
     if (event.type.startsWith('payment_intent.')) {
       paymentIntentId = obj.id;
     } else {
-      paymentIntentId = typeof obj.payment_intent === 'string' ? obj.payment_intent : obj.payment_intent?.id;
+      paymentIntentId =
+        typeof obj.payment_intent === 'string'
+          ? obj.payment_intent
+          : obj.payment_intent?.id;
     }
 
     if (!paymentIntentId) {
@@ -285,7 +310,10 @@ export class PaymentsService {
         newStatus = PaymentStatus.FAILED;
       } else if (processingEvents.includes(event.type)) {
         newStatus = PaymentStatus.PROCESSING;
-      } else if (event.type.startsWith('refund.') || event.type === 'charge.refunded') {
+      } else if (
+        event.type.startsWith('refund.') ||
+        event.type === 'charge.refunded'
+      ) {
         if (obj.status === 'succeeded' || event.type === 'charge.refunded') {
           newStatus = PaymentStatus.REFUNDED;
         } else if (obj.status === 'failed') {
@@ -294,10 +322,15 @@ export class PaymentsService {
       }
 
       if (payment.status !== newStatus) {
-         payment.status = newStatus;
-         await this.paymentRepo.save(payment);
-         this.logger.log(`Payment status updated to ${newStatus} for booking ${payment.bookingId}`);
-         await this.bookingsService.updatePaymentStatus(payment.bookingId, newStatus);
+        payment.status = newStatus;
+        await this.paymentRepo.save(payment);
+        this.logger.log(
+          `Payment status updated to ${newStatus} for booking ${payment.bookingId}`,
+        );
+        await this.bookingsService.updatePaymentStatus(
+          payment.bookingId,
+          newStatus,
+        );
       }
     }
   }

@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { normalizeIdentifier } from '@nexa/shared'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
@@ -34,7 +35,10 @@ export function LoginPage() {
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null)
     try {
-      const user = await login(values)
+      const user = await login({
+        identifier: normalizeIdentifier(values.identifier),
+        password: values.password,
+      })
       if (user.role === 'admin' || user.role === 'superadmin') {
         navigate('/admin/dashboard', { replace: true })
       } else {
@@ -62,6 +66,9 @@ export function LoginPage() {
           <input
             className={inputCls}
             autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             {...register('identifier')}
           />
         </Field>

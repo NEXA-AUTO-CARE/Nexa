@@ -1,10 +1,10 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class ConvertVehicleTypeToVarchar1783335023307 implements MigrationInterface {
-    name = 'ConvertVehicleTypeToVarchar1783335023307';
+  name = 'ConvertVehicleTypeToVarchar1783335023307';
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
             DO $$ BEGIN
                 IF EXISTS (
                     SELECT 1 FROM information_schema.columns 
@@ -19,14 +19,14 @@ export class ConvertVehicleTypeToVarchar1783335023307 implements MigrationInterf
             END $$;
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             UPDATE "vehicles" SET "vehicle_type" = 'small_car' WHERE "vehicle_type" IN ('standard', 'regular', 'car');
             UPDATE "vehicles" SET "vehicle_type" = 'family_car' WHERE "vehicle_type" IN ('grande', 'seven_seater_4x4');
             UPDATE "vehicles" SET "vehicle_type" = 'large_suv_van' WHERE "vehicle_type" IN ('maxi', 'transit', 'small_van', 'large_van', 'suv', 'van');
         `);
-    }
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        // No-op for safety
-    }
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    // No-op for safety
+  }
 }

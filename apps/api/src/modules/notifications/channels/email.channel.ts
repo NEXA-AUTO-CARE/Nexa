@@ -26,21 +26,29 @@ export class EmailChannel {
     }
   }
 
-  async send(to: string, subject: string, html: string): Promise<void> {
+  async send(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<{ messageId?: string; success: boolean; error?: string }> {
     const from =
       this.config.get<string>('app.smtp.from') ?? 'NEXA <noreply@nexa.app>';
 
     if (!this.transporter) {
+      const mockId = `mock-email-${Date.now()}`;
       this.logger.log(`[EMAIL-DEV] To: ${to} | Subject: ${subject}`);
       this.logger.debug(`[EMAIL-DEV] Body: ${html}`);
-      return;
+      return { messageId: mockId, success: true };
     }
 
     try {
-      await this.transporter.sendMail({ from, to, subject, html });
-      this.logger.log(`Email sent to ${to}: "${subject}"`);
+      const info = await this.transporter.sendMail({ from, to, subject, html });
+      this.logger.log(`Email sent to ${to}: "${subject}" (ID: ${info.messageId})`);
+      return { messageId: info.messageId, success: true };
     } catch (err) {
-      this.logger.error(`Failed to send email to ${to}`, (err as Error).stack);
+      const errorMsg = (err as Error).message;
+      this.logger.error(`Failed to send email to ${to}: ${errorMsg}`, (err as Error).stack);
+      return { success: false, error: errorMsg };
     }
   }
 }

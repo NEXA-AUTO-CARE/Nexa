@@ -109,7 +109,23 @@ export class EnvSchema {
 
   @IsString()
   @IsOptional()
+  AWS_SNS_SENDER_ID?: string;
+
+  @IsString()
+  @IsOptional()
+  AWS_SNS_SMS_TYPE?: string;
+
+  @IsString()
+  @IsOptional()
   NOTIFICATION_SMS_PROVIDER?: string;
+
+  @IsString()
+  @IsOptional()
+  WHATSAPP_PROVIDER?: string;
+
+  @IsString()
+  @IsOptional()
+  TWILIO_WHATSAPP_FROM?: string;
 
   @IsString()
   @IsOptional()

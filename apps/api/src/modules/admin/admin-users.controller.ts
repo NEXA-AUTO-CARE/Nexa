@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -27,7 +36,11 @@ export class AdminUsersController {
 
   @Get()
   @ApiOperation({ summary: 'Admin: list users with optional status filter' })
-  @ApiQuery({ name: 'status', required: false, enum: ['all', 'active', 'inactive'] })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['all', 'active', 'inactive'],
+  })
   @ApiOkResponse({ type: [PublicUserDto] })
   async findAll(
     @Query('status') status?: 'all' | 'active' | 'inactive',

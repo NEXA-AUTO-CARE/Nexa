@@ -37,7 +37,7 @@ const CorporateFleetFields = ({ data, onChange }: CorporateFleetFieldsProps) => 
           </p>
         </div>
         <p className="text-xs text-muted-foreground -mt-1">
-          Fleet pricing and invoicing are handled by our team after request submission.
+          Book a wash for 1 or more vehicles. Invoicing and scheduling are handled directly by our finance team.
         </p>
 
         <Input
@@ -48,7 +48,7 @@ const CorporateFleetFields = ({ data, onChange }: CorporateFleetFieldsProps) => 
         />
         <div className="grid grid-cols-2 gap-3">
           <Input
-            placeholder="Fleet Size"
+            placeholder="No. of Vehicles (1+) *"
             value={data.fleetSize}
             onChange={(e) => update("fleetSize", e.target.value)}
             className={inputClass}

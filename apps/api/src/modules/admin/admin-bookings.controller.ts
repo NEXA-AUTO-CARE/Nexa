@@ -102,7 +102,9 @@ export class AdminBookingsController {
   @Get(':id')
   @ApiOperation({ summary: 'Admin: get booking details' })
   @ApiOkResponse({ description: 'Booking details' })
-  async getBooking(@Param('id', ParseUUIDPipe) id: string): Promise<BookingResponse> {
+  async getBooking(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<BookingResponse> {
     const booking = await this.bookingsService.findByIdWithRelations(id);
     return this.bookingsService.toResponse(booking);
   }
@@ -118,7 +120,10 @@ export class AdminBookingsController {
     const existing = await this.bookingsService.findById(id);
     const oldStatus = existing.status;
 
-    const booking = await this.bookingsService.adminUpdateStatus(id, dto.status);
+    const booking = await this.bookingsService.adminUpdateStatus(
+      id,
+      dto.status,
+    );
 
     await this.auditTrail.record(
       'BOOKING',
@@ -143,7 +148,10 @@ export class AdminBookingsController {
     const existing = await this.bookingsService.findById(id);
     const oldPaymentStatus = existing.paymentStatus;
 
-    const booking = await this.bookingsService.updatePaymentStatus(id, dto.status);
+    const booking = await this.bookingsService.updatePaymentStatus(
+      id,
+      dto.status,
+    );
 
     await this.auditTrail.record(
       'BOOKING',

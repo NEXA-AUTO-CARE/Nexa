@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { normalizeIdentifier } from '@nexa/shared'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
@@ -59,8 +60,9 @@ export function ForgotPasswordPage() {
   const handleRequestSubmit = requestForm.handleSubmit(async (values) => {
     setServerError(null)
     try {
-      await forgotPassword(values.identifier)
-      setIdentifier(values.identifier)
+      const normalizedId = normalizeIdentifier(values.identifier)
+      await forgotPassword(normalizedId)
+      setIdentifier(normalizedId)
       setStep('verify')
     } catch (err) {
       setServerError(describeError(err))
@@ -70,7 +72,7 @@ export function ForgotPasswordPage() {
   const handleOtpSubmit = otpForm.handleSubmit(async (values) => {
     setServerError(null)
     try {
-      const token = await verifyResetOtp(identifier, values.code)
+      const token = await verifyResetOtp(identifier, values.code.trim())
       setResetToken(token)
       setStep('reset')
     } catch (err) {
@@ -196,6 +198,9 @@ export function ForgotPasswordPage() {
             className={inputCls}
             placeholder="e.g. alex@example.com or +447123456789"
             autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             {...requestForm.register('identifier')}
           />
         </Field>

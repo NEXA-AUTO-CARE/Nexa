@@ -115,7 +115,7 @@ async function seed() {
       description: 'Comprehensive deep cleaning of all interior surfaces',
       price: '39.99',
       isActive: true,
-    })
+    }),
   ]);
 
   console.log('Seeding System Settings...');
@@ -190,9 +190,12 @@ async function seed() {
     settingRepo.create({
       key: 'vehicle_category_descriptions',
       value: JSON.stringify({
-        small_car: 'Subcompact hatchbacks, City cars, Small-segment hatchbacks (e.g., Fiat 500, Toyota Aygo, Toyota Yaris, Mini, VW Polo, VW Golf, Vauxhall Corsa)',
-        family_car: 'Mid-size sedans, Compact family hatchbacks, Crossover SUVs (e.g., Ford Focus, Audi A3, Tesla Model 3 / Model Y, Vauxhall Mokka, Mercedes-Benz C-Class / E-Class, Hyundai Tucson, Nissan Qashqai, Kia Sportage, BMW X3, Range Rover Evoque)',
-        large_suv_van: 'Full-size luxury SUVs, 7-seater passenger vehicles, Multi-purpose vans (e.g., Land Rover Discovery, Range Rover Velar, Audi Q7, BMW X5, Kia Sorento, VW Transporter)',
+        small_car:
+          'Subcompact hatchbacks, City cars, Small-segment hatchbacks (e.g., Fiat 500, Toyota Aygo, Toyota Yaris, Mini, VW Polo, VW Golf, Vauxhall Corsa)',
+        family_car:
+          'Mid-size sedans, Compact family hatchbacks, Crossover SUVs (e.g., Ford Focus, Audi A3, Tesla Model 3 / Model Y, Vauxhall Mokka, Mercedes-Benz C-Class / E-Class, Hyundai Tucson, Nissan Qashqai, Kia Sportage, BMW X3, Range Rover Evoque)',
+        large_suv_van:
+          'Full-size luxury SUVs, 7-seater passenger vehicles, Multi-purpose vans (e.g., Land Rover Discovery, Range Rover Velar, Audi Q7, BMW X5, Kia Sorento, VW Transporter)',
       }),
     }),
     settingRepo.create({ key: 'booking_fee', value: '1.49' }),

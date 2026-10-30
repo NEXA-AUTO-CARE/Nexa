@@ -8,6 +8,7 @@ import * as sns from 'aws-cdk-lib/aws-sns';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as rds from 'aws-cdk-lib/aws-rds';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import { AppConfig } from './config';
 
@@ -79,6 +80,14 @@ export class ApiServiceStack extends cdk.Stack {
     notificationTopic.grantPublish(taskDefinition.taskRole);
     dbCredentialsSecret.grantRead(taskDefinition.taskRole);
 
+    // Allow task role to publish direct SMS messages to phone numbers via AWS SNS
+    taskDefinition.taskRole.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        actions: ['sns:Publish', 'sns:GetSMSAttributes', 'sns:SetSMSAttributes'],
+        resources: ['*'],
+      }),
+    );
+
     // 6. Define the Container Definition
     const container = taskDefinition.addContainer('ApiContainer', {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
@@ -95,6 +104,8 @@ export class ApiServiceStack extends cdk.Stack {
         S3_FORCE_PATH_STYLE: 'false',
         AWS_SNS_REGION: this.region,
         AWS_SNS_TOPIC_ARN: notificationTopic.topicArn,
+        AWS_SNS_SENDER_ID: 'NEXA',
+        AWS_SNS_SMS_TYPE: 'Transactional',
         NOTIFICATION_SMS_PROVIDER: 'sns',
         DATABASE_HOST: dbHost,
         DATABASE_PORT: '5432',
