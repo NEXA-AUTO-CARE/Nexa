@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { CreateCorporateFleetEnquiryDto } from '@nexa/shared'
+import { isValidPhoneNumber, sanitizePhoneInput, type CreateCorporateFleetEnquiryDto } from '@nexa/shared'
 import { api } from '../../lib/api-client'
 import { describeError } from '../../lib/errors'
 import { useSettings } from '../../contexts/SettingsContext'
@@ -32,6 +32,10 @@ export function CorporateFleet() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isValidPhoneNumber(form.businessPhone)) {
+      setError('Please enter a valid business phone number.')
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
@@ -134,9 +138,11 @@ export function CorporateFleet() {
                 <span className="text-sm font-medium text-nexa-text-secondary">Business phone</span>
                 <input
                   className="nexa-input"
+                  type="tel"
+                  inputMode="tel"
                   required
                   value={form.businessPhone}
-                  onChange={(e) => update('businessPhone', e.target.value)}
+                  onChange={(e) => update('businessPhone', sanitizePhoneInput(e.target.value))}
                 />
               </label>
 

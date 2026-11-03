@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Building2 } from "lucide-react";
+import { isValidPhoneNumber, sanitizePhoneInput } from "@nexa/shared";
 
 export interface CorporateFleetData {
   companyName: string;
@@ -21,6 +22,9 @@ const CorporateFleetFields = ({ data, onChange }: CorporateFleetFieldsProps) => 
   const update = (field: keyof CorporateFleetData, value: string) => {
     onChange({ ...data, [field]: value });
   };
+
+  const phoneTrimmed = data.businessPhone.trim();
+  const phoneInvalid = phoneTrimmed.length > 0 && !isValidPhoneNumber(phoneTrimmed);
 
   return (
     <motion.div
@@ -69,13 +73,21 @@ const CorporateFleetFields = ({ data, onChange }: CorporateFleetFieldsProps) => 
           className={inputClass}
           type="email"
         />
-        <Input
-          placeholder="Business Phone"
-          value={data.businessPhone}
-          onChange={(e) => update("businessPhone", e.target.value)}
-          className={inputClass}
-          type="tel"
-        />
+        <div className="space-y-1">
+          <Input
+            placeholder="Business Phone * (e.g. +44 1224 000000)"
+            value={data.businessPhone}
+            onChange={(e) => update("businessPhone", sanitizePhoneInput(e.target.value))}
+            className={`${inputClass} ${phoneInvalid ? "border-destructive focus-visible:ring-destructive" : ""}`}
+            type="tel"
+            inputMode="tel"
+          />
+          {phoneInvalid && (
+            <p className="text-xs text-destructive">
+              Please enter a valid phone number (7–15 digits, e.g. +447700900077 or 01224000000).
+            </p>
+          )}
+        </div>
       </div>
     </motion.div>
   );

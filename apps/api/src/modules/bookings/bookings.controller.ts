@@ -27,6 +27,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { BookingsService } from './bookings.service';
 import {
   AssignVendorDto,
+  CreateBatchBookingDto,
   CreateBookingDto,
   RebookDto,
 } from './dto/create-booking.dto';
@@ -50,6 +51,19 @@ export class BookingsController {
   ): Promise<BookingResponse> {
     const booking = await this.bookings.create(user.userId, dto);
     return this.bookings.toResponse(booking);
+  }
+
+  @Post('batch')
+  @ApiOperation({
+    summary: 'Create multiple vehicle bookings in a single checkout',
+  })
+  @ApiCreatedResponse({ description: 'Bookings created' })
+  async createBatch(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateBatchBookingDto,
+  ): Promise<BookingResponse[]> {
+    const list = await this.bookings.createBatch(user.userId, dto);
+    return list.map((b) => this.bookings.toResponse(b));
   }
 
   @Get()

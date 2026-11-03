@@ -4,9 +4,11 @@ import {
   IsInt,
   IsNotEmpty,
   IsString,
+  Matches,
   MaxLength,
   Min,
 } from 'class-validator';
+import { FLEXIBLE_PHONE_REGEX } from '@nexa/shared';
 
 export class CreateCorporateFleetEnquiryDto {
   @ApiProperty({ example: 'Acme Logistics Ltd' })
@@ -35,5 +37,8 @@ export class CreateCorporateFleetEnquiryDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(30)
+  @Matches(FLEXIBLE_PHONE_REGEX, {
+    message: 'Please provide a valid business phone number',
+  })
   businessPhone: string;
 }

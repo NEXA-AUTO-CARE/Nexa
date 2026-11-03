@@ -1,7 +1,13 @@
-import { IsUUID } from 'class-validator';
+import { IsArray, IsOptional, IsUUID } from 'class-validator';
 import type { CreatePaymentIntentDto as ICreatePaymentIntentDto } from '@nexa/shared';
 
 export class CreatePaymentIntentDto implements ICreatePaymentIntentDto {
+  @IsOptional()
   @IsUUID()
-  bookingId: string;
+  bookingId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID('all', { each: true })
+  bookingIds?: string[];
 }

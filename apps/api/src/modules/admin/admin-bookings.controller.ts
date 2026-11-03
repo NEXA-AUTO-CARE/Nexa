@@ -152,6 +152,7 @@ export class AdminBookingsController {
       id,
       dto.status,
     );
+    await this.paymentsService.syncAdminPaymentStatusOverride(id, dto.status);
 
     await this.auditTrail.record(
       'BOOKING',

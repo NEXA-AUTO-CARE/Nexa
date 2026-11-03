@@ -26,7 +26,10 @@ import {
   ServiceAddon,
   Review,
 } from '../../database/entities';
-import { CreateBookingDto } from './dto/create-booking.dto';
+import {
+  CreateBatchBookingDto,
+  CreateBookingDto,
+} from './dto/create-booking.dto';
 import { CreateReviewDto } from './dto/create-review.dto';
 import {
   UpdateCustomerBookingDto,
@@ -261,6 +264,153 @@ export class BookingsService {
     );
 
     return full;
+  }
+
+  /**
+   * Create bookings for multiple vehicles in a single checkout.
+   * The platform booking fee is charged once per checkout (applied to the first booking),
+   * and each vehicle has its own add-ons and category pricing.
+   */
+  async createBatch(
+    userId: string,
+    dto: CreateBatchBookingDto,
+  ): Promise<Booking[]> {
+    if (!dto.vehicles || dto.vehicles.length === 0) {
+      throw new BadRequestException('At least one vehicle must be selected');
+    }
+
+    const uniqueVehicleIds = Array.from(
+      new Set(dto.vehicles.map((v) => v.vehicleId)),
+    );
+    if (uniqueVehicleIds.length !== dto.vehicles.length) {
+      throw new BadRequestException(
+        'Duplicate vehicles cannot be booked in the same batch',
+      );
+    }
+
+    const bookingTime = new Date(dto.bookingTime);
+    if (bookingTime.getTime() - Date.now() < 48 * 60 * 60 * 1000 - 60000) {
+      throw new BadRequestException(
+        'Booking must be at least 48 hours in advance',
+      );
+    }
+    await this.assertBookingDateNotBlocked(bookingTime);
+
+    const vehicles = await this.vehicleRepo.find({
+      where: { vehicleId: In(uniqueVehicleIds), ownerId: userId },
+    });
+    if (vehicles.length !== uniqueVehicleIds.length) {
+      throw new BadRequestException(
+        'One or more selected vehicles were not found or do not belong to you',
+      );
+    }
+    const vehicleById = new Map(vehicles.map((v) => [v.vehicleId, v]));
+
+    const dynamicFee = await this.getBookingFee();
+    const promo = await this.promotionsService.findBestActivePromotion(userId);
+    const createdBookings: Booking[] = [];
+
+    for (let i = 0; i < dto.vehicles.length; i++) {
+      const item = dto.vehicles[i];
+      const vehicle = vehicleById.get(item.vehicleId)!;
+
+      const servicePriceOnly = await this.getBasePriceForCategory(
+        vehicle.vehicleType,
+      );
+      let basePrice = servicePriceOnly;
+      let addonsSnapshot: { addonId: string; name: string; price: string }[] =
+        [];
+
+      if (item.addonIds && item.addonIds.length > 0) {
+        const addons = await this.addonRepo.find({
+          where: { addonId: In(item.addonIds), isActive: true },
+        });
+        if (addons.length !== item.addonIds.length) {
+          throw new BadRequestException(
+            'One or more selected add-ons are invalid or inactive',
+          );
+        }
+        addonsSnapshot = addons.map((a) => ({
+          addonId: a.addonId,
+          name: a.name,
+          price: a.price,
+        }));
+        const addonsTotal = addons.reduce(
+          (sum, a) => sum + parseFloat(a.price),
+          0,
+        );
+        basePrice += addonsTotal;
+      }
+
+      // Charge the booking fee once per checkout (on the first booking in the batch)
+      if (i === 0) {
+        basePrice += dynamicFee;
+      }
+
+      let discountAmount = 0;
+      let isFreeBooking = false;
+      const originalPrice = basePrice;
+
+      // Apply promotion to the first booking in the batch
+      if (i === 0 && promo) {
+        const result = await this.promotionsService.calculateDiscount(
+          promo,
+          userId,
+          basePrice,
+          servicePriceOnly,
+        );
+        discountAmount = result.discount;
+        isFreeBooking = result.isFree;
+      }
+
+      const finalPrice = Math.max(0, basePrice - discountAmount);
+      const bookingReference =
+        'BKG-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+
+      const booking = this.bookingRepo.create({
+        userId,
+        bookingReference,
+        vehicleId: item.vehicleId,
+        serviceType: dto.serviceType ?? ServiceType.BASIC,
+        bookingTime: new Date(dto.bookingTime),
+        serviceAddress: dto.serviceAddress.trim(),
+        servicePhone: dto.servicePhone ? dto.servicePhone.trim() : null,
+        latitude: dto.latitude?.toString() ?? null,
+        longitude: dto.longitude?.toString() ?? null,
+        price: finalPrice.toFixed(2),
+        addons: addonsSnapshot,
+        agreedSafeSpace: dto.agreedSafeSpace,
+        agreedDetailsCorrect: dto.agreedDetailsCorrect,
+        status: BookingStatus.BOOKED,
+        promotionId: i === 0 && promo ? promo.promotionId : null,
+        originalPrice: i === 0 && promo ? originalPrice.toFixed(2) : null,
+        discountAmount: i === 0 && promo ? discountAmount.toFixed(2) : null,
+        addressLine1: dto.addressLine1 ?? null,
+        addressLine2: dto.addressLine2 ?? null,
+        addressLine3: dto.addressLine3 ?? null,
+        postTown: dto.postTown ?? null,
+        postcode: dto.postcode ?? null,
+        uprn: dto.uprn ?? null,
+        paymentStatus: PaymentStatus.PENDING,
+      });
+
+      const saved = await this.bookingRepo.save(booking);
+
+      if (i === 0 && promo) {
+        await this.promotionsService.recordRedemption(
+          promo.promotionId,
+          userId,
+          saved.bookingId,
+          discountAmount,
+          isFreeBooking,
+        );
+      }
+
+      const full = await this.findByIdWithRelations(saved.bookingId);
+      createdBookings.push(full);
+    }
+
+    return createdBookings;
   }
 
   async findAllByUser(userId: string): Promise<Booking[]> {

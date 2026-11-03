@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Gift } from "lucide-react";
+import { sanitizePhoneInput } from "@nexa/shared";
 
 export interface GiftRecipientData {
   fullName: string;
@@ -53,9 +54,10 @@ const GiftRecipientFields = ({ data, onChange, disabled = false }: GiftRecipient
       <Input
         placeholder="Telephone Number *"
         value={data.telephone}
-        onChange={(e) => update("telephone", e.target.value)}
+        onChange={(e) => update("telephone", sanitizePhoneInput(e.target.value))}
         className={inputClass}
         type="tel"
+        inputMode="tel"
         disabled={disabled}
       />
       <Textarea

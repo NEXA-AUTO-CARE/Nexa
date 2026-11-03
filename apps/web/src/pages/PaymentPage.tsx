@@ -77,9 +77,26 @@ function parseInlineElements(text: string): ReactNode {
 
 const PaymentPage = () => {
   const navigate = useNavigate();
-  const location = useLocation() as { state?: { bookingId?: string }; search?: string };
+  const location = useLocation() as {
+    state?: { bookingId?: string; bookingIds?: string[] };
+    search?: string;
+  };
   const searchParams = new URLSearchParams(location.search);
-  const bookingId = location.state?.bookingId || searchParams.get('bookingId');
+  const rawIdsFromSearch = searchParams
+    .get("bookingIds")
+    ?.split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const singleBookingId = location.state?.bookingId || searchParams.get("bookingId");
+  const bookingIds =
+    location.state?.bookingIds && location.state.bookingIds.length > 0
+      ? location.state.bookingIds
+      : rawIdsFromSearch && rawIdsFromSearch.length > 0
+        ? rawIdsFromSearch
+        : singleBookingId
+          ? [singleBookingId]
+          : [];
+  const primaryBookingId = bookingIds[0];
   const settings = useSettings();
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -89,16 +106,23 @@ const PaymentPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [agreed, setAgreed] = useState(false);
 
-  const { data: booking } = useQuery<BookingResponse>({
-    queryKey: ["booking", bookingId],
+  const { data: bookings = [] } = useQuery<BookingResponse[]>({
+    queryKey: ["bookings-checkout", ...bookingIds],
     queryFn: async () => {
-      const { data } = await api.get<BookingResponse>(`/bookings/${bookingId}`);
-      return data;
+      const results = await Promise.all(
+        bookingIds.map(async (id) => {
+          const { data } = await api.get<BookingResponse>(`/bookings/${id}`);
+          return data;
+        }),
+      );
+      return results;
     },
-    enabled: !!bookingId,
+    enabled: bookingIds.length > 0,
   });
 
-  if (!bookingId) return <Navigate to="/book" replace />;
+  if (!primaryBookingId) return <Navigate to="/book" replace />;
+
+  const booking = bookings[0];
 
   const startPayment = async () => {
     if (!agreed || initingRef.current) {
@@ -112,7 +136,8 @@ const PaymentPage = () => {
     setError(null);
     try {
       const { data } = await api.post<{ clientSecret: string; amount: string }>("/payments/intent", {
-        bookingId,
+        bookingId: primaryBookingId,
+        bookingIds,
       });
       setClientSecret(data.clientSecret);
       setAmount(data.amount);
@@ -124,10 +149,21 @@ const PaymentPage = () => {
     }
   };
 
-  // Price breakdown calculations
-  const totalVal = parseFloat(booking?.price || "0.00");
-  const addonsTotal = booking?.addons?.reduce((sum, a) => sum + parseFloat(a.price), 0) ?? 0;
-  const bookingFee = parseFloat(settings.bookingFee || "1.49");
+  // Price breakdown calculations (booking fee charged once per checkout)
+  const totalVal = bookings.reduce((sum, b) => sum + parseFloat(b.price || "0.00"), 0);
+  const addonsTotal = bookings.reduce(
+    (sum, b) => sum + (b.addons?.reduce((aSum, a) => aSum + parseFloat(a.price), 0) ?? 0),
+    0,
+  );
+  const configuredFee = parseFloat(settings.bookingFee || "1.49");
+  const remainderAfterAddons = Math.round((totalVal - addonsTotal) * 100) / 100;
+  const hasBookingFeeIncluded =
+    bookings.length > 0 &&
+    configuredFee > 0 &&
+    (configuredFee % 1 === 0
+      ? remainderAfterAddons >= configuredFee
+      : Math.abs((remainderAfterAddons % 1) - (configuredFee % 1)) < 0.01);
+  const bookingFee = hasBookingFeeIncluded ? configuredFee : 0;
   const baseServicePrice = Math.max(0, totalVal - addonsTotal - bookingFee);
 
   // Dynamic Terms & Conditions parsing
@@ -174,9 +210,21 @@ const PaymentPage = () => {
         
         {/* DETAILS */}
         <div className="space-y-2 text-xs divide-y divide-border/40">
-          <div className="flex justify-between py-2 first:pt-0">
-            <span className="text-muted-foreground">Vehicle Details</span>
-            <span className="font-semibold">{booking?.vehicleSummary ?? "—"}</span>
+          <div className="flex justify-between py-2 first:pt-0 gap-4">
+            <span className="text-muted-foreground shrink-0">
+              Vehicle{bookings.length > 1 ? `s (${bookings.length})` : " Details"}
+            </span>
+            <div className="text-right space-y-1">
+              {bookings.length > 0 ? (
+                bookings.map((b) => (
+                  <p key={b.bookingId} className="font-semibold">
+                    {b.vehicleSummary}
+                  </p>
+                ))
+              ) : (
+                <span className="font-semibold">—</span>
+              )}
+            </div>
           </div>
           <div className="flex justify-between py-2">
             <span className="text-muted-foreground">When</span>
@@ -191,18 +239,29 @@ const PaymentPage = () => {
         {/* PRICING BREAKDOWN */}
         <div className="border-t border-border/50 pt-4 space-y-2.5 text-xs">
           <div className="flex justify-between text-muted-foreground">
-            <span>{settings.serviceLabelFor()} (Tier Base)</span>
+            <span>
+              {settings.serviceLabelFor()} (Tier Base
+              {bookings.length > 1 ? ` × ${bookings.length} vehicles` : ""})
+            </span>
             <span>£{baseServicePrice.toFixed(2)}</span>
           </div>
 
-          {booking?.addons && booking.addons.length > 0 && (
+          {bookings.some((b) => b.addons && b.addons.length > 0) && (
             <div className="space-y-1.5 pl-3 border-l border-primary/20">
-              {booking.addons.map((a) => (
-                <div key={a.addonId} className="flex justify-between text-muted-foreground text-[11px]">
-                  <span>+ {a.name}</span>
-                  <span>£{parseFloat(a.price).toFixed(2)}</span>
-                </div>
-              ))}
+              {bookings.map((b) =>
+                (b.addons ?? []).map((a) => (
+                  <div
+                    key={`${b.bookingId}-${a.addonId}`}
+                    className="flex justify-between text-muted-foreground text-[11px]"
+                  >
+                    <span>
+                      + {a.name}
+                      {bookings.length > 1 ? ` (${b.vehicleSummary})` : ""}
+                    </span>
+                    <span>£{parseFloat(a.price).toFixed(2)}</span>
+                  </div>
+                )),
+              )}
             </div>
           )}
 

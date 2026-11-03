@@ -30,6 +30,12 @@ const Facebook = ({ className }: { className?: string }) => (
     <path d="M13 22v-8h2.7l.4-3H13V9.1c0-.87.24-1.46 1.48-1.46H16.6V5a21 21 0 0 0-2.3-.12c-2.3 0-3.87 1.4-3.87 3.98V11H8v3h2.43v8z" />
   </svg>
 );
+
+const TikTok = ({ className }: { className?: string }) => (
+  <svg {...brandSvg} fill="currentColor" className={className}>
+    <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743l-.002-.001.002.001a2.895 2.895 0 0 1 3.183-4.51v-3.5a6.329 6.329 0 0 0-5.394 10.692 6.33 6.33 0 0 0 10.857-4.424V8.687a8.182 8.182 0 0 0 4.773 1.526V6.79a4.831 4.831 0 0 1-1.003-.104z" />
+  </svg>
+);
 import heroImage from "@/assets/hero-detailing.jpg";
 import nexaLogo from "@/assets/nexa-logo.png";
 import ctaAbstract from "@/assets/cta-abstract.jpg";
@@ -221,19 +227,62 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border px-4 py-6 text-center">
-        <div className="flex items-center justify-center gap-4 mb-3">
-          <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+      <footer className="border-t border-border px-4 py-8 text-center space-y-3">
+        <div className="flex items-center justify-center gap-5">
+          <a
+            href="https://www.linkedin.com/company/nexa-autocare/"
+            aria-label="LinkedIn"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors"
+          >
             <Linkedin className="h-5 w-5" />
           </a>
-          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+          <a
+            href="https://www.instagram.com/invites/contact/?igsh=1fhgsrzweu0dq&utm_content=4d7kaws"
+            aria-label="Instagram"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors"
+          >
             <Instagram className="h-5 w-5" />
           </a>
-          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+          <a
+            href="https://www.facebook.com/share/18aQ5XRd2s/?mibextid=wwXIfr"
+            aria-label="Facebook"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors"
+          >
             <Facebook className="h-5 w-5" />
           </a>
+          <a
+            href="https://www.tiktok.com/@nexahq_?_r=1&_t=ZN-96RQzgOqt9i"
+            aria-label="TikTok"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors"
+          >
+            <TikTok className="h-5 w-5" />
+          </a>
         </div>
-        <p className="text-xs text-muted-foreground">© 2026 NEXA. All rights reserved. Aberdeen, Scotland.</p>
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <p className="font-medium text-foreground/80">
+            NEXA Autocare Technologies Ltd (Company No. SC886916)
+          </p>
+          <p>
+            One Tech Hub, Schoolhill, Aberdeen, AB10 1JQ, Scotland ·{" "}
+            <a
+              href="mailto:hello@nexaautocare.com"
+              className="hover:text-primary underline-offset-2 hover:underline"
+            >
+              hello@nexaautocare.com
+            </a>
+          </p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          © 2026 NEXA Autocare Technologies Ltd. All rights reserved. Aberdeen, Scotland.
+        </p>
       </footer>
     </div>
   );
