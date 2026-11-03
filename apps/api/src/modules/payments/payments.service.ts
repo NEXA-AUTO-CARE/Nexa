@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BookingStatus, PaymentStatus } from '@nexa/shared';
 import type { PaymentResponse } from '@nexa/shared';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import Stripe from 'stripe';
 import { Payment } from '../../database/entities';
 import { BookingsService } from '../bookings/bookings.service';
@@ -54,54 +54,138 @@ export class PaymentsService {
     userId: string,
     dto: CreatePaymentIntentDto,
   ): Promise<PaymentResponse> {
-    // 1. Verify booking exists and belongs to user
-    const booking = await this.bookingsService.verifyMyBooking(
-      dto.bookingId,
-      userId,
-    );
+    const rawIds =
+      dto.bookingIds && dto.bookingIds.length > 0
+        ? dto.bookingIds
+        : dto.bookingId
+          ? [dto.bookingId]
+          : [];
+    const targetBookingIds = Array.from(new Set(rawIds));
 
-    if (
-      booking.status === BookingStatus.COMPLETED ||
-      booking.status === BookingStatus.CANCELLED
-    ) {
-      throw new BadRequestException(
-        'Booking cannot be paid for in its current status',
-      );
+    if (targetBookingIds.length === 0) {
+      throw new BadRequestException('At least one bookingId is required');
     }
 
-    // 2. Check if a pending payment already exists for this booking
-    let payment = await this.paymentRepo.findOne({
-      where: { bookingId: dto.bookingId },
+    // 1. Verify all bookings exist and belong to user
+    const bookings = await Promise.all(
+      targetBookingIds.map((id) =>
+        this.bookingsService.verifyMyBooking(id, userId),
+      ),
+    );
+
+    for (const booking of bookings) {
+      if (
+        booking.status === BookingStatus.COMPLETED ||
+        booking.status === BookingStatus.CANCELLED
+      ) {
+        throw new BadRequestException(
+          'Booking cannot be paid for in its current status',
+        );
+      }
+      if (
+        booking.paymentStatus === PaymentStatus.CAPTURED ||
+        booking.paymentStatus === PaymentStatus.REFUNDED
+      ) {
+        throw new BadRequestException('Booking is already paid');
+      }
+    }
+
+    // 2. Check existing payments for these bookings
+    const existingPayments = await this.paymentRepo.find({
+      where:
+        targetBookingIds.length === 1
+          ? { bookingId: targetBookingIds[0] }
+          : { bookingId: In(targetBookingIds) },
     });
 
-    const amountInCents = Math.round(parseFloat(booking.price) * 100);
-
-    let clientSecret: string | null = null;
-
-    if (payment && payment.status === PaymentStatus.CAPTURED) {
+    if (
+      existingPayments.some(
+        (p) =>
+          p.status === PaymentStatus.CAPTURED ||
+          p.status === PaymentStatus.REFUNDED,
+      )
+    ) {
       throw new BadRequestException('Booking is already paid');
     }
 
-    if (payment && payment.stripePaymentIntentId) {
-      // Update existing payment intent if amount changed (unlikely but good practice)
-      const intent = await this.stripe.paymentIntents.retrieve(
-        payment.stripePaymentIntentId,
-      );
-      clientSecret = intent.client_secret;
+    const totalPriceNum = bookings.reduce(
+      (sum, b) => sum + parseFloat(b.price),
+      0,
+    );
+    const totalPriceStr = totalPriceNum.toFixed(2);
+    const amountInCents = Math.round(totalPriceNum * 100);
 
-      if (intent.amount !== amountInCents) {
-        await this.stripe.paymentIntents.update(payment.stripePaymentIntentId, {
-          amount: amountInCents,
-        });
+    let clientSecret: string | null = null;
+    const existingIntentIds = Array.from(
+      new Set(
+        existingPayments
+          .map((p) => p.stripePaymentIntentId)
+          .filter((id): id is string => !!id),
+      ),
+    );
+
+    let sharedIntentId: string | null =
+      existingPayments.length === targetBookingIds.length &&
+      existingIntentIds.length === 1
+        ? existingIntentIds[0]
+        : null;
+
+    // Ensure the candidate PaymentIntent isn't shared with other bookings outside this checkout
+    if (sharedIntentId) {
+      const allPaymentsForIntent = await this.paymentRepo.find({
+        where: { stripePaymentIntentId: sharedIntentId },
+      });
+      if (allPaymentsForIntent && allPaymentsForIntent.length > 0) {
+        const targetSet = new Set(targetBookingIds);
+        const exactMatch =
+          allPaymentsForIntent.length === targetSet.size &&
+          allPaymentsForIntent.every((p) => targetSet.has(p.bookingId));
+        if (!exactMatch) {
+          sharedIntentId = null;
+        }
       }
-    } else {
-      // 3. Create a new Stripe PaymentIntent
+    }
+
+    if (sharedIntentId && !sharedIntentId.startsWith('pi_mock_')) {
+      const intent =
+        await this.stripe.paymentIntents.retrieve(sharedIntentId);
+      if (intent.status === 'succeeded') {
+        await this.syncPaymentStatusByIntentId(
+          sharedIntentId,
+          userId,
+          'admin',
+        );
+        throw new BadRequestException('Booking is already paid');
+      }
+      if (intent.status === 'canceled') {
+        sharedIntentId = null;
+      } else {
+        clientSecret = intent.client_secret;
+
+        if (intent.amount !== amountInCents) {
+          await this.stripe.paymentIntents.update(sharedIntentId, {
+            amount: amountInCents,
+            metadata: {
+              bookingId: targetBookingIds[0],
+              bookingIds: targetBookingIds.join(','),
+              userId: userId,
+            },
+          });
+        }
+      }
+    }
+
+    if (sharedIntentId && sharedIntentId.startsWith('pi_mock_')) {
+      clientSecret = 'pi_mock_secret';
+    } else if (!sharedIntentId) {
+      // 3. Create a new Stripe PaymentIntent covering all bookings in this checkout
       try {
         const paymentIntent = await this.stripe.paymentIntents.create({
           amount: amountInCents,
           currency: 'gbp',
           metadata: {
-            bookingId: booking.bookingId,
+            bookingId: targetBookingIds[0],
+            bookingIds: targetBookingIds.join(','),
             userId: userId,
           },
           automatic_payment_methods: {
@@ -109,53 +193,23 @@ export class PaymentsService {
           },
         });
 
+        sharedIntentId = paymentIntent.id;
         clientSecret = paymentIntent.client_secret;
-
-        // 4. Save Payment record to database
-        const split = splitPayout(booking.price);
-        const transactionReference =
-          'TXN-' + crypto.randomBytes(4).toString('hex').toUpperCase();
-
-        payment = this.paymentRepo.create({
-          bookingId: booking.bookingId,
-          stripePaymentIntentId: paymentIntent.id,
-          transactionReference,
-          amount: booking.price,
-          platformFee: split.platformFee,
-          vendorPayout: split.vendorPayout,
-          status: PaymentStatus.PENDING,
-        });
-
-        await this.paymentRepo.save(payment);
         this.logger.log(
-          `Created Stripe PaymentIntent ${paymentIntent.id} for booking ${booking.bookingId}`,
+          `Created Stripe PaymentIntent ${paymentIntent.id} for booking(s) ${targetBookingIds.join(', ')}`,
         );
-      } catch (err) {
+      } catch (err: any) {
         this.logger.error('Failed to create Stripe PaymentIntent', err);
-        // Fallback for dev mode if stripe isn't configured properly
         if (
           err.message?.includes('Invalid API Key') ||
           !this.config.get('app.stripe.secret') ||
           this.config.get('app.stripe.secret') === 'sk_test_replace_me'
         ) {
           this.logger.warn('Mocking payment intent for development');
-          const split = splitPayout(booking.price);
-          const transactionReference =
-            'TXN-' + crypto.randomBytes(4).toString('hex').toUpperCase();
-
-          payment = this.paymentRepo.create({
-            bookingId: booking.bookingId,
-            stripePaymentIntentId: 'pi_mock_' + Date.now(),
-            transactionReference,
-            amount: booking.price,
-            platformFee: split.platformFee,
-            vendorPayout: split.vendorPayout,
-            status: PaymentStatus.PENDING,
-          });
-          await this.paymentRepo.save(payment);
+          sharedIntentId = 'pi_mock_' + Date.now();
           clientSecret = 'pi_mock_secret';
           this.logger.log(
-            `Created Mock PaymentIntent for booking ${booking.bookingId}`,
+            `Created Mock PaymentIntent for booking(s) ${targetBookingIds.join(', ')}`,
           );
         } else {
           throw new BadRequestException('Payment gateway error');
@@ -163,7 +217,40 @@ export class PaymentsService {
       }
     }
 
-    return this.toResponse(payment, clientSecret ?? undefined);
+    // 4. Upsert Payment record per booking
+    const savedPayments: Payment[] = [];
+    for (const booking of bookings) {
+      let payment = existingPayments.find(
+        (p) => p.bookingId === booking.bookingId,
+      );
+      const split = splitPayout(booking.price);
+      if (payment) {
+        payment.stripePaymentIntentId = sharedIntentId!;
+        payment.amount = booking.price;
+        payment.platformFee = split.platformFee;
+        payment.vendorPayout = split.vendorPayout;
+      } else {
+        const transactionReference =
+          'TXN-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+        payment = this.paymentRepo.create({
+          bookingId: booking.bookingId,
+          stripePaymentIntentId: sharedIntentId!,
+          transactionReference,
+          amount: booking.price,
+          platformFee: split.platformFee,
+          vendorPayout: split.vendorPayout,
+          status: PaymentStatus.PENDING,
+        });
+      }
+      savedPayments.push(await this.paymentRepo.save(payment));
+    }
+
+    const primaryPayment = savedPayments[0];
+    return {
+      ...this.toResponse(primaryPayment, clientSecret ?? undefined),
+      bookingIds: targetBookingIds,
+      amount: totalPriceStr,
+    };
   }
 
   async syncPaymentStatusByIntentId(
@@ -171,24 +258,32 @@ export class PaymentsService {
     userId: string,
     userRole?: string,
   ): Promise<PaymentResponse> {
-    const payment = await this.paymentRepo.findOne({
+    const foundList = await this.paymentRepo.find({
       where: { stripePaymentIntentId: paymentIntentId },
     });
+    const payments =
+      foundList && foundList.length > 0
+        ? foundList
+        : await this.paymentRepo
+            .findOne({ where: { stripePaymentIntentId: paymentIntentId } })
+            .then((p) => (p ? [p] : []));
 
-    if (!payment) {
+    if (payments.length === 0) {
       throw new NotFoundException('Payment record not found');
     }
 
     // Verify booking ownership if the user is not an admin
     if (userRole !== 'admin' && userRole !== 'super_admin') {
-      await this.bookingsService.verifyMyBooking(payment.bookingId, userId);
+      for (const p of payments) {
+        await this.bookingsService.verifyMyBooking(p.bookingId, userId);
+      }
     }
 
-    if (!payment.stripePaymentIntentId.startsWith('pi_mock_')) {
+    if (!paymentIntentId.startsWith('pi_mock_')) {
       try {
         const intent =
           await this.stripe.paymentIntents.retrieve(paymentIntentId);
-        let newStatus = payment.status;
+        let newStatus = payments[0].status;
 
         if (intent.status === 'succeeded') {
           newStatus = PaymentStatus.CAPTURED;
@@ -203,16 +298,22 @@ export class PaymentsService {
           newStatus = PaymentStatus.FAILED;
         }
 
-        if (payment.status !== newStatus) {
-          payment.status = newStatus;
-          await this.paymentRepo.save(payment);
-          this.logger.log(
-            `Payment status synced to ${newStatus} for intent ${paymentIntentId}`,
-          );
-          await this.bookingsService.updatePaymentStatus(
-            payment.bookingId,
-            newStatus,
-          );
+        for (const payment of payments) {
+          // Never overwrite an already-refunded payment back to CAPTURED when syncing a succeeded PaymentIntent
+          if (payment.status === PaymentStatus.REFUNDED) {
+            continue;
+          }
+          if (payment.status !== newStatus) {
+            payment.status = newStatus;
+            await this.paymentRepo.save(payment);
+            this.logger.log(
+              `Payment status synced to ${newStatus} for intent ${paymentIntentId} (booking ${payment.bookingId})`,
+            );
+            await this.bookingsService.updatePaymentStatus(
+              payment.bookingId,
+              newStatus,
+            );
+          }
         }
       } catch (e) {
         this.logger.error(
@@ -222,7 +323,10 @@ export class PaymentsService {
       }
     }
 
-    return this.toResponse(payment);
+    return {
+      ...this.toResponse(payments[0]),
+      bookingIds: payments.map((p) => p.bookingId),
+    };
   }
 
   async syncPaymentStatusByBookingId(
@@ -297,27 +401,52 @@ export class PaymentsService {
       return;
     }
 
-    const payment = await this.paymentRepo.findOne({
+    const foundList = await this.paymentRepo.find({
       where: { stripePaymentIntentId: paymentIntentId },
     });
+    const payments =
+      foundList && foundList.length > 0
+        ? foundList
+        : await this.paymentRepo
+            .findOne({ where: { stripePaymentIntentId: paymentIntentId } })
+            .then((p) => (p ? [p] : []));
 
-    if (payment) {
+    for (const payment of payments) {
       let newStatus = payment.status;
 
       if (successEvents.includes(event.type)) {
-        newStatus = PaymentStatus.CAPTURED;
+        if (payment.status !== PaymentStatus.REFUNDED) {
+          newStatus = PaymentStatus.CAPTURED;
+        }
       } else if (failedEvents.includes(event.type)) {
         newStatus = PaymentStatus.FAILED;
       } else if (processingEvents.includes(event.type)) {
         newStatus = PaymentStatus.PROCESSING;
-      } else if (
-        event.type.startsWith('refund.') ||
-        event.type === 'charge.refunded'
-      ) {
-        if (obj.status === 'succeeded' || event.type === 'charge.refunded') {
+      } else if (event.type.startsWith('refund.')) {
+        const targetBookingId = obj.metadata?.bookingId;
+        if (targetBookingId && targetBookingId !== payment.bookingId) {
+          continue;
+        }
+        if (obj.status === 'succeeded') {
           newStatus = PaymentStatus.REFUNDED;
         } else if (obj.status === 'failed') {
           newStatus = PaymentStatus.CAPTURED;
+        }
+      } else if (event.type === 'charge.refunded') {
+        const isPartialMultiBookingCharge =
+          payments.length > 1 && obj.refunded === false;
+        if (isPartialMultiBookingCharge) {
+          const refundsList: any[] = obj.refunds?.data ?? [];
+          const matchingRefund = refundsList.find(
+            (r) =>
+              r?.metadata?.bookingId === payment.bookingId &&
+              r?.status === 'succeeded',
+          );
+          if (matchingRefund) {
+            newStatus = PaymentStatus.REFUNDED;
+          }
+        } else {
+          newStatus = PaymentStatus.REFUNDED;
         }
       }
 
@@ -335,34 +464,120 @@ export class PaymentsService {
     }
   }
 
+  async syncAdminPaymentStatusOverride(
+    bookingId: string,
+    newStatus: PaymentStatus,
+  ): Promise<void> {
+    let payment = await this.paymentRepo.findOne({ where: { bookingId } });
+    if (payment) {
+      payment.status = newStatus;
+      await this.paymentRepo.save(payment);
+      return;
+    }
+
+    if (
+      newStatus === PaymentStatus.CAPTURED ||
+      newStatus === PaymentStatus.REFUNDED
+    ) {
+      const booking = await this.bookingsService.findById(bookingId);
+      if (booking) {
+        const split = splitPayout(booking.price);
+        payment = this.paymentRepo.create({
+          bookingId: booking.bookingId,
+          stripePaymentIntentId: 'pi_mock_admin_' + Date.now(),
+          transactionReference:
+            'TXN-' + crypto.randomBytes(4).toString('hex').toUpperCase(),
+          amount: booking.price,
+          platformFee: split.platformFee,
+          vendorPayout: split.vendorPayout,
+          status: newStatus,
+        });
+        await this.paymentRepo.save(payment);
+      }
+    }
+  }
+
   async refundBookingPayment(bookingId: string): Promise<Payment> {
-    const payment = await this.paymentRepo.findOne({ where: { bookingId } });
-
-    if (!payment) {
-      throw new BadRequestException(
-        'No payment record found for this booking. Only confirmed paid bookings can be refunded.',
-      );
-    }
-
-    if (payment.status !== PaymentStatus.CAPTURED) {
-      throw new BadRequestException(
-        `Only confirmed paid bookings (Captured) can be refunded. Current payment status is "${payment.status}".`,
-      );
-    }
-
     const booking = await this.bookingsService.findById(bookingId);
     if (!booking) {
       throw new NotFoundException('Booking not found');
     }
 
+    let payment = await this.paymentRepo.findOne({ where: { bookingId } });
+
     if (
-      payment.stripePaymentIntentId &&
+      payment?.status === PaymentStatus.REFUNDED ||
+      booking.paymentStatus === PaymentStatus.REFUNDED
+    ) {
+      throw new BadRequestException('This booking has already been refunded.');
+    }
+
+    // If a Stripe PaymentIntent exists, check its live status in Stripe first
+    let stripeIntentStatus: string | null = null;
+    if (
+      payment?.stripePaymentIntentId &&
       !payment.stripePaymentIntentId.startsWith('pi_mock_')
     ) {
       try {
-        await this.stripe.refunds.create({
-          payment_intent: payment.stripePaymentIntentId,
-        });
+        const intent = await this.stripe.paymentIntents.retrieve(
+          payment.stripePaymentIntentId,
+        );
+        stripeIntentStatus = intent.status;
+        if (
+          intent.status === 'succeeded' &&
+          payment.status !== PaymentStatus.CAPTURED
+        ) {
+          payment.status = PaymentStatus.CAPTURED;
+          await this.paymentRepo.save(payment);
+        }
+      } catch (e) {
+        this.logger.warn(
+          `Could not retrieve Stripe PaymentIntent ${payment.stripePaymentIntentId} before refund`,
+          e,
+        );
+      }
+    }
+
+    const isPaid =
+      payment?.status === PaymentStatus.CAPTURED ||
+      booking.paymentStatus === PaymentStatus.CAPTURED ||
+      stripeIntentStatus === 'succeeded';
+
+    if (!isPaid) {
+      if (!payment) {
+        throw new BadRequestException(
+          'No payment record found for this booking. Only confirmed paid bookings can be refunded.',
+        );
+      }
+      throw new BadRequestException(
+        `Only confirmed paid bookings (Captured) can be refunded. Current payment status is "${payment.status}".`,
+      );
+    }
+
+    if (
+      payment?.stripePaymentIntentId &&
+      !payment.stripePaymentIntentId.startsWith('pi_mock_')
+    ) {
+      try {
+        if (stripeIntentStatus === null || stripeIntentStatus === 'succeeded') {
+          const amountInCents = Math.round(
+            parseFloat(payment.amount || booking.price) * 100,
+          );
+          await this.stripe.refunds.create({
+            payment_intent: payment.stripePaymentIntentId,
+            ...(amountInCents > 0 ? { amount: amountInCents } : {}),
+            metadata: { bookingId },
+          });
+        } else if (
+          stripeIntentStatus === 'requires_capture' ||
+          stripeIntentStatus === 'requires_payment_method' ||
+          stripeIntentStatus === 'requires_confirmation' ||
+          stripeIntentStatus === 'requires_action'
+        ) {
+          await this.stripe.paymentIntents
+            .cancel(payment.stripePaymentIntentId)
+            .catch(() => undefined);
+        }
       } catch (e: any) {
         this.logger.error('Failed to trigger Stripe refund', e);
         if (e?.code !== 'charge_already_refunded') {
@@ -373,7 +588,22 @@ export class PaymentsService {
       }
     }
 
-    payment.status = PaymentStatus.REFUNDED;
+    if (!payment) {
+      const split = splitPayout(booking.price);
+      payment = this.paymentRepo.create({
+        bookingId: booking.bookingId,
+        stripePaymentIntentId: 'pi_mock_admin_' + Date.now(),
+        transactionReference:
+          'TXN-' + crypto.randomBytes(4).toString('hex').toUpperCase(),
+        amount: booking.price,
+        platformFee: split.platformFee,
+        vendorPayout: split.vendorPayout,
+        status: PaymentStatus.REFUNDED,
+      });
+    } else {
+      payment.status = PaymentStatus.REFUNDED;
+    }
+
     const savedPayment = await this.paymentRepo.save(payment);
 
     this.logger.log(`Refunded payment for booking ${bookingId}`);

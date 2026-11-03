@@ -49,3 +49,26 @@ describe('parseIdentifier', () => {
     expect(() => parseIdentifier('   ')).toThrow();
   });
 });
+
+describe('sanitizePhoneInput and isValidPhoneNumber (BUG-34)', () => {
+  const {
+    sanitizePhoneInput,
+    isValidPhoneNumber,
+  } = require('@nexa/shared');
+
+  it('strips alphabetic and special characters while preserving valid phone characters', () => {
+    expect(sanitizePhoneInput('+44 (0) 7700-900123 abc!@#')).toBe(
+      '+44 (0) 7700-900123 ',
+    );
+    expect(sanitizePhoneInput('hello+44+123')).toBe('44123');
+  });
+
+  it('validates real UK/international phone numbers and rejects letters or short strings', () => {
+    expect(isValidPhoneNumber('+44 7700 900123')).toBe(true);
+    expect(isValidPhoneNumber('01224 123456')).toBe(true);
+    expect(isValidPhoneNumber('+44 (0) 1224-555-666')).toBe(true);
+    expect(isValidPhoneNumber('abcdefg')).toBe(false);
+    expect(isValidPhoneNumber('12345')).toBe(false);
+    expect(isValidPhoneNumber('+44 7700 abcdef')).toBe(false);
+  });
+});

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../../lib/api-client'
+import { describeError } from '../../lib/errors'
+import { useToast } from '@/hooks/use-toast'
 import {
   CalendarDays,
   User,
@@ -61,6 +63,7 @@ interface SystemUser {
 export default function AdminBookingDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { toast } = useToast()
 
   const [booking, setBooking] = useState<Booking | null>(null)
   const [vendors, setVendors] = useState<SystemUser[]>([])
@@ -68,6 +71,7 @@ export default function AdminBookingDetailsPage() {
   const [processing, setProcessing] = useState(false)
   const [actionSuccess, setActionSuccess] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [showRefundModal, setShowRefundModal] = useState(false)
   
   const [selectedVendorId, setSelectedVendorId] = useState('')
   const [newStatus, setNewStatus] = useState('')
@@ -186,8 +190,13 @@ export default function AdminBookingDetailsPage() {
       await loadData()
     } catch (err: unknown) {
       console.error(err)
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setActionError(message || 'Action failed.')
+      const message = describeError(err, 'Action failed.')
+      setActionError(message)
+      toast({
+        title: 'Action failed',
+        description: message,
+        variant: 'destructive',
+      })
     } finally {
       setProcessing(false)
     }
@@ -228,22 +237,23 @@ export default function AdminBookingDetailsPage() {
     setActionSuccess('Vendor payout successfully initiated.')
   })
 
-  const handleRefund = () => handleAction(async () => {
+  const handleRefundClick = () => {
     if (!booking) return
-    if (booking.paymentStatus.toLowerCase() !== 'captured') {
-      throw new Error(`Only confirmed paid bookings (Captured) can be refunded. Current payment status is "${booking.paymentStatus}".`)
-    }
-    const isAlreadyCompleted = booking.status.toLowerCase() === 'completed'
-    const promptMessage = isAlreadyCompleted
-      ? 'This booking is marked as Completed. Refunding will issue a full refund via Stripe and cancel the booking. Are you sure you want to proceed?'
-      : 'Are you sure you want to refund this booking in full via Stripe? This will issue a full refund and cancel the job.'
+    setShowRefundModal(true)
+  }
 
-    if (!window.confirm(promptMessage)) {
-      return
-    }
-    await api.post(`/payments/bookings/${id}/refund`)
-    setActionSuccess('Customer refund successfully processed in Stripe and booking marked as cancelled.')
-  })
+  const executeRefund = () =>
+    handleAction(async () => {
+      if (!booking) return
+      await api.post(`/payments/bookings/${id}/refund`)
+      setShowRefundModal(false)
+      const msg = 'Customer refund successfully processed in Stripe and booking marked as cancelled.'
+      setActionSuccess(msg)
+      toast({
+        title: 'Refund Initiated',
+        description: msg,
+      })
+    })
 
   const handleDeleteBooking = async () => {
     if (!window.confirm('Are you sure you want to permanently delete this booking? This action cannot be undone.')) {
@@ -610,21 +620,24 @@ export default function AdminBookingDetailsPage() {
             <div className="space-y-3">
               <p className="text-xs text-nexa-text-secondary">Financial Actions:</p>
               <button
-                disabled={processing || booking.paymentStatus !== PaymentStatus.CAPTURED}
-                onClick={handleRefund}
+                type="button"
+                disabled={processing || booking.paymentStatus?.toLowerCase() === PaymentStatus.REFUNDED}
+                onClick={handleRefundClick}
                 className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
-                  booking.paymentStatus === PaymentStatus.CAPTURED
-                    ? 'border-nexa-error/25 bg-nexa-error/5 hover:bg-nexa-error/10 text-nexa-error'
-                    : 'border-nexa-border-subtle bg-nexa-bg-deep/50 text-nexa-text-muted cursor-not-allowed opacity-60'
+                  booking.paymentStatus?.toLowerCase() === PaymentStatus.REFUNDED
+                    ? 'border-nexa-border-subtle bg-nexa-bg-deep/50 text-nexa-text-muted cursor-not-allowed opacity-60'
+                    : 'border-nexa-error/25 bg-nexa-error/5 hover:bg-nexa-error/10 text-nexa-error'
                 }`}
                 title={
-                  booking.paymentStatus !== PaymentStatus.CAPTURED
-                    ? 'Only confirmed paid bookings (Captured) can be refunded'
+                  booking.paymentStatus?.toLowerCase() === PaymentStatus.REFUNDED
+                    ? 'This booking has already been refunded'
                     : 'Initiate full customer refund in Stripe'
                 }
               >
                 <XCircle className="w-4 h-4" />
-                Initiate Refund
+                {booking.paymentStatus?.toLowerCase() === PaymentStatus.REFUNDED
+                  ? 'Already Refunded'
+                  : 'Initiate Refund'}
               </button>
               <button
                 disabled={processing || !booking.vendorId || !isCompleted}
@@ -668,6 +681,80 @@ export default function AdminBookingDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* REFUND CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {showRefundModal && booking && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="glass-card w-full max-w-md p-6 space-y-5 border border-nexa-border-subtle bg-nexa-bg-card-solid"
+            >
+              <div className="flex items-center justify-between border-b border-nexa-border-subtle pb-3">
+                <h3 className="text-lg font-bold text-nexa-text flex items-center gap-2">
+                  <XCircle className="w-5 h-5 text-nexa-error" />
+                  Initiate Stripe Refund
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowRefundModal(false)}
+                  className="p-1.5 rounded-lg text-nexa-text-secondary hover:text-nexa-text hover:bg-nexa-bg-elevated transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-sm text-nexa-text-secondary">
+                {booking.paymentStatus?.toLowerCase() === PaymentStatus.CAPTURED ? (
+                  <>
+                    <p>
+                      Are you sure you want to issue a full refund of{' '}
+                      <strong className="text-nexa-text">£{parseFloat(booking.price).toFixed(2)}</strong> via Stripe?
+                    </p>
+                    <p className="text-xs text-nexa-text-muted">
+                      This will process the refund in Stripe, mark the payment as Refunded, and cancel the booking.
+                    </p>
+                  </>
+                ) : (
+                  <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 space-y-2 text-xs">
+                    <p className="font-semibold flex items-center gap-1.5">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      Payment Status: <span className="uppercase">{booking.paymentStatus}</span>
+                    </p>
+                    <p>
+                      Only confirmed paid bookings (<strong>Captured</strong>) can be refunded in Stripe. If the customer has already paid in Stripe, click <strong>Attempt Stripe Sync & Refund</strong> below, or update the payment status to Captured first.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-nexa-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setShowRefundModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-nexa-border-subtle bg-nexa-bg hover:bg-nexa-bg-elevated text-nexa-text text-sm transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={processing}
+                  onClick={executeRefund}
+                  className="px-5 py-2.5 rounded-xl bg-nexa-error text-white font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-50"
+                >
+                  {processing
+                    ? 'Processing…'
+                    : booking.paymentStatus?.toLowerCase() === PaymentStatus.CAPTURED
+                    ? 'Confirm Refund in Stripe'
+                    : 'Attempt Stripe Sync & Refund'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* EDIT BOOKING MODAL */}
       <AnimatePresence>

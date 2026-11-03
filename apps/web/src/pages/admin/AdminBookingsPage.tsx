@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../../lib/api-client'
+import { describeError } from '../../lib/errors'
+import { useToast } from '@/hooks/use-toast'
 import {
   CalendarDays,
   User,
@@ -60,6 +62,7 @@ interface SystemUser {
 
 export default function AdminBookingsPage() {
   const navigate = useNavigate()
+  const { toast } = useToast()
   const [searchParams] = useSearchParams()
   const initialPaymentParam = searchParams.get('payment') || 'all'
 
@@ -178,32 +181,28 @@ export default function AdminBookingsPage() {
   }
 
   const handleRefund = async (booking: Booking) => {
-    if (booking.paymentStatus?.toLowerCase() !== 'captured') {
-      setActionError(`Only confirmed paid bookings (Captured) can be refunded. Current payment status is "${booking.paymentStatus}".`)
-      return
-    }
-
-    const isAlreadyCompleted = booking.status.toLowerCase() === 'completed'
-    const promptMessage = isAlreadyCompleted
-      ? 'This booking is marked as Completed. Refunding will issue a full refund via Stripe and cancel the booking. Are you sure you want to proceed?'
-      : 'Are you sure you want to refund this booking in full via Stripe? This will issue a full refund and cancel the job.'
-
-    if (!window.confirm(promptMessage)) {
-      return
-    }
-
     try {
       setProcessingId(booking.bookingId)
       setActionError(null)
       setActionSuccess(null)
 
       await api.post(`/payments/bookings/${booking.bookingId}/refund`)
-      setActionSuccess('Customer refund successfully processed in Stripe.')
+      const msg = 'Customer refund successfully processed in Stripe.'
+      setActionSuccess(msg)
+      toast({
+        title: 'Refund Initiated',
+        description: msg,
+      })
       await loadData()
     } catch (err: unknown) {
       console.error(err)
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setActionError(message || 'Failed to process refund.')
+      const message = describeError(err, 'Failed to process refund.')
+      setActionError(message)
+      toast({
+        title: 'Refund Failed',
+        description: message,
+        variant: 'destructive',
+      })
     } finally {
       setProcessingId(null)
     }
@@ -579,23 +578,24 @@ export default function AdminBookingsPage() {
                     {/* Payout & Refund Buttons */}
                     {!isCancelled && (
                       <div className="grid grid-cols-2 gap-2">
-                        {/* Refund Booking (Only allowed if paid) */}
+                        {/* Refund Booking */}
                         <button
-                          disabled={isProcessing || !isPaid}
+                          type="button"
+                          disabled={isProcessing || isRefunded}
                           onClick={() => handleRefund(booking)}
                           className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-semibold transition-all duration-300 ${
-                            isPaid
-                              ? 'border-nexa-error/25 bg-nexa-error/5 hover:bg-nexa-error/10 text-nexa-error'
-                              : 'border-nexa-border-subtle bg-nexa-bg-deep/50 text-nexa-text-muted cursor-not-allowed opacity-50'
+                            isRefunded
+                              ? 'border-nexa-border-subtle bg-nexa-bg-deep/50 text-nexa-text-muted cursor-not-allowed opacity-50'
+                              : 'border-nexa-error/25 bg-nexa-error/5 hover:bg-nexa-error/10 text-nexa-error'
                           }`}
                           title={
-                            !isPaid
-                              ? 'Only confirmed paid bookings can be refunded'
+                            isRefunded
+                              ? 'Already refunded'
                               : 'Issue Full Refund & Cancel in Stripe'
                           }
                         >
                           <XCircle className="w-3.5 h-3.5" />
-                          <span>Refund</span>
+                          <span>{isRefunded ? 'Refunded' : 'Refund'}</span>
                         </button>
 
                         {/* Payout Vendor */}

@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSettings } from "../contexts/SettingsContext";
-import type { CreateCorporateFleetEnquiryDto, CreateVehicleDto } from "@nexa/shared";
+import { isValidPhoneNumber, type CreateCorporateFleetEnquiryDto, type CreateVehicleDto } from "@nexa/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import { Car, Plus, X, Truck, Send, Trash2, Droplets, Gift } from "lucide-react";
+import { Car, Plus, X, Truck, Send, Trash2, Droplets, Gift, Check } from "lucide-react";
 import VehicleCategorySelector, {
   type VehicleCategoryId,
   buildCategories,
@@ -50,6 +50,13 @@ const GaragePage = () => {
   const [corporateData, setCorporateData] = useState<CorporateFleetData>(emptyCorporateData);
   const [giftData, setGiftData] = useState<GiftRecipientData>(emptyGiftData);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedVehicleIds, setSelectedVehicleIds] = useState<string[]>([]);
+
+  const toggleVehicleSelection = (vehicleId: string) => {
+    setSelectedVehicleIds((prev) =>
+      prev.includes(vehicleId) ? prev.filter((id) => id !== vehicleId) : [...prev, vehicleId],
+    );
+  };
 
   useEffect(() => {
     if ((location.state as { giftMode?: boolean } | null)?.giftMode) {
@@ -82,11 +89,24 @@ const GaragePage = () => {
   const canSubmit = () => {
     if (!selectedCategory || submitting) return false;
     if (isCorporate) {
-      return !!(corporateData.companyName && corporateData.contactPerson && corporateData.businessEmail);
+      return !!(
+        corporateData.companyName &&
+        corporateData.contactPerson &&
+        corporateData.businessEmail &&
+        isValidPhoneNumber(corporateData.businessPhone)
+      );
     }
     const vehicleValid = !!(plate && make && model);
     if (isGiftMode) {
-      return vehicleValid && !!(giftData.fullName && giftData.email && giftData.telephone && giftData.address);
+      return (
+        vehicleValid &&
+        !!(
+          giftData.fullName &&
+          giftData.email &&
+          isValidPhoneNumber(giftData.telephone) &&
+          giftData.address
+        )
+      );
     }
     return vehicleValid;
   };
@@ -258,6 +278,60 @@ const GaragePage = () => {
       </AnimatePresence>
 
       {/* Vehicle list */}
+      {vehicles.length > 1 && (
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs text-muted-foreground">
+            Select multiple vehicles to book and pay in one checkout
+          </p>
+          <button
+            type="button"
+            onClick={() =>
+              setSelectedVehicleIds(
+                selectedVehicleIds.length === vehicles.length
+                  ? []
+                  : vehicles.map((v) => v.vehicleId),
+              )
+            }
+            className="text-xs font-semibold text-primary hover:underline"
+          >
+            {selectedVehicleIds.length === vehicles.length ? "Clear Selection" : "Select All"}
+          </button>
+        </div>
+      )}
+
+      {selectedVehicleIds.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card p-3.5 border-primary bg-primary/10 flex items-center justify-between gap-3"
+        >
+          <div>
+            <p className="text-sm font-heading font-semibold text-foreground">
+              {selectedVehicleIds.length} vehicle{selectedVehicleIds.length > 1 ? "s" : ""} selected
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Base total: £
+              {selectedVehicleIds
+                .reduce((sum, id) => {
+                  const v = vehicles.find((veh) => veh.vehicleId === id);
+                  return sum + (v ? Number(priceFor(v.vehicleType)) : 0);
+                }, 0)
+                .toFixed(2)}{" "}
+              · Single checkout
+            </p>
+          </div>
+          <Button
+            variant="hero"
+            size="sm"
+            className="gap-1.5 shrink-0"
+            onClick={() => navigate(`/book?vehicleIds=${selectedVehicleIds.join(",")}`)}
+          >
+            <Droplets className="h-3.5 w-3.5" />
+            Book Selected ({selectedVehicleIds.length})
+          </Button>
+        </motion.div>
+      )}
+
       <div className="space-y-3">
         {isLoading ? (
           <div className="glass-card p-4 text-sm text-muted-foreground">Loading your vehicles…</div>
@@ -266,58 +340,86 @@ const GaragePage = () => {
             No vehicles yet — add your first to book a wash.
           </div>
         ) : (
-          vehicles.map((v, i) => (
-            <motion.div
-              key={v.vehicleId}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="glass-card p-4 space-y-3"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
-                  <span className="text-muted-foreground">
-                    {v.vehicleType?.toLowerCase().includes("van") ? (
-                      <Truck className="h-5 w-5" />
-                    ) : (
-                      <Car className="h-5 w-5" />
-                    )}
+          vehicles.map((v, i) => {
+            const isSelected = selectedVehicleIds.includes(v.vehicleId);
+            return (
+              <motion.div
+                key={v.vehicleId}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className={`glass-card p-4 space-y-3 transition-all ${
+                  isSelected ? "border-primary bg-primary/5 ring-1 ring-primary/30" : ""
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    aria-label={`Select ${v.make} ${v.model}`}
+                    onClick={() => toggleVehicleSelection(v.vehicleId)}
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-colors ${
+                      isSelected
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-secondary hover:border-primary/50"
+                    }`}
+                  >
+                    {isSelected && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                  </button>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
+                    <span className="text-muted-foreground">
+                      {v.vehicleType?.toLowerCase().includes("van") ? (
+                        <Truck className="h-5 w-5" />
+                      ) : (
+                        <Car className="h-5 w-5" />
+                      )}
+                    </span>
+                  </div>
+                  <div
+                    className="flex-1 min-w-0 cursor-pointer"
+                    onClick={() => toggleVehicleSelection(v.vehicleId)}
+                  >
+                    <p className="font-heading font-semibold">
+                      {v.make} {v.model}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {v.registrationNumber} · {labelFor(v.vehicleType)}
+                    </p>
+                  </div>
+                  <span className="rounded-full px-2.5 py-1 text-[10px] font-medium bg-secondary text-muted-foreground">
+                    £{priceFor(v.vehicleType)}
                   </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-heading font-semibold">
-                    {v.make} {v.model}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {v.registrationNumber} · {labelFor(v.vehicleType)}
-                  </p>
-                </div>
-                <span className="rounded-full px-2.5 py-1 text-[10px] font-medium bg-secondary text-muted-foreground">
-                  £{priceFor(v.vehicleType)}
-                </span>
-              </div>
 
-              <div className="flex gap-2">
-                <Button
-                  variant="hero"
-                  size="sm"
-                  className="flex-1 gap-1.5"
-                  onClick={() => navigate(`/book?vehicleId=${v.vehicleId}`)}
-                >
-                  <Droplets className="h-3.5 w-3.5" />
-                  Book a Wash
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1 text-destructive hover:text-destructive hover:bg-destructive/10 px-2"
-                  onClick={() => handleRemove(v.vehicleId, `${v.make} ${v.model}`)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </motion.div>
-          ))
+                <div className="flex gap-2">
+                  <Button
+                    variant="hero"
+                    size="sm"
+                    className="flex-1 gap-1.5"
+                    onClick={() =>
+                      navigate(
+                        selectedVehicleIds.length > 1 && isSelected
+                          ? `/book?vehicleIds=${selectedVehicleIds.join(",")}`
+                          : `/book?vehicleId=${v.vehicleId}`,
+                      )
+                    }
+                  >
+                    <Droplets className="h-3.5 w-3.5" />
+                    {selectedVehicleIds.length > 1 && isSelected
+                      ? `Book ${selectedVehicleIds.length} Selected Vehicles`
+                      : "Book a Wash"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1 text-destructive hover:text-destructive hover:bg-destructive/10 px-2"
+                    onClick={() => handleRemove(v.vehicleId, `${v.make} ${v.model}`)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </motion.div>
+            );
+          })
         )}
       </div>
     </div>

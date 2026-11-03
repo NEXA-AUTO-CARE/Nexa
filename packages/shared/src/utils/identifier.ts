@@ -8,6 +8,28 @@ export interface IdentifierParts {
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const PHONE_REGEX = /^\+?[1-9]\d{6,14}$/;
+export const FLEXIBLE_PHONE_REGEX = /^\+?[0-9\s\-()]{7,20}$/;
+
+/**
+ * Strips any character not valid in a phone number input (letters, arbitrary symbols),
+ * keeping only digits, spaces, hyphens, parentheses, and a leading '+'.
+ */
+export function sanitizePhoneInput(value: string): string {
+  const hasLeadingPlus = value.trimStart().startsWith('+');
+  const cleaned = value.replace(/[^0-9\s\-()]/g, '');
+  return hasLeadingPlus ? `+${cleaned}` : cleaned;
+}
+
+/**
+ * Checks whether a phone string contains a valid 7-to-15 digit phone number
+ * (supporting UK domestic 07.../01... and international +44... formats).
+ */
+export function isValidPhoneNumber(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed || !FLEXIBLE_PHONE_REGEX.test(trimmed)) return false;
+  const digitsOnly = trimmed.replace(/\D/g, '');
+  return digitsOnly.length >= 7 && digitsOnly.length <= 15;
+}
 
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();

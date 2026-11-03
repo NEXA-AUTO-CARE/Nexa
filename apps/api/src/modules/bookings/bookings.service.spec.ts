@@ -40,6 +40,7 @@ describe('BookingsService', () => {
       findOne: jest.fn(),
     };
     vehicleRepo = {
+      find: jest.fn(),
       findOne: jest.fn(),
     };
     addonRepo = {
@@ -100,6 +101,7 @@ describe('BookingsService', () => {
         serviceType: ServiceType.BASIC,
         bookingTime: futureDate,
         serviceAddress: '123 Test St',
+        servicePhone: '+447700900000',
         agreedSafeSpace: true,
         agreedDetailsCorrect: true,
       };
@@ -124,6 +126,7 @@ describe('BookingsService', () => {
         serviceType: ServiceType.BASIC,
         bookingTime: futureDate,
         serviceAddress: '123 Test St',
+        servicePhone: '+447700900000',
         agreedSafeSpace: true,
         agreedDetailsCorrect: true,
       };
@@ -161,6 +164,48 @@ describe('BookingsService', () => {
         }),
       ).rejects.toThrow(/not available on the selected date/);
       expect(bookingRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should create a multi-vehicle batch charging the booking fee once', async () => {
+      settingsService.findOne.mockImplementation(async (key: string) =>
+        key === 'booking_fee' ? { key, value: '1.49' } : null,
+      );
+      vehicleRepo.find.mockResolvedValue([
+        { vehicleId: 'v1', ownerId: 'u1', vehicleType: 'small_car' },
+        { vehicleId: 'v2', ownerId: 'u1', vehicleType: 'family_car' },
+      ]);
+      bookingRepo.create.mockImplementation((input: any) => input);
+      let idx = 0;
+      bookingRepo.save.mockImplementation(async (b: any) => ({
+        ...b,
+        bookingId: `b${++idx}`,
+      }));
+      bookingRepo.findOne.mockImplementation(async ({ where }: any) => ({
+        bookingId: where.bookingId,
+        price: where.bookingId === 'b1' ? '41.49' : '50.00',
+      }));
+
+      const futureDate = new Date(
+        Date.now() + 72 * 60 * 60 * 1000,
+      ).toISOString();
+      const result = await service.createBatch('u1', {
+        vehicles: [{ vehicleId: 'v1' }, { vehicleId: 'v2' }],
+        bookingTime: futureDate,
+        serviceAddress: '123 Test St',
+        servicePhone: '+447700900000',
+        agreedSafeSpace: true,
+        agreedDetailsCorrect: true,
+      });
+
+      expect(result).toHaveLength(2);
+      expect(bookingRepo.create).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ vehicleId: 'v1', price: '41.49' }),
+      );
+      expect(bookingRepo.create).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ vehicleId: 'v2', price: '50.00' }),
+      );
     });
   });
 
@@ -406,6 +451,87 @@ describe('BookingsService', () => {
 
       const price = await service.getBasePriceForCategory('sedan');
       expect(price).toBe(50.0);
+    });
+  });
+
+  describe('DTO Phone Validation (BUG-34)', () => {
+    const { plainToInstance } = require('class-transformer');
+    const { validate } = require('class-validator');
+    const {
+      CreateBookingDto,
+      CreateBatchBookingDto,
+    } = require('./dto/create-booking.dto');
+    const {
+      CreateCorporateFleetEnquiryDto,
+    } = require('../corporate/dto/corporate.dto');
+
+    it('rejects non-phone characters in CreateBookingDto.servicePhone', async () => {
+      const dto = plainToInstance(CreateBookingDto, {
+        vehicleId: '018f3b2c-1234-7000-8000-000000000001',
+        bookingTime: new Date(Date.now() + 86400000).toISOString(),
+        serviceAddress: '10 Union Street, Aberdeen',
+        servicePhone: 'not-a-phone-number!',
+        agreedSafeSpace: true,
+        agreedDetailsCorrect: true,
+      });
+      const errors = await validate(dto);
+      expect(errors.some((e: any) => e.property === 'servicePhone')).toBe(true);
+    });
+
+    it('accepts valid UK/international phone numbers in CreateBookingDto.servicePhone', async () => {
+      const dto = plainToInstance(CreateBookingDto, {
+        vehicleId: '018f3b2c-1234-7000-8000-000000000001',
+        bookingTime: new Date(Date.now() + 86400000).toISOString(),
+        serviceAddress: '10 Union Street, Aberdeen',
+        servicePhone: '+44 7700 900123',
+        agreedSafeSpace: true,
+        agreedDetailsCorrect: true,
+      });
+      const errors = await validate(dto);
+      expect(errors.some((e: any) => e.property === 'servicePhone')).toBe(
+        false,
+      );
+    });
+
+    it('rejects non-phone characters in CreateBatchBookingDto.servicePhone', async () => {
+      const dto = plainToInstance(CreateBatchBookingDto, {
+        vehicles: [{ vehicleId: '018f3b2c-1234-7000-8000-000000000001' }],
+        bookingTime: new Date(Date.now() + 86400000).toISOString(),
+        serviceAddress: '10 Union Street, Aberdeen',
+        servicePhone: 'abc123xyz',
+        agreedSafeSpace: true,
+        agreedDetailsCorrect: true,
+      });
+      const errors = await validate(dto);
+      expect(errors.some((e: any) => e.property === 'servicePhone')).toBe(true);
+    });
+
+    it('rejects non-phone characters in CreateCorporateFleetEnquiryDto.businessPhone', async () => {
+      const dto = plainToInstance(CreateCorporateFleetEnquiryDto, {
+        companyName: 'Acme Corp Ltd',
+        contactPerson: 'Jane Doe',
+        businessEmail: 'jane@acme.co.uk',
+        businessPhone: 'call-me-maybe',
+        fleetSize: 10,
+      });
+      const errors = await validate(dto);
+      expect(errors.some((e: any) => e.property === 'businessPhone')).toBe(
+        true,
+      );
+    });
+
+    it('accepts valid phone numbers in CreateCorporateFleetEnquiryDto.businessPhone', async () => {
+      const dto = plainToInstance(CreateCorporateFleetEnquiryDto, {
+        companyName: 'Acme Corp Ltd',
+        contactPerson: 'Jane Doe',
+        businessEmail: 'jane@acme.co.uk',
+        businessPhone: '01224 555666',
+        fleetSize: 10,
+      });
+      const errors = await validate(dto);
+      expect(errors.some((e: any) => e.property === 'businessPhone')).toBe(
+        false,
+      );
     });
   });
 });

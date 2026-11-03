@@ -68,7 +68,7 @@ export class UpdateCustomerBookingDto {
 export class AdminUpdateBookingDto extends UpdateCustomerBookingDto {
   @ApiPropertyOptional({ example: ['a1b2c3d4-...'] })
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   @IsOptional()
   addonIds?: string[];
 }

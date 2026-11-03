@@ -1,12 +1,14 @@
 import type { PaymentStatus } from '../../enums/payment-status.enum.js';
 
 export interface CreatePaymentIntentDto {
-  bookingId: string;
+  bookingId?: string;
+  bookingIds?: string[];
 }
 
 export interface PaymentResponse {
   paymentId: string;
   bookingId: string;
+  bookingIds?: string[];
   transactionReference?: string;
   status: PaymentStatus;
   amount: string;
