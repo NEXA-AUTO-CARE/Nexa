@@ -81,3 +81,5 @@ read_xlsx_tmp/*
 .vibe/
 cdk.out/
 
+
+.bruin.yml

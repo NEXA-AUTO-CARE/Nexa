@@ -48,6 +48,9 @@ jobs:
       - name: Set up QEMU for ARM64 builds
         uses: docker/setup-qemu-action@v3
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build, tag, and push API image to Amazon ECR
         id: build-image
         env:
@@ -55,10 +58,15 @@ jobs:
           ECR_REPOSITORY: nexa-api-production
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -f apps/api/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          docker buildx build \
+            --platform linux/arm64 \
+            --provenance=false \
+            --push \
+            -f apps/api/Dockerfile \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
+            .
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Download task definition
         run: |
@@ -96,7 +104,8 @@ jobs:
           EXIT_CODE=$(aws ecs describe-tasks --cluster nexa-cluster-production --tasks $TASK_ARN --query 'tasks[0].containers[0].exitCode' --output text)
           if [ "$EXIT_CODE" != "0" ]; then
             echo "Migration task failed with exit code $EXIT_CODE."
-            aws logs get-log-events --log-group-name /ecs/nexa-api-production --log-stream-name nexa-api/ApiContainer/${TASK_ARN##*/} --query 'events[*].message' --output text
+            aws ecs describe-tasks --cluster nexa-cluster-production --tasks "$TASK_ARN" --query 'tasks[0].{stopCode:stopCode,stoppedReason:stoppedReason,containerReason:containers[0].reason}' --output json
+            aws logs get-log-events --log-group-name /ecs/nexa-api-production --log-stream-name "nexa-api/ApiContainer/${TASK_ARN##*/}" --query 'events[*].message' --output text || true
             exit 1
           fi
           echo "Database migrations completed successfully."
