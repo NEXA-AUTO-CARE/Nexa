@@ -18,6 +18,7 @@ async function bootstrap() {
   app.enableCors({
     origin: config.getOrThrow<string>('app.webOrigin'),
     credentials: true,
+    exposedHeaders: ['Content-Disposition', 'X-Report-Row-Count'],
   });
   app.setGlobalPrefix('api', { exclude: ['/'] });
 
@@ -41,6 +42,7 @@ async function bootstrap() {
     .addTag('auth', 'Signup, OTP verification, login, refresh, logout')
     .addTag('users', 'Current user profile')
     .addTag('admin/roles', 'Role and permission management (super_admin only)')
+    .addTag('admin/reporting', 'Admin analytics & CSV export reporting')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);

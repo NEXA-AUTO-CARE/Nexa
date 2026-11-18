@@ -6,4 +6,5 @@ export * from './addons/index.js';
 export * from './corporate/index.js';
 export * from './admin/index.js';
 export * from './promotions/index.js';
+export * from './reporting/index.js';
 
