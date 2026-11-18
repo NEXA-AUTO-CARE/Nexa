@@ -31,6 +31,7 @@ import AdminPromotionsPage from './pages/admin/AdminPromotionsPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import AdminUserDetailsPage from './pages/admin/AdminUserDetailsPage'
 import AdminVendorsPage from './pages/admin/AdminVendorsPage'
+import AdminReportingPage from './pages/admin/AdminReportingPage'
 
 function RootRedirect() {
   const { user, loading } = useAuth()
@@ -79,6 +80,7 @@ function App() {
       >
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/reporting" element={<AdminReportingPage />} />
         <Route path="/admin/bookings" element={<AdminBookingsPage />} />
         <Route path="/admin/bookings/:id" element={<AdminBookingDetailsPage />} />
         <Route path="/admin/corporate" element={<AdminCorporatePage />} />

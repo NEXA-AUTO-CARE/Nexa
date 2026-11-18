@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   CheckCircle,
   AlertTriangle,
+  BarChart3,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import AdminScheduleCalendar from '../../components/admin/AdminScheduleCalendar'
@@ -134,9 +135,18 @@ export default function AdminDashboard() {
             Nexa Valet Operations & Commercial Analytics Hub.
           </p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-nexa-mint/10 border border-nexa-mint/20 text-nexa-mint text-xs font-semibold self-start md:self-auto">
-          <ShieldCheck className="w-4 h-4" />
-          <span>System Status: Optimal</span>
+        <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
+          <Link
+            to="/admin/reporting"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-nexa-mint/15 border border-nexa-mint/30 text-nexa-mint text-xs font-semibold hover:bg-nexa-mint/25 transition-all"
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span>Reporting & CSV Export</span>
+          </Link>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-nexa-mint/10 border border-nexa-mint/20 text-nexa-mint text-xs font-semibold">
+            <ShieldCheck className="w-4 h-4" />
+            <span>System Status: Optimal</span>
+          </div>
         </div>
       </div>
 

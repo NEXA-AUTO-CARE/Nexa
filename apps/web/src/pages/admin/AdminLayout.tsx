@@ -17,6 +17,7 @@ import {
   Megaphone,
   Users,
   Store,
+  BarChart3,
 } from 'lucide-react'
 
 export default function AdminLayout() {
@@ -53,6 +54,12 @@ export default function AdminLayout() {
       path: '/admin/dashboard',
       icon: LayoutDashboard,
       desc: 'Overview & metrics',
+    },
+    {
+      name: 'Reporting & Analytics',
+      path: '/admin/reporting',
+      icon: BarChart3,
+      desc: 'Insights & CSV exports',
     },
     {
       name: 'Bookings & Matching',
